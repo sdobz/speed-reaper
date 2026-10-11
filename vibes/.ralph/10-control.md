@@ -181,3 +181,11 @@ Next:
   and completion criteria as input; OPTIONS mode gesture (hold ESC 1 s)
   and LED value-band encoding are the two items still flagged as
   design-to-verify.
+
+Result: exit 0; done; log: logs/10-control-L9-a1-1791753426975.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/10-control.md
+```
