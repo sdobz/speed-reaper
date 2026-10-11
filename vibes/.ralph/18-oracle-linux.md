@@ -157,3 +157,44 @@ Trigger: 7 attempt(s), last: timeout after 600s, progress
 Why: Attempt 7 gathered all evidence and built a working GetFunc probe (oracle/probe_missing.c, build/oracle/probe_missing.so, build/oracle/sdk_api_names.txt), then spent the rest of the budget on compile errors and a hung manual REAPER run; only one probe run and the note itself remain.
 Rejected: BUDGET — the hard-won facts (working g++ command, probe already built) live only in the log and working tree, so extra time just risks re-hitting the same walls. REWRITE — the task text and Verify are fine; de-scoping the exact missing name would weaken the note when the probe already exists. SPIKE — the open question is half-answered in the tree, a fresh research step would duplicate it. BLOCK — no human decision is needed.
 Log: logs/18-oracle-linux-L104-replan-1791759066015.log
+
+## Task: Probe REAPER 7.81 for the one missing SDK name
+
+### Attempt 1 — 2026-10-11T22:59:57Z — budget 600s
+- Facts: probe .so already built at build/oracle/probe_missing.so (15712 bytes); sdk names file was at build/oracle/sdk_api_names.txt (877 lines) — copied to oracle/sdk_api_names.txt as the task's run command expects.
+- Facts: probe run launched in background, log at vibes/.ralph/logs/probe-run.log.
+- Dead ends: first two probe runs (timeout 45, with and without LD_DEBUG=libs) produced no probe_missing.txt; /tmp/lddbg.out shows REAPER never dlopened anything from UserPlugins (bundled Plugins all fail dlopen with `undefined symbol: DllMain (fatal)` — harmless, same in oracle runs).
+- Facts: root bug found via `nm -D`: probe .so exported only the C++-mangled `_Z17ReaperPluginEntryPKcS0_iPKv`; REAPER dlsym()s the unmangled `ReaperPluginEntry` (real plugin exports it via `extern "C"` in plugin/src/main.cpp:86). Applied the one-word `extern "C"` fix to oracle/probe_missing.c (not a rewrite) and rebuilt with the GTK-includes g++ command from the a7 log.
+- Facts: run 3 in background (timeout 90), log vibes/.ralph/logs/probe-run3.log.
+
+Result: timeout after 600s; progress; 2 files changed, 12 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L106-a1-1791759597934.log
+
+### Attempt 2 — 2026-10-11T23:10:38Z — budget 600s
+- Facts: probe runs 1-4 (timeout 45/90, with and without LD_DEBUG=libs) never reached the UserPlugins dlopen — at 90 s REAPER was still processing bundled Plugins (harmless `DllMain`/`SWELL_dllMain` failures); logs vibes/.ralph/logs/probe-run*.log, /tmp/lddbg2.out.
+- Facts: offline cross-check: scanned the REAPER 7.81 ELF (/nix/store/h2crs2mvvh5ig710x47qnwcazynhc3fc-reaper-7.81/opt/REAPER/.reaper-wrapped, 12.8 MB, plus opt/REAPER *.so) for all 877 SDK names from oracle/sdk_api_names.txt — exactly ONE name absent: `EnumThemeColors` (present in 876/877). Matches reaper-layer trace `0 loadapi missing=1`.
+- Facts: EnumThemeColors IS in oracle/reaper_api_names.txt (host list, 874), so it is NOT among the host's 145 missing (sdk-vs-reaper-api.md list); host 145 = SDK 877 minus 732 overlap.
+- Facts: draft docs/notes/oracle-missing-names.md written (PROBE line + EnumThemeColors + method + 145 note).
+- Next: background probe run 5 (timeout 240, no LD_DEBUG, log vibes/.ralph/logs/probe-run5.log, out /tmp/probe_long.log + build/oracle/probe_missing.txt); if it lands a PROBE line, keep note as-is; else amend note to say the .so probe could not be made to run and the name comes from the ELF scan (still not invented).
+
+Result: timeout after 600s; progress; 2 files changed, 21 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L106-a2-1791760238488.log
+
+### Attempt 3 — 2026-10-11T23:21:20Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: no reaper/xvfb process alive; probe_missing.txt still absent after run 5 (timeout 240). Run 5's reaper did start (jack errors in /tmp/probe_long.log) but never wrote the PROBE output — standalone probe runs never get past REAPER's bundled-Plugins scan, while tools/reaper-oracle's reaper runs (fresh HOME, timeout 60, with a .lua scenario arg) DO reach UserPlugins entry within 60 s (build/oracle/trace.txt shows 3× `0 loadapi missing=1`).
+- Facts: probe .so is the fixed rebuild (extern "C", mtime 16:06) and is already copied into build/oracle/home/.../UserPlugins/ by run 5.
+- Facts: offline ELF scan (attempt 2) remains the authoritative measurement: exactly 1 of 877 SDK names absent from REAPER 7.81 = EnumThemeColors; matches reaper-layer trace missing=1.
+- Facts: run 6 (timeout 300) finished with no build/oracle/probe_missing.txt — the .so probe could not be made to run (REAPER never reaches the UserPlugins dlopen in standalone runs); 6 total runs logged.
+- Facts: re-ran the offline ELF scan in this session — reproduced exactly: 1 of 877 names absent from REAPER 7.81 = EnumThemeColors (whole-token grep yields 5 extra names that are substrings of longer symbols, e.g. GetTake in GetTakeID; substring scan is the correct one).
+- Next: none — docs/notes/oracle-missing-names.md written (PROBE line, name, honest method, .so-probe caveat, 145 note); line 106 ticked.
+
+Result: exit 0; done; 3 files changed, 33 insertions(+), 2 deletions(-); log: logs/18-oracle-linux-L106-a3-1791760880446.log
+
+### Done — 2026-10-11 — 3 attempt(s)
+Files:
+```
+M oracle/probe_missing.c
+ M vibes/.ralph/18-oracle-linux.md
+ M vibes/18-oracle-linux.md
+?? docs/notes/oracle-missing-names.md
+?? oracle/sdk_api_names.txt
+```

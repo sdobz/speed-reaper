@@ -15,7 +15,9 @@
 
 #include "reaper_plugin.h"
 
-int ReaperPluginEntry(const char *name, const char *opt, int res, const void *rec)
+// extern "C": REAPER dlsym()s the unmangled name "ReaperPluginEntry";
+// a C++-mangled export is silently ignored at plugin load.
+extern "C" int ReaperPluginEntry(const char *name, const char *opt, int res, const void *rec)
 {
   const reaper_plugin_info_t *info = (const reaper_plugin_info_t *)rec;
   if (!info || !info->GetFunc)

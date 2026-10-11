@@ -103,7 +103,7 @@ grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' do
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Probe REAPER 7.81 for the one missing SDK name
+  - [x] Probe REAPER 7.81 for the one missing SDK name
     Attempt 7 left a built probe: `oracle/probe_missing.c` (source), `build/oracle/probe_missing.so` (built), `build/oracle/sdk_api_names.txt` (877 SDK names). Use these; do not rewrite the probe.
     If the .so is missing, rebuild it with the exact g++ command in `vibes/.ralph/logs/18-oracle-linux-L104-a7-1791758421687.log` (needs `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` plus the gtk+3.24.52 nix-store includes; no pkg-config on PATH).
     Run (fresh HOME, probe only, NO .lua script — it writes its output at plugin entry; the timeout kill is expected): `nix develop --command bash -lc 'rm -rf build/oracle/home && mkdir -p build/oracle/home/.config/REAPER/UserPlugins && cp build/oracle/probe_missing.so build/oracle/home/.config/REAPER/UserPlugins/ && HOME=$PWD/build/oracle/home ORACLE_SDK_NAMES=$PWD/oracle/sdk_api_names.txt ORACLE_PROBE_OUT=$PWD/build/oracle/probe_missing.txt timeout 45 xvfb-run -a reaper -newinst -nosplash; true'`
