@@ -222,3 +222,15 @@ Next:
 - M1 in `vibes/20-milestones.md`: integrate `src/speed_editor/` into
   `plugin/` as `HidWheelSource`; first research items are the HID
   keyboard-leak check and the unplug teardown path.
+
+## Task: Prioritize features into milestones and write vibe documents similar to this one. Include specific completion criteria. 
+
+Result: exit 0; done; log: logs/10-control-L12-a1-1791753715516.log
+
+## Task: Prioritize features into milestones and write vibe documents similar to this one. Include specific completion criteria. 
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/10-control.md
+```
