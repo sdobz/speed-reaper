@@ -18,6 +18,7 @@ tools/check [regex]      build everything -Werror + nm check + ctest; every Veri
 - New **pure** `.cpp` files go in `PLUGIN_PURE_SOURCES`; only `main.cpp` (and
   `reaper_glue.cpp` if added) may include REAPER headers.
 - Tests use `plugin/test/check.h` (`CHECK`, `CHECK_NEAR`, return `check_failures()`).
+- **Oracle:** `docs/plugin-oracle-design.md` — every task's Verify that touches plugin runtime behavior uses `tools/reaper-oracle` (headless REAPER + fake device), not a human. New plugin features add `Trace()` lines for anything a scenario must observe (oracle design §2) and a `REAPERAPI_WANT_<fn>` line for every new REAPER function used.
 - Linux only for M1–M4 (Windows plugin build is out of scope).
 
 ## §2 Threading rule

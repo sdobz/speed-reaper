@@ -25,3 +25,19 @@ Dead ends:
 
 Next:
 - Done: `tools/check trace` green (log `vibes/.ralph/logs/check-trace2.log`), line 25 ticked.
+
+Result: exit 0; done; 6 files changed, 77 insertions(+), 27 deletions(-); log: logs/18-oracle-linux-L25-a1-1791756706078.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M docs/plugin-design-m1-m3.md
+ M vibes/.ralph/18-oracle-linux.md
+ M vibes/20-m1-wheel-playhead.md
+ M vibes/21-m2-buttons-modes.md
+ M vibes/22-m3-edit-verbs.md
+ M vibes/23-m4-shuttle.md
+ M vibes/30-backlog.md
+?? docs/plugin-oracle-design.md
+?? vibes/19-oracle-device-windows.md
+```

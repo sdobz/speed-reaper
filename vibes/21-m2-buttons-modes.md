@@ -3,7 +3,7 @@
 Builds on `20-m1-wheel-playhead.md` (real wheel drives the playhead). Adds
 button handling: JOG/SCRL switch the wheel behavior and light their LEDs,
 STOP/PLAY toggles transport. Shuttle (SHTL) is deliberately later (M4).
-Design: `docs/plugin-design-m1-m3.md` §6. Every Verify starts with `tools/check`.
+Design: `docs/plugin-design-m1-m3.md` §6. Verified by the oracle (`docs/plugin-oracle-design.md`) before any hand test. Every Verify starts with `tools/check`.
 
 ### 1. `DiffHeldKeys` (pure) and use it in the worker
 
@@ -36,16 +36,30 @@ tools/check router
 
 - In `plugin/src/main.cpp`: add `ReaperActionSink : IActionSink` (`RunCommand` → `Main_OnCommand(cmd, 0)`, `ScrollView` → `CSurf_OnScroll(steps, 0)`); a global `Router`; the engine source becomes `SummedWheelSource(ModeGatedSource(g_hid, router), g_demo_source)`.
 - In `onTimer()` (after the log drain): feed every `g_hid.PopButton()` to `Router::OnButton`; if `TakeModeChange` → `g_hid.RequestWheelMode(ProtocolMode(m))` and `RequestJogLeds` with only the matching LED lit. Track `Connected()` and on a false→true edge re-send the current mode + LEDs (design §6).
+- Trace (oracle design §2): `Trace("mode %s")` on every mode change, `Trace("led jog=%x main=%x")` whenever `RequestJogLeds`/`RequestLeds` is called, `Trace("cmd %d")` in `ReaperActionSink::RunCommand`. Add `REAPERAPI_WANT_` lines for new REAPER functions.
 - No new actions; keep demo actions. Do not add other buttons.
 
 **Verify**
 ```bash
-tools/check
+ORACLE_FULL=1 tools/check
 ```
 
 - [ ] Done
 
-### 4. SMOKE-TEST.md: "M2 — buttons and wheel modes"
+### 4. Oracle scenario: `buttons`
+
+- Add `oracle/fake/buttons.txt`: key JOG `0x1D` tap; wheel turn (JOG); key SCRL `0x1E` tap; wheel turn (SCRL); key SHTL `0x1C` tap; key STOP/PLAY `0x3C` tap; `unplug`/`plug`; wheel turn again (must still be SCRL after replug). Timings in `ms`, 300 ms between steps.
+- Add `oracle/scenarios/buttons.env` + `buttons.lua`: edit cursor at 10 s. Checks: trace has `mode Jog`→`mode Scrl` in order, no `mode Shtl`; cursor rises during the JOG turn and is **unchanged** (±0.001 s) during the SCRL turn; `led jog=` lines show exactly one LED lit matching each mode; `cmd 40044` appears once and `GetPlayState()` flips; after replug a `led jog=` line for Scrl is traced again.
+- Fix plugin bugs the scenario finds (smallest change); do not edit the script timings to hide them. Add to the default oracle run.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario buttons
+```
+
+- [ ] Done
+
+### 5. SMOKE-TEST.md: "M2 — buttons and wheel modes"
 
 - Append `## M2 — buttons and wheel modes` to `SMOKE-TEST.md` (numbered steps, **Expected** each):
   1. Startup: JOG LED lit, wheel moves the edit cursor (as M1).
@@ -63,7 +77,7 @@ grep -q '^## M2 — buttons and wheel modes' SMOKE-TEST.md
 
 - [ ] Done
 
-### 5. (human) Run the M2 hand test
+### 6. (human) Run the M2 hand test
 
 - [!] Done
-  BLOCKED: human runs SMOKE-TEST.md "M2". Pass bar: JOG/SCRL/STOP-PLAY work with LEDs truthful; scroll speed acceptable (record in `docs/notes/m2-observations.md`). Then tick this box; next is `22-m3-edit-verbs.md`.
+  BLOCKED: precondition — `ORACLE_FULL=1 tools/check` green. Human runs SMOKE-TEST.md "M2" (real device only: LED brightness, scroll *feel*). Pass bar: JOG/SCRL/STOP-PLAY work with LEDs truthful; scroll speed acceptable (record in `docs/notes/m2-observations.md`). Then tick this box; next is `22-m3-edit-verbs.md`.

@@ -12,6 +12,8 @@ STOP/PLAY, gesture engine (tap / double-tap / hold detection), tap-only verbs
 Still here from the old M3: hold+rotate verbs (SPLIT→MOVE, TRIM nudge), the
 status-bar LEDs (ripple 3-state, trim-behind), APPND.
 
+Oracle rule for every promoted section: each feature gets a `tools/reaper-oracle` scenario (fake device script + Lua assertions + `Trace()` lines, see `docs/plugin-oracle-design.md`) *before* the SMOKE-TEST.md hand-test task; the human only checks what the oracle cannot (feel, LEDs, audio).
+
 Priority order for turning into files: **B1** (old M3 remainder) → **B2**
 (old M4 crossfades/takes — takes+CAM LEDs first) → **B3** SOURCE focus →
 **B4** configuration → **B5** composites. Windows builds stay out of scope.
