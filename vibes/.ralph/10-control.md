@@ -129,6 +129,15 @@ Next:
   — pick up every "config parameter" callout in reaper-plugin-workflow.md
   (§1 gesture timings, §3 shuttle curve/max rate, §4 step sizes, §6 LED
   scheme toggle, §2.3 SOURCE-focus LED).
+- `docs/plugin-configuration.md` (task 4): config is 3 layers — L1
+  compiled defaults, L2 on-device OPTIONS mode (hold ESC ≥1 s; buttons
+  become softkeys, LEDs encode values; ~10 high-frequency params), L3
+  learn restricted to the 12 weak-label buttons via `PromptForAction`
+  (Resolve itself offers NO Speed Editor config, so everything is our
+  design). Persistence = `SetExtState("SpeedEditor", …, persist=true)` →
+  global reaper.ini; REAPER's own prefs absorb scrub/crossfade/snap
+  tuning (no duplicate dials). Parameter inventory with defaults/ranges
+  is the authoritative list for milestone docs.
 
 Result: exit 0; done; log: logs/10-control-L7-a1-1791753098855.log
 
@@ -137,3 +146,38 @@ Files:
 ```
 M vibes/.ralph/10-control.md
 ```
+
+## Task: Research how plugins are configured (learning? tuning? `Shift+?` options) - what parameters will the speed editor need?
+
+### Attempt 1 — 2026-10-11T21:17:06Z — budget 600s
+
+Facts:
+- Resolve does NOT configure the Speed Editor at all: buttons are
+  hardwired, no remapping (Blackmagic forum t=125672 + r/davinciresolve
+  consensus); Resolve's only Speed-Editor-adjacent setting is app-side
+  (e.g. transition duration via preferences). So all config is ours to
+  design — no native behavior to inherit.
+- Device has no SHIFT key and no options screen (43-key table checked,
+  capabilities §3) — the task's "Shift+?" is hypothetical; the doc designs
+  the on-device equivalent.
+- `reaper-api-subset.md` has `PromptForAction` (native action picker,
+  session_mode 1/0/-1) — the ready-made half of any learn/remap mode —
+  and `SetExtState(persist=true)` → global reaper.ini, `SetProjExtState`
+  → per-project. Chosen over a separate .cfg file.
+- REAPER's own scrub tuning (Prefs → Playback) covers JOG feel — flagged
+  as "no-new-param" rather than a device dial (reaper-plugin.md §2).
+- Wrote `docs/plugin-configuration.md`: 3-layer model (L1 static
+  defaults / L2 on-device OPTIONS mode = hold ESC ≥1000 ms, buttons as
+  softkeys + LED value bands / L3 learn restricted to the 12 weak-label
+  buttons via PromptForAction), full parameter inventory with defaults
+  and ranges (~18 params, each marked L1/L2/L3/fixed), ExtState storage
+  table, and task-5 completion-criteria candidates.
+
+Dead ends:
+- None — web research + local docs sufficient; no code needed.
+
+Next:
+- Task 5 (milestones): take `docs/plugin-configuration.md` §4 "v1 scope"
+  and completion criteria as input; OPTIONS mode gesture (hold ESC 1 s)
+  and LED value-band encoding are the two items still flagged as
+  design-to-verify.
