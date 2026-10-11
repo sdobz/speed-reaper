@@ -102,6 +102,22 @@ grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' do
 ```
 
 - [ ] Done
+  <!-- ralph: replanned=1 op=AND -->
+  - [ ] Probe REAPER 7.81 for the one missing SDK name
+    Attempt 7 left a built probe: `oracle/probe_missing.c` (source), `build/oracle/probe_missing.so` (built), `build/oracle/sdk_api_names.txt` (877 SDK names). Use these; do not rewrite the probe.
+    If the .so is missing, rebuild it with the exact g++ command in `vibes/.ralph/logs/18-oracle-linux-L104-a7-1791758421687.log` (needs `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` plus the gtk+3.24.52 nix-store includes; no pkg-config on PATH).
+    Run (fresh HOME, probe only, NO .lua script — it writes its output at plugin entry; the timeout kill is expected): `nix develop --command bash -lc 'rm -rf build/oracle/home && mkdir -p build/oracle/home/.config/REAPER/UserPlugins && cp build/oracle/probe_missing.so build/oracle/home/.config/REAPER/UserPlugins/ && HOME=$PWD/build/oracle/home ORACLE_SDK_NAMES=$PWD/oracle/sdk_api_names.txt ORACLE_PROBE_OUT=$PWD/build/oracle/probe_missing.txt timeout 45 xvfb-run -a reaper -newinst -nosplash; true'`
+    Expected: `build/oracle/probe_missing.txt` ends in `PROBE total=877 missing=N` with N name lines above it (N likely 1). If no PROBE line appears, re-run once with `LD_DEBUG=libs` appended to check the .so is loaded, then stop diagnosing.
+    Write `docs/notes/oracle-missing-names.md`: the PROBE line + missing name(s), method in one line, and note that the host layer's 145 missing names are exactly the list in `docs/notes/sdk-vs-reaper-api.md`. If the probe cannot be made to run, say so explicitly and list the 145 as the candidate set — do not invent a name.
+    Do not touch plugin code, `tools/reaper-oracle`, or the real plugin .so.
+    Verify: `test -s docs/notes/oracle-missing-names.md && grep -q '^PROBE total=' docs/notes/oracle-missing-names.md`
+  - [ ] Write docs/notes/oracle-load-diagnosis.md
+    Write `docs/notes/oracle-load-diagnosis.md` from the fresh `build/oracle/` artifacts (load scenario; re-run `tools/reaper-oracle --report-only` only if they are missing): `trace.txt`, `result.json`, `reaper.stderr`, `bt.txt`.
+    Quote the evidence: host `0 loadapi missing=145` then `0 entry result=0` (no `register` lines at all), reaper layer `0 loadapi missing=1` then `0 entry result=0`, the `result.json` reason, and the `SWELL_dllMain` symbol-lookup line from `reaper.stderr` (red herring — the trace still shows `0 entry rec=non-null`).
+    Line `Root cause:` — `REAPERAPI_LoadAPI` under `REAPERAPI_IMPLEMENT` (full header include in `plugin/src/main.cpp`) probes all 877 SDK names; REAPER 7.81's GetFunc lacks the name(s) in `docs/notes/oracle-missing-names.md` (host layer: 145, per `docs/notes/sdk-vs-reaper-api.md`), so `ReaperPluginEntry` returns 0 and registers nothing.
+    Line `Fix:` — in `plugin/src/main.cpp`, define `REAPERAPI_MINIMAL` before including `reaper_plugin_functions.h` and add one `REAPERAPI_WANT_<name>` per REAPER function the plugin actually calls (applied in task 8).
+    Keep the note under ~40 lines. Do not change plugin code in this task.
+    Verify: `grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' docs/notes/oracle-load-diagnosis.md`
 
 ### 8. Fix the load failure
 

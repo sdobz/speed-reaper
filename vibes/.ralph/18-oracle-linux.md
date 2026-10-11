@@ -144,3 +144,16 @@ Files:
 ```
 M vibes/.ralph/18-oracle-linux.md
 ```
+
+## Task: 7. Diagnose the load failure with the oracle
+
+### Attempt 7 — 2026-10-11T22:40:21Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 600s; progress; 1 file changed, 5 insertions(+); log: logs/18-oracle-linux-L104-a7-1791758421687.log
+
+### Replan (depth 0) — SPLIT op=AND → "Probe REAPER 7.81 for the one missing SDK name", "Write docs/notes/oracle-load-diagnosis.md"
+Trigger: 7 attempt(s), last: timeout after 600s, progress
+Why: Attempt 7 gathered all evidence and built a working GetFunc probe (oracle/probe_missing.c, build/oracle/probe_missing.so, build/oracle/sdk_api_names.txt), then spent the rest of the budget on compile errors and a hung manual REAPER run; only one probe run and the note itself remain.
+Rejected: BUDGET — the hard-won facts (working g++ command, probe already built) live only in the log and working tree, so extra time just risks re-hitting the same walls. REWRITE — the task text and Verify are fine; de-scoping the exact missing name would weaken the note when the probe already exists. SPIKE — the open question is half-answered in the tree, a fresh research step would duplicate it. BLOCK — no human decision is needed.
+Log: logs/18-oracle-linux-L104-replan-1791759066015.log
