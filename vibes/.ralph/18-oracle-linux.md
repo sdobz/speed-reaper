@@ -122,3 +122,17 @@ Files:
 ```
 M vibes/.ralph/18-oracle-linux.md
 ```
+
+## Task: 6. Crash capture
+
+### Attempt 6 — 2026-10-11T22:34:28Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - `SPEED_REAPER_TEST_CRASH` hook already existed in `plugin/src/main.cpp` (aborts right after `Trace("entry rec=non-null")`, before `REAPERAPI_LoadAPI`) and was already in the built `.so`; no plugin change needed.
+  - `reaper` on PATH is a nix wrapper **script** (`bin/reaper` -> `../opt/REAPER/reaper`, a bash launcher that sets LD_LIBRARY_PATH and `exec`s `opt/REAPER/.reaper-wrapped`). gdb cannot exec scripts ("not in executable format"). Fix: `gdb -batch -ex "set exec-wrapper <launcher>" -ex run -ex bt --args <.../opt/REAPER/.reaper-wrapped> ...` — the wrapper exec's, so the ELF is a direct child of gdb.
+  - `result.json` reason already said `crash`/`timeout` for exit >=128/124 from task 5; only the capture artifacts were missing.
+  - Added `oracle/scenarios/noop.lua` (`finish()`), `run_crash_capture()` in `tools/reaper-oracle` (gdb -> `build/oracle/bt.txt`; `LD_DEBUG=libs` run filtered by `grep -i speed_reaper` -> `reaper.stderr`), triggered when `REAPER_RC >= 128 || == 124`.
+  - bt.txt on crash: `SIGABRT` ... `#3 ReaperPluginEntry.cold () from .../UserPlugins/reaper_speed_reaper.so`. Verify passes; task-5 `--report-only` load run still writes all artifacts.
+- Dead ends:
+  - `gdb -batch ... --args reaper` directly: gdb rejects the nix wrapper script; `bt` is empty ("No stack").
+- Notes for task 7: `reaper.stderr` (LD_DEBUG) shows `calling init: .../UserPlugins/reaper_speed_reaper.so` then `error: symbol lookup error: undefined symbol: SWELL_dllMain (fatal)` — but the plugin DOES load (dlopen RTLD_NOW in isolation is clean; trace shows `entry rec=non-null`), so this is REAPER-side (reaper ELF exports `SWELLAPI_GetFunc`/`SWELLAppMain` but no `SWELL_dllMain`). Load failure is `loadapi missing` — see trace.txt.

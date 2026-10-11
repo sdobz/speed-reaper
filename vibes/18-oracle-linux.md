@@ -88,7 +88,7 @@ tools/reaper-oracle --report-only >/dev/null; test -s build/oracle/result.json &
 SPEED_REAPER_TEST_CRASH=entry tools/reaper-oracle --layer reaper --scenario noop --report-only >/dev/null; grep -q ReaperPluginEntry build/oracle/bt.txt && grep -qi crash build/oracle/result.json
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. Diagnose the load failure with the oracle
 

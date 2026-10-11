@@ -11,7 +11,10 @@
 # --report-only: exit 0 whenever the harness itself worked (artifacts written).
 #
 # Artifacts (always, in build/oracle/): result.json, trace.txt,
-# reaper.stderr, probe.json (reaper layer).
+# reaper.stderr, probe.json (reaper layer);
+# on crash/timeout (reaper exit >=128 or 124): bt.txt (gdb backtrace) and
+# reaper.stderr is replaced by the LD_DEBUG=libs loader log (filtered to
+# lines mentioning speed_reaper).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -88,6 +91,34 @@ run_reaper() {
   REAPER_RC=$?
 }
 
+# --- crash capture (vibes/18-oracle-linux.md task 6) ------------------------
+# On crash (exit >= 128) or timeout (exit 124): re-run the same command
+# under gdb for a backtrace (bt.txt) and under LD_DEBUG=libs, filtered to
+# lines mentioning our plugin, into reaper.stderr.
+run_crash_capture() {
+  local reaper_args=(-newinst -nosplash "oracle/scenarios/$SCENARIO.lua")
+  # `reaper` on PATH is a nix wrapper script; gdb cannot exec scripts, so
+  # gdb the real ELF and use the wrapper as exec-wrapper (it sets
+  # LD_LIBRARY_PATH & co, then exec's the ELF, which becomes gdb's child).
+  local launcher elf
+  launcher=$(readlink -f "$(command -v reaper)")
+  elf="$(dirname "$launcher")/.reaper-wrapped"
+  if [[ ! -x "$elf" ]]; then
+    echo "tools/reaper-oracle: crash capture: cannot resolve reaper ELF from $launcher" >&2
+    return 0
+  fi
+  rm -f "$OUT/bt.txt"
+  HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
+  SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+    timeout 60 xvfb-run -a gdb -batch -ex "set exec-wrapper $launcher" \
+      -ex run -ex bt --args "$elf" "${reaper_args[@]}" \
+      > "$OUT/bt.txt" 2>&1 || true
+  ( HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
+    SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+      LD_DEBUG=libs timeout 60 xvfb-run -a reaper "${reaper_args[@]}" \
+      2>&1 ) | grep -i speed_reaper > "$OUT/reaper.stderr" || true
+}
+
 HOST_RC=0
 REAPER_RC=0
 if [[ "$LAYER" == host || "$LAYER" == all ]]; then
@@ -95,6 +126,9 @@ if [[ "$LAYER" == host || "$LAYER" == all ]]; then
 fi
 if [[ "$LAYER" == reaper || "$LAYER" == all ]]; then
   run_reaper || true
+  if [[ $REAPER_RC -ge 128 || $REAPER_RC -eq 124 ]]; then
+    run_crash_capture || true
+  fi
 fi
 
 # --- result.json (derived from probe.json / plugin_host.out + exit codes) ---
