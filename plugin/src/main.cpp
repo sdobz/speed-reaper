@@ -22,6 +22,10 @@
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
+#include "trace.h"
+
+#include <cstdlib>
+#include <cstring>
 
 namespace {
 
@@ -71,7 +75,10 @@ bool onHookCommand2(KbdSectionInfo *sec, int command, int val, int val2,
 
 int RegisterAction(const char *id_str, const char *display_name) {
   custom_action_register_t ca = {0, id_str, display_name, nullptr};
-  return g_register("custom_action", &ca); // returns command id (0 = failed)
+  int cmd = g_register("custom_action", &ca); // command id (0 = failed)
+  Trace("register action %s %s", id_str, cmd ? "ok" : "FAIL");
+  if (cmd) Trace("action %s cmd=%d", id_str, cmd);
+  return cmd;
 }
 
 } // namespace
@@ -80,19 +87,38 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
     REAPER_PLUGIN_HINSTANCE hInstance, reaper_plugin_info_t *rec) {
   (void)hInstance;
 
+  // Trace everything the oracle scenario cannot see through REAPER's API
+  // (docs/plugin-oracle-design.md §2). Every return goes through `done`.
+  auto done = [](int result) -> int {
+    Trace("entry result=%d", result);
+    return result;
+  };
+
   if (!rec) { // REAPER unloading us
+    Trace("unload");
     g_engine = nullptr;
     g_sink = nullptr;
     g_register = nullptr;
     return 1;
   }
 
-  if (REAPERAPI_LoadAPI(rec->GetFunc) != 0) return 0;
+  Trace("entry rec=non-null");
+  // Oracle test hook (docs/plugin-oracle-design.md §2): prove crash capture.
+  if (const char *crash = std::getenv("SPEED_REAPER_TEST_CRASH")) {
+    if (std::strcmp(crash, "entry") == 0) std::abort();
+  }
+
+  int missing = REAPERAPI_LoadAPI(rec->GetFunc);
+  Trace("loadapi missing=%d", missing);
+  if (missing != 0) return done(0);
   g_register = (plugin_register_variadic)rec->Register;
 
   rec->Register("ext_name", (void *)"Speed Reaper (hello world)");
+  Trace("register ext_name ok");
   rec->Register("ext_url", (void *)"https://github.com/vkhougaz/speed-reaper");
+  Trace("register ext_url ok");
   rec->Register("ext_vendor", (void *)"speed-reaper");
+  Trace("register ext_vendor ok");
 
   g_cmd_demo = RegisterAction("speed_reaper_jogdemo",
                               "Speed Reaper: jog demo (smooth playhead)");
@@ -100,7 +126,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
                              "Speed Reaper: scrub forward 0.5 s");
   g_cmd_back = RegisterAction("speed_reaper_scrub_back",
                               "Speed Reaper: scrub back 0.5 s");
-  if (!g_cmd_demo || !g_cmd_fwd || !g_cmd_back) return 0;
+  if (!g_cmd_demo || !g_cmd_fwd || !g_cmd_back) return done(0);
 
   g_engine = new JogEngine(g_demo_source, g_reaper_sink);
   g_sink = &g_reaper_sink;
@@ -108,6 +134,8 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   // SDK header: "for actions, the related callback should be registered
   // with hookcommand2".
   rec->Register("hookcommand2", (void *)onHookCommand2);
+  Trace("register hookcommand2 ok");
   g_register("timer", kTimerId, kTimerMs, &onTimer);
-  return 1;
+  Trace("register timer ok");
+  return done(1);
 }

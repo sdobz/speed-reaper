@@ -38,6 +38,7 @@ endif()
 # plugin-only list below.
 set(PLUGIN_PURE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jog_engine.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.cpp
 )
 
 add_library(speed_reaper SHARED
