@@ -179,3 +179,21 @@ Result: timeout after 600s; progress; 6 files changed, 195 insertions(+), 216 de
   - After de-submoduling vendor/: `nix build .#packages.x86_64-pc-windows-gnu.reaper-plugin` → PE32+ DLL, `ReaperPluginEntry` exported (objdump). `nix flake check` → all checks passed (logs/plugin-win-flakecheck.log). Alias `nix build .#reaper-plugin-windows` → PE32+ DLL. SMOKE-TEST.md Windows section + CROSS-PLATFORM.md (matrix, gotchas, submodule trap) in place; line 18 ticked. DONE.
 - Next:
   - (done — committed)
+
+Result: exit 0; done; 1 file changed, 207 deletions(-); log: logs/05-prototypes-L18-a3-1791755288865.log
+
+### Done — 2026-10-11 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/05-prototypes.md
+ D vibes/20-milestones.md
+?? docs/plugin-design-m1-m3.md
+?? plugin/test/
+?? reaper_speed_reaper.dll
+?? tools/
+?? vibes/20-m1-wheel-playhead.md
+?? vibes/21-m2-buttons-modes.md
+?? vibes/22-m3-edit-verbs.md
+?? vibes/23-m4-shuttle.md
+?? vibes/30-backlog.md
+```

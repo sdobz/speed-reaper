@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# tools/check — one command that every ralph Verify starts from.
+# Builds speedcli + the REAPER plugin warning-free, runs plugin unit tests,
+# checks the plugin still exports ReaperPluginEntry.
+# Usage: tools/check [ctest-regex]     (regex filters unit tests by name)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if ! command -v cmake >/dev/null; then exec nix develop --command "$0" "$@"; fi
+
+make -C src >/dev/null
+cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror >/dev/null
+cmake --build build/plugin
+nm -D build/plugin/reaper_speed_reaper.so | grep -q ' T ReaperPluginEntry'
+ctest --test-dir build/plugin --output-on-failure ${1:+-R "$1"}
