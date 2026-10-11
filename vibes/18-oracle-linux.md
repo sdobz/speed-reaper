@@ -61,7 +61,7 @@ tools/check && ./build/plugin/plugin_host build/plugin/reaper_speed_reaper.so --
 nix develop --command bash -c 'command -v xvfb-run && command -v Xvfb && command -v gdb && command -v strace && command -v reaper'
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. `tools/reaper-oracle`: host layer + real-REAPER `load` scenario
 

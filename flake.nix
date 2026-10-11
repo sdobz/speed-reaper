@@ -155,6 +155,14 @@
 
           # REAPER binary for manual testing (nixpkgs has reaper-7.81)
           reaper
+
+          # Oracle tooling (tools/reaper-oracle, vibes/18-oracle-linux.md §4):
+          # headless X server + wrappers, debug/trace tools, scripting glue
+          xvfb-run
+          xorg-server
+          strace
+          xdotool
+          python3
         ];
         shellHook = ''
           echo "Welcome to the speed-reaper development environment!"
@@ -169,6 +177,7 @@
           echo "  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, 'REAPER plugin' section)"
           echo "Build REAPER plugin for Windows (task 7): nix build .#reaper-plugin-windows → .../reaper/reaper_speed_reaper.dll"
           echo "  Cross-platform matrix + gotchas: CROSS-PLATFORM.md"
+          echo "Oracle: tools/reaper-oracle (headless REAPER smoke + trace checks — vibes/18-oracle-linux.md)"
         '';
       };
 

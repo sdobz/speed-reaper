@@ -85,3 +85,9 @@ M plugin/CMakeLists.txt
  M vibes/18-oracle-linux.md
 ?? plugin/tools/
 ```
+
+## Task: 4. Oracle tools in the dev shell
+
+### Attempt 4 — 2026-10-11T22:26:53Z — budget 600s
+- Facts: `gdb` was already in devShell buildInputs; added `xvfb-run`, `xorg-server`, `strace`, `xdotool`, `python3` (one commented block after `reaper`) plus one banner line mentioning `tools/reaper-oracle`. Verify command exits 0 (xvfb-run 1+g87f6705, Xvfb xorg-server-21.1.24, gdb 17.2, strace 7.2, reaper 7.81).
+- Next: task 4 done; proceed to task 5 (`tools/reaper-oracle`).
