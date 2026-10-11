@@ -1,0 +1,1369 @@
+[ralph] cmd: /nix/store/5p2psij67bb14gp3imp8wz9vy15zffql-pi-0.82.1/bin/pi --print --stream=all --no-session --mode text --model qwen3.8-27b-ud-q4_k_xl --provider llama-cpp
+
+[90m[thinking] Let's start by reading the task file and finding the first uncompleted task.
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md[0m
+[33m[tool] [result] read[0m
+[33m        We are going to build a reaper plugin to use the davinci speed editor physical control
+        
+        Design:
+        - jog wheel moves playback cursor
+        - shuttle / jog / scroll buttons change 
+        
+        # Dev environment
+        
+        - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+          Done in attempts #1–2: house style matched (`.envrc` = house nix-direnv 2.2.1 template, byte-identical to sibling projects; `flake.nix` = tone-shape flake, `devShell` with cmake/ninja/gcc/pkg-config/git/gdb/valgrind + gtk3 + hidapi + libusb1 + udev + reaper). DevShell verified end-to-end: a minimal REAPER extension compiles inside `nix develop` (GCC 16.2.0) and exports `T ReaperPluginEntry`. Verified include roots: `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` (NOT `-Ivendor/WDL` — nested WDL mirror) + `pkg-config --cflags gdk-3.0`. Gotchas documented in `docs/reaper-dev-env.md` §2/§8.1. Committed.
+        - [x] Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`
+        … (12 more lines)[0m
+
+[90m[thinking] The first incomplete task is the last one:
+
+- [ ] Extract a useful subset of `docs/reaper-api.htm` into a more token-efficient format and add it as `docs/??`
+
+So, I need to find `docs/reaper-api.htm`. Let me check the repository structure. The task says to extract a useful subset of the REAPER API (from docs/reaper-api.htm) into a more token-efficient format (e.g., Markdown), and add it as `docs/??` (some new documentation file).
+
+First, let me check the existing repository structure and progress.
+[36m[text] First incomplete task: extract a useful subset of `docs/reaper-api.htm` into a more token-efficient format and add as a new `docs/` file. Let me survey the repo and locate the source file.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && ls -la && ls -la docs/ vibes/ 2>/dev/null && git log --oneline -15[0m
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && find . -iname "*reaper-api*" -o -iname "*.htm" -o -iname "*.html" | head -20[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 638B[0m
+[1A[2K[33m[tool] [running] bash → 60B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        ./docs/reaper-api.htm
+        ./vendor/WDL/WDL/sc_bounce/index.html
+        [0m
+
+[33m[tool] [running] bash → 1.5KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        total 44
+        drwxr-xr-x  6 vkhougaz vkhougaz 4096 Oct 10 22:00 .
+        drwxr-xr-x 27 vkhougaz vkhougaz 4096 Oct 10 21:35 ..
+        -rw-r--r--  1 vkhougaz vkhougaz  221 Oct 10 21:58 .envrc
+        drwxr-xr-x  9 vkhougaz vkhougaz 4096 Oct 10 22:35 .git
+        -rw-r--r--  1 vkhougaz vkhougaz   22 Oct 10 21:59 .gitignore
+        -rw-r--r--  1 vkhougaz vkhougaz  197 Oct 10 21:59 .gitmodules
+        drwxr-xr-x  2 vkhougaz vkhougaz 4096 Oct 10 22:34 docs
+        -rw-r--r--  1 vkhougaz vkhougaz 1479 Oct 10 22:00 flake.lock
+        -rw-r--r--  1 vkhougaz vkhougaz 1504 Oct 10 22:15 flake.nix
+        drwxr-xr-x  4 vkhougaz vkhougaz 4096 Oct 10 21:58 vendor
+        drwxr-xr-x  3 vkhougaz vkhougaz 4096 Oct 10 21:48 vibes
+        docs/:
+        total 1124
+        drwxr-xr-x 2 vkhougaz vkhougaz    4096 Oct 10 22:34 .
+        drwxr-xr-x 6 vkhougaz vkhougaz    4096 Oct 10 22:00 ..
+        -rw-r--r-- 1 vkhougaz vkhougaz 1109976 Oct 10 21:38 reaper-api.htm
+        -rw-r--r-- 1 vkhougaz vkhougaz   13269 Oct 10 22:15 reaper-dev-env.md
+        -rw-r--r-- 1 vkhougaz vkhougaz   12786 Oct 10 22:34 reaper-plugin.md
+        
+        vibes/:
+        total 24
+        drwxr-xr-x 3 vkhougaz vkhougaz 4096 Oct 10 21:48 .
+        drwxr-xr-x 6 vkhougaz vkhougaz 4096 Oct 10 22:00 ..
+        drwxr-xr-x 2 vkhougaz vkhougaz 4096 Oct 10 22:35 .ralph-logs
+        -rw-r--r-- 1 vkhougaz vkhougaz 6396 Oct 10 22:35 00-environment.md
+        -rw-r--r-- 1 vkhougaz vkhougaz  388 Oct 10 21:47 05-prototypes.md
+        0a30b8e Add docs/reaper-plugin.md: prior art + high-level plugin architecture
+        e5bf1e2 Implement dev environment (flake.nix + .envrc) per docs/reaper-dev-env.md
+        … (2 more lines)[0m
+
+[90m[thinking] `docs/reaper-api.htm` is a 1.1 MB HTML file (REAPER API documentation). Task: extract a useful subset into a more token-efficient format (e.g., Markdown), and add it as `docs/??`.
+
+To understand the structure and what's relevant to this plugin, let's investigate the HTML. First, let's check the style of the existing documentation, and look at reaper-plugin.md to grasp which APIs are mentioned/needed.
+
+Plan:
+1. Check the structure of reaper-api.htm (headings, size).
+2. Read docs/reaper-plugin.md and docs/reaper-dev-env.md to figure out which APIs the plugin needs (hookcommand2, timer, custom actions, csurf, CSurf_ScrubAmt, transport actions, etc.).
+3. Write a Python script that parses the HTML and extracts the useful subset (relevant sections + the registration types used) into a concise Markdown document, e.g., `docs/reaper-api-subset.md`.
+
+The task says "a useful subset" — so not the entire 1.1 MB. It should cover the APIs relevant to this plugin: plugin entry/registration (the reaper_plugin_info_t struct with all fields we might use), hookcommand2/hookpostcommand2, timer, custom_action, csurf-related, transport/playback functions (CSurf_ScrubAmt, CSurf_GetPlaySpeed, etc.), and possibly project/transport state queries.
+
+First, let's investigate the HTML structure in code (following the context-mode guidance, use ctx_execute — the file is large, so we shouldn't read the whole thing).
+[36m[text] `docs/reaper-api.htm` is 1.1 MB. Going to investigate its structure in the sandbox and check what's written in the existing docs, so I can decide which subset is the "useful" one.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        print("len:", len(html))
+        # find headings
+        h1 = re.findall(r'<h1[^>]*>(.*?)</h1>', html, re.S)
+        h2 = re.findall(r'<h2[^>]*>(.*?)</h2>', html, re.S)
+        h3 = re.findall(r'<h3[^>]*>(.*?)</h3>', html, re.S)
+        h4 = re.findall(r'<h4[^>]*>(.*?)</h4>', html, re.S)
+        def clean(s): return re.sub(r'<[^>]+>', '', s).strip()
+        print("H1:", [clean(x) for x in h1][:20])
+        print("H2 count:", len(h2))
+        print("H2:", [clean(x) for x in h2][:60])
+        print("H3 count:", len(h3))
+        print("H4 count:", len(h4))
+        
+        ```
+        
+        len: 1102472
+        H1: ['ReaScript API']
+        H2 count: 3
+        H2: ['ReaScript/EEL2 Built-in Function List', 'ReaScript/Lua Built-In Function list', 'ReaScript/Python Built-In Function list']
+        H3 count: 4
+        H4 count: 0
+        [0m
+
+[90m[thinking] Interesting — this `reaper-api.htm` isn't the C++ SDK documentation, it's ReaScript API documentation. Wait, but the h2 count is 3 and h3 is 4. Hmm, this seems weird for a 1.1 MB file. Let me check more carefully — maybe the function list uses `<dt>` or a table. I'll look at the overall structure.
+[36m[text] That's the ReaScript API doc. Let me look deeper at its structure (it likely uses tables/lists rather than headings).
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        # check what tags are used for the function lists
+        print("table count:", len(re.findall(r'<table', html)))
+        print("dt count:", len(re.findall(r'<dt', html)))
+        print("dd count:", len(re.findall(r'<dd', html)))
+        print("li count:", len(re.findall(r'<li', html)))
+        print("pre count:", len(re.findall(r'<pre', html)))
+        # section markers - find all text lines that look like section headers
+        for m in re.finditer(r'<h([1-6])[^>]*>(.*?)</h\1>', html, re.S):
+            print("heading:", m.group(1), re.sub(r'<[^>]+>','',m.group(2)).strip(), "at", m.start())
+        # check for anchor-based sections
+        ids = re.findall(r'id="([^"]+)"', html)
+        print("ids:", len(ids), ids[:30])
+        classes = set(re.findall(r'class="([^"]+)"', html))
+        print("classes:", sorted(classes)[:40])
+        
+        ```
+        
+        table count: 11
+        dt count: 0
+        dd count: 0
+        li count: 536
+        pre count: 0
+        heading: 1 ReaScript API at 1785
+        heading: 3 ReaScript/EEL2 API at 3392
+        heading: 3 ReaScript/Lua API at 13197
+        heading: 3 ReaScript/Python API at 19129
+        heading: 3 API Function List at 22212
+        heading: 2 ReaScript/EEL2 Built-in Function List at 1039894
+        heading: 2 ReaScript/Lua Built-In Function list at 1079112
+        heading: 2 ReaScript/Python Built-In Function list at 1101019
+        ids: 0 []
+        classes: ['aclick', 'all_view', 'c_func', 'cclick', 'e_doc', 'e_func', 'e_funcs', 'eclick', 'l_doc', 'l_func', 'l_funcs', 'lclick', 'p_doc', 'p_func', 'p_funcs', 'pclick']
+        [0m
+
+[90m[thinking] The main content is "API Function List" (from 22212 to 1039894), containing 11 tables. This is the standard Cockos reaper-api.htm (the ReaScript API function list). Classes: e_func/l_func/p_func (function names in each language), e_doc/l_doc/p_doc (doc rows), c_func (common?).
+
+So the "useful subset" for our plugin: this plugin is a C++ REAPER extension that uses HID. ReaScript's API list is about the ReaScript functions. Hmm, but wait — is reaper-api.htm the right doc? The task says "extract a useful subset of docs/reaper-api.htm into a more token-efficient format".
+
+Hold on. Let me reconsider: for this plugin, what would be "useful" from reaper-api.htm? According to docs/reaper-plugin.md, the plugin uses hookcommand2, timer, custom_action, csurf, CSurf_ScrubAmt. ReaScript API functions might be useful for prototyping/testing (ReaScript for testing transport control), or maybe for the headless CLI reader? Actually no — the ReaScript API is useful in the following:
+
+1. Prototyping: testing scrub/jog behavior in REAPER via ReaScript before writing C++.
+2. Testing/automation: the plugin can call actions, and ReaScript can invoke those.
+3. The doc may contain transport-related functions (ReaProject transport, main_transport, action_perform, etc.), useful for the "option A minimal scrub/jog action" approach.
+
+Let me look at the existing docs and confirm which APIs are mentioned, to align the subset selection. Read docs/reaper-plugin.md (12 KB, readable) and skim the structure of reaper-dev-env.md.
+
+Then parse the tables: the 11 tables in the API Function List — let me extract all function names and check the structure of one row.
+[36m[text] The main content is the "API Function List" — 11 tables of ReaScript functions. Let me read the existing plugin docs to see which APIs this project needs, and sample one table's row structure.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/docs/reaper-plugin.md[0m
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] read[0m
+[33m        # Research: REAPER plugin architecture for the Speed Editor
+        
+        Scope: how a REAPER extension turns the Blackmagic DaVinci Resolve Speed
+        Editor into a transport controller — prior art, the SDK surface we will use,
+        and the end-to-end architecture. Companion to `docs/reaper-dev-env.md`
+        (toolchain, devShell, HID requirements — §5/§7/§8 there; not repeated here).
+        
+        ## TL;DR
+        
+        1. **The Speed Editor is a USB HID device, not MIDI**, and it refuses to talk
+           until both sides complete a *mutual authentication* handshake (public
+           algorithm, report ID 6). There is no OS driver and no REAPER support:
+           whoever wants the data (our plugin) must open the device itself,
+           authenticate, and poll input reports from its own worker thread.
+        2. **The protocol is publicly documented by prior art**: `bmd.py`
+           (Python/python-hid) and `speed-editor-client` (Go/go-hid). Jog input is a
+           signed 32-bit value with a mode byte; keys arrive as the full held-set
+           (6×LE16 keycodes, no auto-repeat); we also *write* to the device (LEDs,
+           jog-mode selection).
+        3. **REAPER extensions are simple to register**: one entry point
+           (`ReaperPluginEntry`), host APIs via `rec->GetFunc`, and *everything* else
+           via `rec->Register(...)`. The hooks we care about are verified present in
+           the vendored SDK: `hookcommand2` (intercept any action; carries
+           MIDI/OSC/mousewheel values), `timer` (periodic work), `custom_action`
+           (our own actions), and `reaper_csurf_reg_t` (full control-surface model).
+        … (168 more lines)[0m
+
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        # locate tables
+        for i, m in enumerate(re.finditer(r'<table[^>]*>.*?</table>', html, re.S)):
+            seg = m.group(0)
+            rows = re.findall(r'<tr[^>]*>', seg)
+            # first row cells
+            first = re.search(r'<tr[^>]*>(.*?)</tr>', seg, re.S).group(1)
+            cells = [re.sub(r'<[^>]+>','',c).strip() for c in re.findall(r'<td[^>]*>(.*?)</td>', first, re.S)]
+            print(f"table {i}: rows={len(rows)} first_row={cells[:6]}")
+        
+        ```
+        
+        table 0: rows=1 first_row=['ReaScript API', 'Generated by REAPER v7.82/win64']
+        table 1: rows=1 first_row=['// function returning a single (scalar) value:\nsec = parse_timestr("1:12");\n// function returning information in the first parameter (function returns void):\nGetProjectPath(#string);\n// lower volume of track 3 by half:\ntr = GetTrack(0, 2);\nGetTrackUIVolPan(tr, vol, pan);\nSetMediaTrackInfo_Value(tr, "D_VOL", vol*0.5);']
+        table 2: rows=22 first_row=['abs &nbsp; &nbsp;', 'floor &nbsp; &nbsp;', 'gfx_getdropfile &nbsp; &nbsp;', 'gfx_setpixel &nbsp; &nbsp;', 'printf &nbsp; &nbsp;', 'strcpy_from &nbsp; &nbsp;']
+        table 3: rows=1 first_row=['-- function returning a single (scalar) value:\nsec = reaper.parse_timestr("1:12")\n-- function with an ignored (dummy) parameter:\npath = reaper.GetProjectPath("")\n-- lower volume of track 3 by half:\ntr = reaper.GetTrack(0, 2)\nok, vol, pan = reaper.GetTrackUIVolPan(tr, 0, 0)\nreaper.SetMediaTrackInfo_Value(tr, "D_VOL", vol*0.5)']
+        … (8 more lines)[0m
+
+[90m[thinking] Now I understand the structure. Table 10 (183 rows) is the main "API Function List" — no wait, it says 183 rows, but that's the count of `<tr>` tags inside table 10. Actually, the real API function list should have around 1000+ functions. Let me verify — 183 rows × multiple functions per row? Let's take a look. Each row might contain many cells (functions listed in columns). The first row shows 4 different functions: 'AddMediaItemToTrack', 'GetEnvelopeUIState', 'InsertMedia', 'SetTakeStretchMarker' — so the table is a grid layout with multiple functions per row, and each function has a doc cell.
+
+Let me parse this properly: I'll extract all the function names and the documentation text. Let me look at the structure of a few complete rows.
+[36m[text] Table 10 (183 rows, multi-column grid) is the main function list. Let me inspect its row structure to plan extraction.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        tables = re.findall(r'<table[^>]*>.*?</table>', html, re.S)
+        seg = tables[10]
+        rows = re.findall(r'<tr[^>]*>.*?</tr>', seg, re.S)
+        r = rows[0]
+        tcs = re.findall(r'<t[dh][^>]*class="([^"]*)"[^>]*>(.*?)</t[dh]>', r, re.S)
+        print("row0 cells:", len(tcs))
+        for cls, txt in tcs[:8]:
+            clean = re.sub(r'<[^>]+>',' ',txt)
+            clean = re.sub(r'\s+',' ',clean).strip()
+            print(f"  [{cls}] {clean[:120]}")
+        
+        # check for <br> structure within cells, e.g. doc cells
+        print("\n--- row 5 sample ---")
+        tcs5 = re.findall(r'<t[dh][^>]*class="([^"]*)"[^>]*>(.*?)</t[dh]>', rows[5], re.S)
+        for cls, txt in tcs5[:8]:
+            clean = re.sub(r'<[^>]+>',' ',txt)
+            clean = re.sub(r'\s+',' ',clean).strip()
+            print(f"  [{cls}] {clean[:150]}")
+        
+        # total function entries: count e_func / l_func / p_func spans
+        print("\ne_func:", len(re.findall(r'class="e_func"', seg)), "l_func:", len(re.findall(r'class="l_func"', seg)), "p_func:", len(re.findall(r'class="p_func"', seg)))
+        print("e_doc:", len(re.findall(r'class="e_doc"', seg)), "l_doc:", len(re.findall(r'class="l_doc"', seg)), "p_doc:", len(re.findall(r'class="p_doc"', seg)))
+        print("c_func:", len(re.findall(r'class="c_func"', seg)))
+        
+        ```
+        
+        row0 cells: 0
+        
+        --- row 5 sample ---
+        
+        e_func: 0 l_func: 0 p_func: 0
+        e_doc: 0 l_doc: 0 p_doc: 0
+        c_func: 0
+        [0m
+
+[90m[thinking] Hmm, my regex isn't matching. The class attribute might be placed in a different position, or the table structure might be different. Let me try dumping the raw HTML of the first few rows of table 10.
+[36m[text] My regex assumptions are off. Let me dump raw HTML of the first row of that table.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        tables = re.findall(r'<table[^>]*>.*?</table>', html, re.S)
+        seg = tables[10]
+        print(seg[:3000])
+        
+        ```
+        
+        <table>
+        <tbody><tr><td><a href="#AddMediaItemToTrack">AddMediaItemToTrack</a> &nbsp; &nbsp; </td>
+        <td><a href="#GetEnvelopeUIState">GetEnvelopeUIState</a> &nbsp; &nbsp; </td>
+        <td><a href="#InsertMedia">InsertMedia</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetTakeStretchMarker">SetTakeStretchMarker</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#AddProjectMarker">AddProjectMarker</a> &nbsp; &nbsp; </td>
+        <td><a href="#GetExePath">GetExePath</a> &nbsp; &nbsp; </td>
+        <td><a href="#InsertMediaSection">InsertMediaSection</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetTakeStretchMarkerSlope">SetTakeStretchMarkerSlope</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#AddProjectMarker2">AddProjectMarker2</a> &nbsp; &nbsp; </td>
+        <td><a href="#GetExtState">GetExtState</a> &nbsp; &nbsp; </td>
+        <td><a href="#InsertTrackAtIndex">InsertTrackAtIndex</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetTempoTimeSigMarker">SetTempoTimeSigMarker</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#AddRegionOrMarker">AddRegionOrMarker</a> &nbsp; &nbsp; </td>
+        <td><a href="#GetFocusedFX">GetFocusedFX</a> &nbsp; &nbsp; </td>
+        <td><a href="#InsertTrackInProject">InsertTrackInProject</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetThemeColor">SetThemeColor</a> &nbsp; &nbsp; </td></tr>
+        … (24 more lines)[0m
+
+[90m[thinking] Table 10 is just an index of function names (anchors) arranged in a grid. The actual function documentation with descriptions must be elsewhere in the HTML — probably in a hidden `<div>` per function (with classes e_doc/l_doc/p_doc that I confirmed in the class list). Those classes (aclick, cclick, eclick, lclick, pclick, all_view) suggest a JavaScript-driven viewer that displays EEL2/Lua/Python variants per function.
+
+So the structure is like this:
+- Table 10: index grid of all function names (732 functions? 183 rows × 4 = 732).
+- For each function, a div containing 3 views: e_func (EEL2 signature), l_func (Lua), p_func (Python), with corresponding doc cells e_doc/l_doc/p_doc.
+
+Let's look for where those divs are. I'll search the HTML for occurrences of 'class="e_func"'.
+[36m[text] Table 10 is just the index grid. The actual function entries with signatures/docs must be in the JS-driven divs. Let me find them.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace')…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        html = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        print("e_func total in doc:", len(re.findall(r'class="e_func"', html)))
+        print("c_func total in doc:", len(re.findall(r'class="c_func"', html)))
+        i = html.find('class="e_func"')
+        print("context around first e_func:")
+        print(html[i-2000:i+1500])
+        
+        ```
+        
+        e_func total in doc: 731
+        c_func total in doc: 732
+        context around first e_func:
+        </td>
+        <td><a href="#SetProjectMarkerByIndex">SetProjectMarkerByIndex</a> &nbsp; &nbsp; </td>
+        <td><a href="#UpdateItemInProject">UpdateItemInProject</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#GetEnvelopePointByTime">GetEnvelopePointByTime</a> &nbsp; &nbsp; </td>
+        <td><a href="#Help_Set">Help_Set</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetProjectMarkerByIndex2">SetProjectMarkerByIndex2</a> &nbsp; &nbsp; </td>
+        <td><a href="#UpdateItemLanes">UpdateItemLanes</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#GetEnvelopePointByTimeEx">GetEnvelopePointByTimeEx</a> &nbsp; &nbsp; </td>
+        <td><a href="#image_resolve_fn">image_resolve_fn</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetProjExtState">SetProjExtState</a> &nbsp; &nbsp; </td>
+        <td><a href="#UpdateTimeline">UpdateTimeline</a> &nbsp; &nbsp; </td></tr>
+        <tr><td><a href="#GetEnvelopePointEx">GetEnvelopePointEx</a> &nbsp; &nbsp; </td>
+        <td><a href="#InsertAutomationItem">InsertAutomationItem</a> &nbsp; &nbsp; </td>
+        <td><a href="#SetRegionOrMarkerInfo_Value">SetRegionOrMarkerInfo_Value</a> &nbsp; &nbsp; </td>
+        … (23 more lines)[0m
+
+[90m[thinking] Now I fully understand the structure:
+
+- For each function: `<a name="FuncName"><hr></a>` followed by 4 `<div>`s: `c_func` (C signature!), `e_func` (EEL2), `l_func` (Lua), `p_func` (Python), and then the description text follows until the next `<a name=`.
+
+732 functions (c_func) / 731 (e_func — one function doesn't have an EEL2 variant).
+
+Key insight: **the `c_func` divs contain the C signatures** — this is exactly what's valuable for a C++ plugin. A token-efficient extraction would be: for each function, the C signature + one-line description (the doc text before the next anchor), organized by topic.
+
+So "a useful subset" is: for a Speed Editor transport plugin, which ReaScript functions matter? The C++ plugin itself doesn't call ReaScript functions (it uses the SDK's host API via GetFunc), but this document is the complete REAPER function reference. A useful subset for this project would be:
+
+1. **Transport/playback/cursor functions** — the core: `GetSetProjectInfo`, `GetSetMediaTrackInfo`, `Main_OnCommand` equivalent... wait, actually ReaScript's function list is about REAPER's scripting API. For a transport controller plugin, what matters is:
+   - Transport: `GetSetProjectInfo` (RPPB_PLAYING, RPPB_CURSORPOS, RPPB_STARTEND), `GetSetEditCurPos`, `Main_OnCommand`, `Main_Transport`, `CSurf` related... actually in the ReaScript API, transport-related: `GetSetProjectInfo`, `GetSetEditCurPos`, `SetTransportRate`? Let me enumerate the relevant ones after parsing.
+   - Actions: `Main_OnCommand`, `GetActionName`, `GetResourcePath`, etc.
+   - Also useful for prototyping/testing via ReaScript.
+
+But wait — the task says "extract a useful subset of docs/reaper-api.htm into a more token-efficient format". A general, reasonable interpretation for the project: extract the API function list (the part where 1.1 MB of 1 MB is a table of 732 function entries with 4 language variants and tons of hidden divs/JS) into a compact Markdown: C signature (most relevant to a C++ plugin) + short description, grouped by function-name prefix (topic), keeping only the sections relevant to a transport-control plugin... but if I pick the subset myself I risk cutting things that would be needed later.
+
+Hmm. Let me think about what a "useful subset" means for this project. The plugin is C++. It uses the SDK host API (reaper_plugin_functions.h), not ReaScript. So why does this document even exist in docs/? It was placed there by the previous task (probably downloaded as research). The ReaScript API list is useful for:
+
+1. **Prototyping option A in ReaScript** — before writing C++, verify that the "wheel → scrub action" approach works in REAPER using a ReaScript timer. ReaScript has `Main_OnCommand`, `GetSetProjectInfo`, `GetCursorPosition`, etc.
+2. **Understanding which transport/cursor functions exist** (and their exact names/parameters) — the ReaScript function names map 1:1 to the SDK host API names (e.g., `GetSetProjectInfo` exists in both), so it also serves as a catalog of the SDK's transport API.
+3. **Testing the plugin** — ReaScript scripts can call plugin-registered actions.
+
+Given the instruction "extract a *useful subset* ... into a more token-efficient format", the deliverable should be a new Markdown file under `docs/` (the name `??` is up to me, e.g., `docs/reaper-api-subset.md`) that contains a curated, compact version.
+
+I think the right scope is this: a full compact extraction of the 732 functions is "more token-efficient" (1.1MB → probably ~60–100KB), but it's not a "subset". A *subset* implies selection. What subset is useful for this project?
+
+Relevant groups for a Speed Editor transport plugin:
+- **Transport & playback**: `Main_OnCommand`, `Main_Transport`, `GetSetProjectInfo` (flags like RPPB_PLAYING etc. are in the description), `GetSetEditCurPos`, `GetCursorPosition`? (need to confirm actual names), `CSurf` functions? Let me parse everything first and then filter.
+- **Actions**: `GetActionName`, `GetToggleCommandState`/`SetToggleCommandState`, `Main_OnCommand`, `FindAction`, `EnumActions`?
+- **Project/section state**: `GetSetProjectInfo`, `GetProjectMarker`, etc. (for IN/OUT point mapping — the Speed Editor has IN/OUT keys!)
+- **UI/feedback**: `ShowMessageBox`, `ShowConsoleMsg`, `ShowStringInWindow` (for LED-like feedback? not really), `ClearConsole`, `ReaTrace`.
+- **Extension state (settings)**: `GetExtState`/`SetExtState` — for storing plugin options... (that's the SDK's `GetSetExtState`... in ReaScript: `GetExtState`).
+- **Media items/cursor selection**: `GetSetMediaItemInfo_Value` (I_POSITION/I_LENGTH) — for IN/OUT point operations?
+- **Timing**: `GetProjectTimeFormat`, `GetCursorPosition`? etc.
+- **Section markers / IN-OUT**: `GetSet_LoopPoints`? `GetSetProjectInfo` with RPPB_STARTEND, `GetSet_LoopMode`?
+- **Zoom/scroll**: `adjustZoom`, `ScrollToEditCur`? (scroll mode button!)
+- **View**: `ScrollToEditCur`, `GetSetEditCurPos`, `TimeMap`?
+- **Console/logging for prototyping**: `ShowConsoleMsg`, `ClearConsole`.
+- **ReaScript runtime helpers**: `reaper.Preview`? `reaper.IncreaseUIRefreshRate` (useful for high-rate timers!), `reaper.defer`, `reaper.RunLoop`, `reaper.atexit` — for the ReaScript prototyping harness.
+- **Media item/take selection** — not needed.
+
+Also the **ReaScript built-in function list** (EEL2/Lua/Python builtins) — useful subset: probably just keep a pointer to the full list; these are language builtins (abs, floor...) and not really useful for the plugin. Could include a short note.
+
+I think a good deliverable is:
+
+`docs/reaper-api-subset.md`:
+- TL;DR: what the source is, what the subset is, how to use it (prototyping option A, catalog of transport API), pointer to the full htm.
+- §1: Transport & playback (functions + C signature + description, plus key flag tables where the description mentions them, e.g., RPPB_ flags of GetSetProjectInfo — these are gold for our plugin: play state, cursor position, start/end, loop, time format).
+- §2: Cursor/edit position/loop points (IN/OUT mapping).
+- §3: Actions & commands (Main_OnCommand, GetActionName, toggle state).
+- §4: Project info/state chunks? (maybe merge with §1).
+- §5: View/zoom/scroll.
+- §6: Extension state & resources (GetExtState/SetExtState, GetResourcePath).
+- §7: ReaScript runtime (reaper.* helpers for prototyping: defer, RunLoop, IncreaseUIRefreshRate, UI timeout, console).
+- §8: Console/debug (ShowConsoleMsg, ReaTrace).
+- Full index: an alphabetical list of all 732 function names (one per line, or 4 columns) — cheap (~10KB), so future lookups can find function names without parsing the 1.1MB htm. This makes the document a genuine token-efficient reference.
+
+Hmm, wait. Should I include all 732 names? "A more token-efficient format" — the full index is useful and cheap. Let me estimate: 732 names × ~20 chars ≈ 15 KB. OK.
+
+Actually, let me reconsider the scope once more. Risk: I pick a subset, the next task needs something else, and has to re-parse the 1.1MB htm. But the task explicitly says "a useful subset", so selection is intended. Keep the full function name index to mitigate that.
+
+Alternatively — "a more token-efficient format" for the entire function list: C signature + description for all 732 functions. Estimate: each entry ~80–150 bytes → ~80 KB. That's still a lot to read but fine in a file. However, a "useful subset" for the project is better than 80 KB of noise (envelope, FX, MIDI editor, etc. are irrelevant to a transport plugin).
+
+Decision: curated subset by topic (transport, cursor/loop, actions, project state, view/zoom/scroll, extension state, ReaScript runtime/debug) with C signatures + descriptions, plus a compact alphabetical index of all 732 function names so nothing is lost. If any of the chosen sections is large, trim it.
+
+Also, descriptions often contain multi-line details (e.g., GetSetProjectInfo lists all RPPB_ flags). For a "token-efficient" format, I should keep these details for key functions (the flag list is precisely the useful part), but I can normalize whitespace.
+
+First, let me parse the whole thing: extract each function as (name, C signature, EEL2 signature?, Lua signature?, Python signature?, description). Which signatures to keep? For a C++ plugin developer: **C signature** is the most relevant (maps to the SDK host API). But the Lua/Python variants have typed parameter names — the C signature also has parameter names. I'll keep C + the description, and include EEL2/Lua/Python variants only if they differ in information content... actually the C signatures here sometimes use `#`-style types like `MediaItem* tr` with full parameter names — very readable. Keep only C (note that EEL2/Lua/Python variants exist in the htm). Hmm, but some functions have `#string` out-parameters in C. That's fine.
+
+Wait, actually — for a C++ plugin, the C signatures in this ReaScript document are the SDK host API signatures themselves (ReaScript wraps the same functions). For example, `GetSetProjectInfo(ReaProject* proj, const char* key, double* val)` is exactly the SDK signature.
+
+Plan:
+1. Parse all 732 entries: name, C code, EEL2 code, Lua code, Python code, doc text.
+2. Build a compact Markdown:
+   - Header/TL;DR + usage note + pointer to the source htm.
+   - Curated sections with entries: `**Name** — C: \`sig\`` + description (whitespace-normalized, long ones possibly trimmed... keep full text but collapse whitespace).
+   - Compact index of all 732 names (one per line, or 4 per line).
+3. Verify the output file size is reasonable (target < 60 KB), and verify that each selected entry's content is accurate.
+
+Which functions to include in the curated sections? First let me parse and dump all names + C signatures, then filter by keyword: transport, play, cursor, pos, time, action, command, loop, zoom, scroll, view, ext state, project info, mediaitem (for IN/OUT? maybe skip), console, reaper. (runtime), defer, runloop, ui, refresh, marker, tempo, timeSig, project (GetProjectPath...), resource, message.
+
+Let me write the parser and dump a name + one-line-signature list (732 lines, ~30KB) — that's a lot for context. Better: dump a name → topic classification computed in code, and print only the names I'm unsure about. Or: dump the full list of (name, C signature) — 732 lines × ~60 chars ≈ 44 KB — too much for context.
+
+Better approach: do all selection in code with a keyword-based classifier, print the chosen sections' names + signatures for review (~150–250 functions? no...). Let me first print a compact classification summary (topic: count, names), then pick a final whitelist and generate the document.
+
+Actually, the most reliable way: I curate a whitelist of specific function names (I can see all 732 names as a compact list — 732 × ~18 chars ≈ 13KB, acceptable in one output). Then generate the document with the whitelist + index. Let me print all names compactly (comma-separated, 4 per line → 183 lines). That's manageable.
+[36m[text] Now I understand: for each of the 732 functions there's a `<a name=...>` anchor, four signature divs (`c_func` = **C signature**, `e_func` EEL2, `l_func` Lua, `p_func` Python), and description text. The C signature is what matters most to a C++ plugin. Let me parse everything and list all function names to curate the subset.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re, html as h, json
+        raw = open('docs/reaper-api.htm', encoding='utf-8', e…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re, html as h, json
+        raw = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        
+        def clean(s):
+            s = re.sub(r'<br\s*/?>', '\n', s)
+            s = re.sub(r'<[^>]+>', '', s)
+            s = h.unescape(s)
+            s = re.sub(r'[ \t]+', ' ', s)
+            s = re.sub(r'\n\s*', '\n', s)
+            return s.strip()
+        
+        # Split on anchors
+        parts = re.split(r'<a name="([^"]+)"><hr></a>', raw)
+        # parts: [pre, name1, body1, name2, body2, ...]
+        entries = {}
+        for i in range(1, len(parts)-1, 2):
+            name, body = parts[i], parts[i+1]
+            c = re.search(r'<div class="c_func"[^>]*>(.*?)</div>', body, re.S)
+            e = re.search(r'<div class="e_func"[^>]*>(.*?)</div>', body, re.S)
+            l = re.search(r'<div class="l_func"[^>]*>(.*?)</div>', body, re.S)
+            p = re.search(r'<div class="p_func"[^>]*>(.*?)</div>', body, re.S)
+            doc = body
+            m = re.search(r'</div>\s*(.*)', body, re.S)
+            doc = m.group(1) if m else body
+            doc = clean(doc)
+            entries[name] = {
+                'c': clean(c.group(1)) if c else '',
+                'e': clean(e.group(1)) if e else '',
+                'l': clean(l.group(1)) if l else '',
+                'p': clean(p.group(1)) if p else '',
+                'doc': doc,
+            }
+        
+        print("total entries:", len(entries))
+        names = sorted(entries.keys())
+        # print compactly
+        import textwrap
+        line = []
+        for n in names:
+            line.append(n)
+            if len(line) == 4:
+                print(' | '.join(line)); line = []
+        if line: print(' | '.join(line))
+        json.dump(entries, open('/tmp/reaper_api_entries.json','w'))
+        … (238 more lines)[0m
+
+[90m[thinking] 924 entries total (732 REAPER API functions + EEL2/Lua/Python built-in functions).
+
+Now I'll curate a subset useful for the Speed Editor transport plugin project. Categories:
+
+**Transport / playback / cursor (core):**
+- GetPlayState, GetPlayStateEx, GetPlayPosition, GetPlayPosition2, GetPlayPositionEx, GetPlayPosition2Ex, GetAllProjectPlayStates
+- GetSetProjectInfo (the big one — RPPB_ flags: PLAYING, CURSORPOS, STARTEND, LOOP, TEMPO, TIMEFORMAT, etc.)
+- GetSet_LoopTimeRange, GetSet_LoopTimeRange2, Main_UpdateLoopInfo
+- GetCursorPosition, GetCursorPositionEx, GetCursorContext, GetCursorContext2, SetCursorContext, SetEditCurPos, SetEditCurPos2, MoveEditCursor, GoToMarker, GoToRegion, GetLastMarkerAndCurRegion
+- GetSetRepeat, GetSetRepeatEx
+- SetCurrentBPM, GetProjectTimeSignature, GetProjectTimeSignature2, CountTempoTimeSigMarkers, GetTempoTimeSigMarker, FindTempoTimeSigMarker, AddTempoTimeSigMarker, DeleteTempoTimeSigMarker, EditTempoTimeSigMarker, GetSetTempoTimeSigMarkerFlag, GetSetTempoTimeSigMarkerBasis
+- TimeMap functions (time ↔ QN/measure): TimeMap_timeToQN, TimeMap_QNToTime, TimeMap_GetTimeSigAtTime, TimeMap_GetMeasureInfo, TimeMap_GetDividedBpmAtTime, TimeMap_curFrameRate, + TimeMap2_*, GetProjectTimeOffset, GetProjectLength
+- Master_GetTempo, Master_GetPlayRate, Master_GetPlayRateAtTime, Master_NormalizeTempo, Master_NormalizePlayRate
+- GetProjectTimeSignature is already covered.
+
+**Actions / commands (Option A uses Main_OnCommand via SDK; ReaScript for prototyping):**
+- Main_OnCommand, Main_OnCommandEx, NamedCommandLookup, ReverseNamedCommandLookup, PromptForAction, ShowActionList, GetToggleCommandState, GetToggleCommandStateEx, SetToggleCommandState, ArmCommand, GetArmedCommand, CountActionShortcuts, GetActionShortcutDesc, DeleteActionShortcut, DoActionShortcutDialog, kbd_enumerateActions, kbd_getTextFromCmd
+
+**CSurf (control surface — Option B; these are literally the host API functions for control surfaces, and also relevant to the C++ plugin):**
+- All CSurf_*: CSurf_OnPlay, CSurf_OnStop, CSurf_OnPause, CSurf_OnRecord, CSurf_OnPlayRateChange, CSurf_OnTempoChange, CSurf_OnZoom, CSurf_OnWidthChange(Ex), CSurf_OnScroll, CSurf_OnArrow, CSurf_GoStart, CSurf_GoEnd, CSurf_ScrubAmt, CSurf_SetPlayState, CSurf_SetAutoMode, CSurf_SetRepeatState, CSurf_FlushUndo, CSurf_GetTouchState, CSurf_OnSelectedChange, CSurf_OnTrackSelection, CSurf_OnVolumeChange(Ex), CSurf_OnPanChange(Ex), CSurf_OnMuteChange(Ex), CSurf_OnSoloChange(Ex), CSurf_OnRecArmChange(Ex), CSurf_OnFXChange, CSurf_OnInputMonitorChange(Ex), CSurf_OnRecvPanChange, CSurf_OnRecvVolumeChange, CSurf_OnSendPanChange, CSurf_OnSendVolumeChange, CSurf_TrackFromID, CSurf_TrackToID, CSurf_NumTracks, CSurf_SetSurfaceMute/Solo/RecArm/Selected/Volume/Pan, CSurf_ResetAllCachedVolPanStates, CSurf_SetTrackListChange
+- Loop_OnArrow
+
+**Play/stop/pause buttons (used directly by some surfaces):**
+- OnPlayButton, OnPlayButtonEx, OnStopButton, OnStopButtonEx, OnPauseButton, OnPauseButtonEx
+
+**View / zoom / scroll (SCRL mode):**
+- adjustZoom, GetHZoomLevel, GetSet_ArrangeView2, UpdateArrange, GetMousePosition, SetMouseModifier, GetMouseModifier, my_getViewport, SetMixerScroll, GetMixerScroll, ScrollToEditCur? (doesn't exist — no problem)
+
+**Project / markers / regions (IN/OUT keys, CAM-style markers):**
+- GetProjectName, GetProjectPath, GetProjectPathEx, GetExePath, GetResourcePath, GetUserFileName, GetUserFileNameForRead, EnumerateFiles, EnumerateSubdirectories, RecursiveCreateDirectory, GetFreeDiskSpaceForRecordPath, MarkProjectDirty, IsProjectDirty, Main_SaveProject, Main_SaveProjectEx, Main_openProject, SelectProjectInstance, EnumProjects
+- Project markers: CountProjectMarkers, EnumProjectMarkers(2/3), AddProjectMarker(2), SetProjectMarker(2/3/4), SetProjectMarkerByIndex(2), DeleteProjectMarker, DeleteProjectMarkerByIndex, GetRegionOrMarker, GetRegionOrMarkerInfo_Value, SetRegionOrMarkerInfo_Value, GetSetRegionOrMarkerInfo_String, AddRegionOrMarker, GetNumRegionsOrMarkers, GetLastMarkerAndCurRegion (already in cursor)
+- Ext state: GetExtState, SetExtState, HasExtState, DeleteExtState, EnumProjExtState, GetProjExtState, SetProjExtState
+
+**Project state chunks / undo (useful for a plugin that mutates project state):**
+- GetSetProjectInfo_String, GetSetProjectAuthor, GetSetProjectNotes, GetProjectStateChangeCount
+- Undo_*: Undo_BeginBlock(2), Undo_EndBlock(2), Undo_DoUndo2, Undo_DoRedo2, Undo_CanUndo2, Undo_CanRedo2, Undo_GetNumEntries, Undo_GetCurEntry, Undo_SetCurPos... probably include the core ones: BeginBlock2/EndBlock2/DoUndo2/DoRedo2/CanUndo2/CanRedo2.
+- GetSetProjectGrid, SetProjectGrid, SnapToGrid, GetProjectTimeFormat? (doesn't exist)
+
+**Media items (IN/OUT points, region operations — modest):**
+- CountMediaItems, GetSelectedMediaItem, GetMediaItemInfo_Value, SetMediaItemInfo_Value, GetSetMediaItemInfo_String, SplitMediaItem, SelectAllMediaItems, CountSelectedMediaItems, IsMediaItemSelected, SetMediaItemSelected, GetMediaItem_Track, GetTrackMediaItem, GetTrackNumMediaItems, InsertMedia, InsertMediaSection, RenderFileSection, GetMediaSourceLength, GetMediaSourceSampleRate... hmm, how deep to go? For a transport plugin, the IN/OUT keys probably map to loop points (GetSet_LoopTimeRange) rather than media items. Keep the media item subset small: only what's needed for IN/OUT point marking: actually the IN/OUT keys in a DAW context typically set loop start/end. Keep only GetSet_LoopTimeRange and drop most media items... but GetMediaItemInfo_Value with I_POSITION is also common. To keep the focus narrow, I'll include a minimal "selection & media items" group: GetSelectedMediaItem, GetMediaItemInfo_Value, SetMediaItemInfo_Value, GetSetMediaItemInfo_String, CountSelectedMediaItems, SetMediaItemSelected, SplitMediaItem. Hmm. Let me think about scope: "useful subset" — I should be careful not to bloat. Include a small selection & items section.
+
+**Tracks (modest — for future CAM-style per-track operations? No, drop it).**
+
+**Console / debug (for prototyping):**
+- ShowConsoleMsg, ClearConsole, ReaScriptError, GetAppVersion, GetOS, GetMainHwnd, GSC_mainwnd, EnsureNotCompletelyOffscreen, ShowMessageBox, MB, ShowPopupMenu, LocalizeString, Splash_GetWnd? (skip Splash), Tooltip: GetTooltipWindow, TrackCtl_SetToolTip (skip).
+
+**ReaScript runtime (for prototyping option A in ReaScript):**
+- reaper built-in functions: lua_defer, lua_runloop, lua_atexit, lua_set_action_options, lua_get_action_context, eel_defer, eel_runloop, eel_atexit, eel_set_action_options, eel_get_action_context, python_defer, python_runloop, python_atexit, eel_sleep, eel_time, eel_time_precise, time_precise, eel_printf, printf? (eel_printf), eel_gfx_* (drop — graphics UI, skip), file_exists, format_timestr, parse_timestr, format_timestr_len, parse_timestr_len, parse_timestr_pos, format_timestr_pos, mkvolstr, mkpanstr, mkvolpanstr, parsepanstr, DB2SLIDER, SLIDER2DB, reduce_open_files, ResolveWildcards, genGuid, guidToString, stringToGuid, get_ini_file, set_config_var_string, get_config_var_string, image_resolve_fn, resolve_fn, resolve_fn2, relative_fn, my_getViewport (already in view), kbd_enumerateActions, kbd_getTextFromCmd (already in actions), eel_match, eel_matchi? (drop — regex), eel_fft, etc. (drop).
+- Actually, in the curated section, keep runtime minimal: defer/runloop/atexit (Lua), time/time_precise/sleep, parse/format timestr, vol/pan string helpers, ini, guid, file_exists, ResolveWildcards, reduce_open_files.
+
+**Misc / system:**
+- APIExists, APITest, AddRemoveReaScript (script management), Help_Set, ViewPrefs (open view prefs), OpenMediaExplorer (skip), MediaExplorerGetLastPlayedFileInfo (skip), ExecProcess (useful for launching things), OscLocalMessageToHost (OSC — might be useful later? skip or include in misc), StuffMIDIMessage, SendMIDIMessageToHardware (MIDI hardware output — probably skip), GetInputActivityLevel, GetInputOutputLatency, GetOutputLatency, GetUnderrunTime, GetAudioDeviceInfo, GetNumAudioInputs/Outputs, GetNumMIDIInputs/Outputs, GetMIDIInputName, GetMIDIOutputName, GetInputChannelName, GetOutputChannelName, GetMasterTrack, GetMasterMuteSoloFlags, GetMasterTrackVisibility, SetMasterTrackVisibility, GetProjectLength (already in project), GetProjectTimeOffset (already in time).
+
+That's getting to be quite a lot. Let me decide the final structure and count:
+
+Sections:
+1. Transport & playback state (~15): GetPlayState(Ex), GetPlayPosition(Ex/2/2Ex), GetAllProjectPlayStates, GetSetProjectInfo, GetSetRepeat(Ex), GetSet_LoopTimeRange(2), Main_UpdateLoopInfo, GetProjectLength, GetProjectTimeOffset, GetProjectTimeSignature(2), SetCurrentBPM, Master_GetTempo, Master_GetPlayRate(AtTime), Master_NormalizeTempo, Master_NormalizePlayRate
+2. Edit cursor & markers (~15): GetCursorPosition(Ex), GetCursorContext(2), SetCursorContext, SetEditCurPos(2), MoveEditCursor, GoToMarker, GoToRegion, GetLastMarkerAndCurRegion, CountTempoTimeSigMarkers, GetTempoTimeSigMarker, FindTempoTimeSigMarker, AddTempoTimeSigMarker, DeleteTempoTimeSigMarker, EditTempoTimeSigMarker, GetSetTempoTimeSigMarkerFlag, GetSetTempoTimeSigMarkerBasis
+3. Time & timeline mapping (~12): TimeMap_timeToQN, TimeMap_timeToQN_abs, TimeMap_QNToTime, TimeMap_QNToTime_abs, TimeMap_QNToMeasures, TimeMap_GetMeasureInfo, TimeMap_GetTimeSigAtTime, TimeMap_GetDividedBpmAtTime, TimeMap_curFrameRate, TimeMap_GetMetronomePattern, TimeMap2_* (beatsToTime, timeToBeats, timeToQN, QNToTime, GetNextChangeTime, GetDividedBpmAtTime), SnapToGrid, GetSetProjectGrid, SetProjectGrid
+4. Actions & commands (~18): Main_OnCommand(Ex), NamedCommandLookup, ReverseNamedCommandLookup, GetToggleCommandState(Ex), SetToggleCommandState, ArmCommand, GetArmedCommand, PromptForAction, ShowActionList, CountActionShortcuts, GetActionShortcutDesc, DeleteActionShortcut, DoActionShortcutDialog, kbd_enumerateActions, kbd_getTextFromCmd, Loop_OnArrow
+5. Transport buttons & CSurf (~40): OnPlayButton(Ex), OnStopButton(Ex), OnPauseButton(Ex), all CSurf_* (about 35)
+6. View, zoom & scroll (~10): adjustZoom, GetHZoomLevel, GetSet_ArrangeView2, UpdateArrange, GetMousePosition, GetMouseModifier, SetMouseModifier, my_getViewport, GetMixerScroll, SetMixerScroll, ViewPrefs
+7. Markers, regions & project (~25): CountProjectMarkers, EnumProjectMarkers(2/3), AddProjectMarker(2), SetProjectMarker(2/3/4), SetProjectMarkerByIndex(2), DeleteProjectMarker(ByIndex), GetRegionOrMarker, GetRegionOrMarkerInfo_Value, SetRegionOrMarkerInfo_Value, GetSetRegionOrMarkerInfo_String, AddRegionOrMarker, GetNumRegionsOrMarkers, GetProjectName, GetProjectPath(Ex), GetProjectStateChangeCount, GetSetProjectInfo_String, GetSetProjectAuthor, GetSetProjectNotes, MarkProjectDirty, IsProjectDirty, Main_SaveProject(Ex), Main_openProject, SelectProjectInstance, EnumProjects, GetExtState, SetExtState, HasExtState, DeleteExtState, EnumProjExtState, GetProjExtState, SetProjExtState
+8. Selection, tracks & media items (light, ~20): CountTracks, GetTrack, GetSelectedTrack(2), SetTrackSelected, SetOnlyTrackSelected, GetTrackName, GetTrackUIVolPan, SetTrackUIVolume, GetTrackUIMute, SetTrackUIMute, GetTrackUISolo? (SetTrackUISolo, GetMasterMuteSoloFlags), CountSelectedTracks(2), CountMediaItems, GetSelectedMediaItem, CountSelectedMediaItems, GetMediaItemInfo_Value, SetMediaItemInfo_Value, GetSetMediaItemInfo_String, SetMediaItemSelected, SplitMediaItem, GetMediaItem_Track, GetTrackMediaItem, GetTrackNumMediaItems, InsertMedia, InsertMediaSection, GetMediaSourceLength, GetMediaSourceFileName? (probably skip)
+   Hmm, is this too much? For a transport plugin, track/volume stuff is probably not core. But the CAM1–9 buttons "in a DAW can be repurposed as spares" — track selection/volume might be useful later. Keep it, but compact: the descriptions will be short anyway.
+9. Undo (~10): Undo_BeginBlock(2), Undo_EndBlock(2), Undo_CanUndo2, Undo_CanRedo2, Undo_DoUndo2, Undo_DoRedo2, Undo_GetNumEntries, Undo_GetCurEntry, Undo_SetCurPos, Undo_GetEntryDesc, Undo_GetEntryTime, Undo_OnStateChange... core 8 + state changes.
+10. ReaScript runtime & helpers (~30): lua_defer, lua_runloop, lua_atexit, lua_set_action_options, lua_get_action_context, eel_defer, eel_runloop, eel_atexit, eel_set_action_options, eel_get_action_context, python_defer, python_runloop, python_atexit, eel_sleep, eel_time, eel_time_precise, time_precise, printf? (eel_printf), file_exists, format_timestr(_len/_pos), parse_timestr(_len/_pos), mkvolstr, mkpanstr, mkvolpanstr, parsepanstr, DB2SLIDER, SLIDER2DB, get_ini_file, set_config_var_string, get_config_var_string, genGuid, guidToString, stringToGuid, ResolveWildcards, reduce_open_files, image_resolve_fn, resolve_fn, resolve_fn2, relative_fn
+11. System, console & debugging (~20): APIExists, APITest, AddRemoveReaScript, GetAppVersion, GetOS, GetMainHwnd, GSC_mainwnd, ShowConsoleMsg, ClearConsole, ReaScriptError, ShowMessageBox, MB, ShowPopupMenu, LocalizeString, EnsureNotCompletelyOffscreen, GetTooltipWindow, Help_Set, ExecProcess, OscLocalMessageToHost, GetUnderrunTime, GetAudioDeviceInfo, GetNumAudioInputs/Outputs, GetMIDIInputName, GetMIDIOutputName...
+
+Plus:
+- Compact alphabetical index of all 924 function names (or 732 REAPER API + 192 built-ins... actually the index is for everything).
+- Note about the built-in lists (EEL2/Lua/Python built-ins are in the htm; only a useful subset is in section 10).
+
+Total curated: roughly 180–200 entries. At about 120–200 bytes each (sig + short doc) → 30–40 KB + index 18 KB → about 55 KB total. Hmm, that's not a problem for a file, and it's 20x more token-efficient than 1.1 MB. But wait — do the docs include long flag tables? For example, GetSetProjectInfo's doc lists about 40 RPPB_ flags. Those are exactly what we want to keep (that's the "useful" part). Let me check the doc lengths of a few key functions to gauge size, and then generate.
+
+Also, for "token efficiency," I should format it compactly:
+```
+### GetSetProjectInfo
+C: `bool GetSetProjectInfo(ReaProject* proj, const char* key, double* val)`
+Description...
+```
+Or even more compact: a table? A table with signature + description would break on the long flag lists. Per-function block: `#### Name`, then a line `C: ...`, then the doc text. Or:
+
+`**Name** — C: \`sig\`\ndoc text`
+
+This is compact. For functions whose doc contains flag lists (GetSetProjectInfo), keep the list as-is (whitespace normalized).
+
+Now let me check the doc contents of the key functions to make sure the extraction is correct, and check the total size. Then I'll write the generation script.
+
+I also need to check: are the EEL2/Lua/Python variants needed? For a C++ plugin, the C signature is what maps to the SDK. But for the ReaScript prototyping section (section 10, runtime helpers), the Lua variants matter (reaper.defer, etc.). For the curated API functions, include the C signature + doc; for the reaper.* built-in helpers, include the Lua form (since Lua is the most common prototyping language) — actually, for those built-ins the "c" div is something like `eel_defer`... Let me check what's in the c/e/l/p divs for, say, lua_defer.
+
+Let me inspect a few entries in the JSON.
+[36m[text] All 924 entries have been parsed (732 REAPER API functions + language built-in functions). Next, I'll check the format of the key entries (especially `GetSetProjectInfo` which has the RPPB_ flag table, and the `lua_defer` style built-in functions) before finalizing the subset selection.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import json
+        e = json.load(open('/tmp/reaper_api_entries.json'))
+        
+        for name in ['G…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import json
+        e = json.load(open('/tmp/reaper_api_entries.json'))
+        
+        for name in ['GetSetProjectInfo','CSurf_ScrubAmt','lua_defer','Main_OnCommand','GetPlayPositionEx','adjustZoom','TimeMap_timeToQN','OnPlayButtonEx','GetExtState']:
+            x = e.get(name)
+            if not x:
+                print(f"### {name}: MISSING"); continue
+            print(f"### {name}")
+            print("C:", x['c'][:200])
+            print("L:", x['l'][:150])
+            d = x['doc']
+            print("DOC len:", len(d))
+            print("DOC:", d[:600].replace('\n',' / '))
+            print()
+        
+        ```
+        
+        ### GetSetProjectInfo
+        C: C: double GetSetProjectInfo(ReaProject* project, const char* desc, double value, bool is_set)
+        L: Lua: number reaper.GetSetProjectInfo(ReaProject project, string desc, number value, boolean is_set)
+        DOC len: 6273
+        DOC: EEL2: double GetSetProjectInfo(ReaProject project, "desc", value, bool is_set) / Lua: number reaper.GetSetProjectInfo(ReaProject project, string desc, number value, boolean is_set) / Python: Float RPR_GetSetProjectInfo(ReaProject project, String desc, Float value, Boolean is_set) / Get or set project information. / RENDER_SETTINGS : (&(1|2)==0)=master mix, &1=stems+master mix, &2=stems only, &4=multichannel tracks to multichannel files, &8=use render matrix, &16=tracks with only mono media to mono files, &32=selected media items, &64=selected media items via master, &128=selected tracks via master, &2
+        
+        ### CSurf_ScrubAmt
+        C: C: void CSurf_ScrubAmt(double amt)
+        L: Lua: reaper.CSurf_ScrubAmt(number amt)
+        DOC len: 102
+        … (45 more lines)[0m
+
+[90m[thinking] The extraction is working, but there's an issue: the `doc` field starts with the EEL2/Lua/Python signature lines again (because my "doc = body after the first </div>" grabbed everything after the first div — which included the remaining 3 signature divs). Looking at GetSetProjectInfo's DOC: "EEL2: double GetSetProjectInfo(...) / Lua: ... / Python: ... / Get or set project information. / RENDER_SETTINGS : ..." — the first 3 lines of the doc are the EEL2/Lua/Python variant signatures (originating from the remaining divs I didn't strip), followed by the actual description.
+
+Also the 'c' field has a "C: " prefix, 'l' has a "Lua: " prefix, etc. These come from the `<span class="all_view">` text inside the divs.
+
+Need to improve the extraction: the doc should start after the last signature div, not the first. The body structure is:
+```
+<div class="c_func" ...>...</div>
+<div class="e_func" ...>...</div>
+<div class="l_func" ...>...</div>
+<div class="p_func" ...>...</div>
+<actual doc text>
+```
+But for lua_defer, the c/e divs are empty (missing), and the doc is "Lua: reaper.defer(function) / Adds code to be called back..." — here only the l_func div exists, and the doc text follows after it.
+
+So: doc = body after the last `</div>` that is part of a signature div. Simplest approach: find all signature divs, take the body from after the end of the last one. Then strip the language prefix (e.g., "Lua: ") at the start of the doc? For lua_defer, the l_func div contained "Lua: reaper.defer(function)" — no wait, that's part of the div's content (the all_view span + code). The div content includes the "Lua: " span text. So the div's content = "Lua: reaper.defer(function)". And the doc after the last div = "Adds code to be called back...".
+
+But the reason the current doc for lua_defer shows "Lua: reaper.defer(function) / Adds code..." is that the doc regex `</div>\s*(.*)` matched the first </div>, and that was… hmm, if the c_func div exists but is empty `<div class="c_func" style="display: none;"><span...>C: </span><code></code><br><br></div>` — my regex for 'c' found the div and clean() returned "C:"? No — the output for lua_defer shows "C: " (empty). And the doc starts with "Lua: reaper.defer(function)" — meaning the first </div> was the c_func div's, and everything after it (including the l_func div content) became the "doc".
+
+So the fix: doc = the body from after the last signature div's </div>. Let me redo this: for each body, find all matches of `<div class="[cepl]_func"...>.*?</div>` and take max(end). Then doc = clean(body[end:]).
+
+Also strip the "C: "/"Lua: " prefix from signature fields (keep the raw code contents). Let me re-extract with code contents only (strip the span, take the text of <code>).
+
+Then build the final document. Format decision — for each curated function:
+
+```
+### GetSetProjectInfo
+`double GetSetProjectInfo(ReaProject* project, const char* desc, double value, bool is_set)` — C
+Get or set project information.
+RENDER_SETTINGS : ... (list)
+...
+```
+
+Hmm, but to keep it "token-efficient" and scannable, maybe:
+
+```
+- **Name** — `C signature`
+  description (1-2 lines, or the flag list)
+```
+
+Multi-line flag lists (GetSetProjectInfo has about 6KB of flags!) — 6KB in one doc. That's fine, that's valuable.
+
+Total size estimate: curated ~190 entries; most docs are 100-300 bytes → ~40KB + GetSetProjectInfo 6KB + others → ~50KB. Plus the full index ~18KB. Total ~70KB. That's ~10-15k tokens vs. 1.1MB htm (~280k tokens). Good.
+
+Actually wait — should I include the full 924-name index? It adds ~18KB. Hmm. The curated set already covers what the project needs, and the full index is a cheap insurance for future tasks (e.g., "find the function that does X" without parsing the htm). I'll include it — as a compact alphabetical list (4 names per line).
+
+Hmm, but is 924 names with 4-per-line really "token-efficient"? About 18KB ≈ 4.5k tokens. OK.
+
+Alternative: skip the full index and only add a note. Let me decide: include it. The task says "extract a useful subset of docs/reaper-api.htm into a more token-efficient format and add as docs/??" — the deliverable is a token-efficient reference; the name index makes it actually useful as a lookup document.
+
+Now, one more consideration: the curated sections. Let me finalize the whitelist. Write it in code as a list of (section, [names]). Let me be decisive:
+
+1. **Transport & playback** (16):
+GetPlayState, GetPlayStateEx, GetPlayPosition, GetPlayPositionEx, GetPlayPosition2, GetPlayPosition2Ex, GetAllProjectPlayStates, GetSetProjectInfo, GetSetRepeat, GetSetRepeatEx, GetSet_LoopTimeRange, GetSet_LoopTimeRange2, Main_UpdateLoopInfo, GetProjectLength, GetProjectTimeOffset, GetProjectTimeSignature, GetProjectTimeSignature2, SetCurrentBPM, Master_GetTempo, Master_GetPlayRate, Master_GetPlayRateAtTime, Master_NormalizeTempo, Master_NormalizePlayRate
+(that's 23)
+
+2. **Edit cursor, markers & tempo** (16):
+GetCursorPosition, GetCursorPositionEx, GetCursorContext, GetCursorContext2, SetCursorContext, SetEditCurPos, SetEditCurPos2, MoveEditCursor, GoToMarker, GoToRegion, GetLastMarkerAndCurRegion, CountTempoTimeSigMarkers, GetTempoTimeSigMarker, FindTempoTimeSigMarker, AddTempoTimeSigMarker, DeleteTempoTimeSigMarker, EditTempoTimeSigMarker, GetSetTempoTimeSigMarkerFlag, GetSetTempoTimeSigMarkerBasis
+(19)
+
+3. **Time maps (time ↔ QN/measure)** (14):
+TimeMap_timeToQN, TimeMap_timeToQN_abs, TimeMap_QNToTime, TimeMap_QNToTime_abs, TimeMap_QNToMeasures, TimeMap_GetMeasureInfo, TimeMap_GetTimeSigAtTime, TimeMap_GetDividedBpmAtTime, TimeMap_GetMetronomePattern, TimeMap_curFrameRate, TimeMap2_beatsToTime, TimeMap2_timeToBeats, TimeMap2_timeToQN, TimeMap2_QNToTime, TimeMap2_GetNextChangeTime, TimeMap2_GetDividedBpmAtTime, SnapToGrid, GetSetProjectGrid, SetProjectGrid
+(19)
+
+4. **Actions & commands** (18):
+Main_OnCommand, Main_OnCommandEx, NamedCommandLookup, ReverseNamedCommandLookup, GetToggleCommandState, GetToggleCommandStateEx, SetToggleCommandState, ArmCommand, GetArmedCommand, PromptForAction, ShowActionList, CountActionShortcuts, GetActionShortcutDesc, DeleteActionShortcut, DoActionShortcutDialog, kbd_enumerateActions, kbd_getTextFromCmd, Loop_OnArrow
+(18)
+
+5. **Transport buttons & control surface (CSurf)** (~40):
+OnPlayButton, OnPlayButtonEx, OnStopButton, OnStopButtonEx, OnPauseButton, OnPauseButtonEx,
+CSurf_OnPlay, CSurf_OnStop, CSurf_OnPause, CSurf_OnRecord, CSurf_OnPlayRateChange, CSurf_OnTempoChange, CSurf_OnZoom, CSurf_OnWidthChange, CSurf_OnWidthChangeEx, CSurf_OnScroll, CSurf_OnArrow, CSurf_GoStart, CSurf_GoEnd, CSurf_ScrubAmt, CSurf_SetPlayState, CSurf_SetAutoMode, CSurf_SetRepeatState, CSurf_FlushUndo, CSurf_GetTouchState, CSurf_OnSelectedChange, CSurf_OnTrackSelection, CSurf_OnVolumeChange, CSurf_OnVolumeChangeEx, CSurf_OnPanChange, CSurf_OnPanChangeEx, CSurf_OnMuteChange, CSurf_OnMuteChangeEx, CSurf_OnSoloChange, CSurf_OnSoloChangeEx, CSurf_OnRecArmChange, CSurf_OnRecArmChangeEx, CSurf_OnFXChange, CSurf_OnInputMonitorChange, CSurf_OnInputMonitorChangeEx, CSurf_OnRecvPanChange, CSurf_OnRecvVolumeChange, CSurf_OnSendPanChange, CSurf_OnSendVolumeChange, CSurf_TrackFromID, CSurf_TrackToID, CSurf_NumTracks, CSurf_SetSurfaceMute, CSurf_SetSurfaceSolo, CSurf_SetSurfaceRecArm, CSurf_SetSurfaceSelected, CSurf_SetSurfaceVolume, CSurf_SetSurfacePan, CSurf_ResetAllCachedVolPanStates, CSurf_SetTrackListChange
+(6 + 47 = 53) — hmm, should I trim the per-track CSurf functions? These are exactly what I'd implement in option B's IReaperControlSurface. Keep them all.
+
+6. **View, zoom & scroll** (11):
+adjustZoom, GetHZoomLevel, GetSet_ArrangeView2, UpdateArrange, GetMousePosition, GetMouseModifier, SetMouseModifier, my_getViewport, GetMixerScroll, SetMixerScroll, ViewPrefs
+(11)
+
+7. **Markers, regions & project** (37):
+CountProjectMarkers, EnumProjectMarkers, EnumProjectMarkers2, EnumProjectMarkers3, AddProjectMarker, AddProjectMarker2, SetProjectMarker, SetProjectMarker2, SetProjectMarker3, SetProjectMarker4, SetProjectMarkerByIndex, SetProjectMarkerByIndex2, DeleteProjectMarker, DeleteProjectMarkerByIndex, GetRegionOrMarker, GetRegionOrMarkerInfo_Value, SetRegionOrMarkerInfo_Value, GetSetRegionOrMarkerInfo_String, AddRegionOrMarker, GetNumRegionsOrMarkers,
+GetProjectName, GetProjectPath, GetProjectPathEx, GetProjectStateChangeCount, GetSetProjectInfo_String, GetSetProjectAuthor, GetSetProjectNotes, MarkProjectDirty, IsProjectDirty, Main_SaveProject, Main_SaveProjectEx, Main_openProject, SelectProjectInstance, EnumProjects,
+GetExtState, SetExtState, HasExtState, DeleteExtState, EnumProjExtState, GetProjExtState, SetProjExtState
+(20+14+7 = 41)
+
+8. **Tracks, selection & media items** (30):
+CountTracks, GetTrack, GetTrackName, GetSelectedTrack, GetSelectedTrack2, SetTrackSelected, SetOnlyTrackSelected, CountSelectedTracks, CountSelectedTracks2, GetTrackUIVolPan, SetTrackUIVolume, GetTrackUIMute, SetTrackUIMute, SetTrackUISolo, GetMasterTrack, GetMasterMuteSoloFlags,
+CountMediaItems, CountSelectedMediaItems, GetSelectedMediaItem, GetMediaItemInfo_Value, SetMediaItemInfo_Value, GetSetMediaItemInfo_String, SetMediaItemSelected, IsMediaItemSelected, SplitMediaItem, GetMediaItem_Track, GetTrackMediaItem, GetTrackNumMediaItems, InsertMedia, InsertMediaSection, GetMediaSourceLength, GetMediaSourceFileName
+(17 + 19 = 36)
+
+9. **Undo** (10):
+Undo_BeginBlock, Undo_BeginBlock2, Undo_EndBlock, Undo_EndBlock2, Undo_CanUndo2, Undo_CanRedo2, Undo_DoUndo2, Undo_DoRedo2, Undo_GetNumEntries, Undo_GetCurEntry, Undo_SetCurPos
+(11)
+
+10. **ReaScript runtime (prototyping)** (Lua-centric + shared):
+lua_defer, lua_runloop, lua_atexit, lua_set_action_options, lua_get_action_context, eel_defer, eel_runloop, eel_atexit, eel_set_action_options, eel_get_action_context, python_defer, python_runloop, python_atexit, eel_sleep, eel_time, eel_time_precise, time_precise, eel_printf, file_exists, format_timestr, format_timestr_len, format_timestr_pos, parse_timestr, parse_timestr_len, parse_timestr_pos, mkvolstr, mkpanstr, mkvolpanstr, parsepanstr, DB2SLIDER, SLIDER2DB, get_ini_file, set_config_var_string, get_config_var_string, genGuid, guidToString, stringToGuid, ResolveWildcards, reduce_open_files, image_resolve_fn, resolve_fn, resolve_fn2, relative_fn
+(42) — maybe I could trim the resolve_fn stuff and gui... keep them, they're small.
+
+11. **System, console & debugging** (21):
+APIExists, APITest, AddRemoveReaScript, GetAppVersion, GetOS, GetMainHwnd, GSC_mainwnd, ShowConsoleMsg, ClearConsole, ReaScriptError, ShowMessageBox, MB, ShowPopupMenu, LocalizeString, EnsureNotCompletelyOffscreen, GetTooltipWindow, Help_Set, ExecProcess, OscLocalMessageToHost, GetUnderrunTime, GetAudioDeviceInfo
+(21)
+
+Total curated ≈ 23+19+19+18+53+11+41+36+11+42+21 = 294. Hmm, that's more than I thought. At avg ~150B each → ~45KB + big flag docs (GetSetProjectInfo 6KB, GetMediaItemInfo_Value has a huge list of I_ flags! Let me check — GetMediaItemInfo_Value's doc lists all I_POSITION, I_LENGTH... flags, probably 8-10KB. SetMediaItemInfo_Value similarly. GetSetProjectGrid? small. EnumProjectMarkers2? moderate.
+
+Hmm, if I include full flag docs the total could reach ~90-100KB. Is that OK? Original htm = 1.1MB. 10x reduction. But "token-efficient" — I could keep full flag tables only for the most important functions (GetSetProjectInfo, GetMediaItemInfo_Value, GetSetMediaTrackInfo_Value? — not in my list).
+
+Alternatively, drop the track/media item sections (8) and trim — the transport plugin's core is sections 1-7, 10-11. Section 8 (tracks/items) is speculative (spare for CAM buttons). But the IN/OUT keys… map to loop points (section 1). Let me keep section 8 but trim to essentials: drop GetTrackUIVolPan/SetTrackUIVolume/GetTrackUIMute/SetTrackUIMute/SetTrackUISolo (volume/pan ops — not transport), drop GetMediaSourceFileName. Keep track identity/selection + item selection/split for marker-based workflows.
+
+Trimming section 8 to: CountTracks, GetTrack, GetTrackName, GetSelectedTrack, GetSelectedTrack2, SetTrackSelected, SetOnlyTrackSelected, CountSelectedTracks, CountSelectedTracks2, GetMasterTrack, CountMediaItems, CountSelectedMediaItems, GetSelectedMediaItem, GetMediaItemInfo_Value, SetMediaItemInfo_Value, GetSetMediaItemInfo_String, SetMediaItemSelected, IsMediaItemSelected, SplitMediaItem, GetMediaItem_Track, GetTrackMediaItem, GetTrackNumMediaItems, InsertMedia, InsertMediaSection, GetMediaSourceLength → 25.
+
+Trimming section 10: drop image_resolve_fn, resolve_fn, resolve_fn2, relative_fn (4) → 38.
+
+New total ≈ 23+19+19+18+53+11+41+25+11+38+21 = 279.
+
+Hmm, still a lot. But each entry is small; the file will probably be ~55-70KB. That's acceptable, and it makes the doc a really useful subset reference. Actually — wait. Let me reconsider. "Extract a useful subset" — 279 out of 732 = 38% of the API functions, plus the full name index. I think that's defensible: all the transport/action/csurf/project/timeline stuff + a light selection of other stuff. The index covers the rest.
+
+Hmm, one more consideration: GetMediaItemInfo_Value / SetMediaItemInfo_Value docs are huge (I_ flag list ~10KB each). That alone adds ~20KB. Keep it — it's the most token-dense info in the whole doc, and item position/length manipulation is plausibly needed (IN/OUT → item split). OK.
+
+Also: GetSetProjectInfo doc 6KB (RPPB_ flags). Keep.
+
+Now, doc formatting. To keep it compact and scannable:
+
+```
+## 1. Transport & playback
+
+### `GetPlayState`
+C: `int GetPlayState()` — returns the current project's play state (0=stopped, 1=playing, 2=recording, 3=pause, 4=countdown)
+```
+
+Or bullet style:
+
+```
+- **GetPlayState** — C: `int GetPlayState()` — returns the current project's play state (0=stopped, 1=playing, 2=recording, 3=pause, 4=countdown)
+```
+
+The bullet style is the most token-efficient. For entries with multi-line docs (flag lists), put the list on subsequent indented lines.
+
+Header:
+- Title: `REAPER API subset for the Speed Editor plugin`
+- TL;DR: source file, what's in it, how it maps to the C++ plugin (these names == the SDK host API names, fetch via rec->GetFunc), what's excluded (full function index below; builtins; full docs in the htm).
+- Note on signatures: C signatures as documented (map to reaper_plugin_functions.h host API), EEL2/Lua/Python variants available in the htm.
+
+Then sections, then the "## Index: all 924 functions" section (compact, 4 per line), then Sources.
+
+Now, let me re-extract with the fixed doc logic and verify a few entries, then generate the final markdown. Write the generation script to a file (scripts/extract_reaper_api_subset.py? or a temporary one-off). The task says "add as docs/??" — only the .md is the deliverable. Should I put the extraction script in the repo too? That would help future regeneration… not requested; keep the repo clean: one-off script in /tmp. Hmm, actually, keeping the script would be genuinely useful for regeneration (the htm is versioned per REAPER version). But scope discipline: the task is to add a docs file. I'll do the script in /tmp and not commit it.
+
+Wait — one more check: the "doc" text after the last signature div — does it contain trailing stuff like the next function's HTML? I split on anchors, so the body ends at the next anchor. Good.
+
+Also, some functions may have docs with <table> (e.g., MB constants?). Let me not worry; my clean() strips tags, and tables become text. MB's doc might be a big list of flags — fine.
+
+Also, for lua_defer-style builtins where the c/e divs are empty: the "C signature" would be an empty "C:". For section 10 entries, I should use the Lua variant (l) as the primary signature. Special handling: for section 10, display the first non-empty of [l, e, p, c].
+
+Actually, for all entries: display C if present, otherwise Lua, otherwise EEL2, otherwise Python. And note the language. For section 10 builtins like lua_defer, the doc line already says "Lua: reaper.defer(function)"… no wait — with the fixed extraction, the doc = text after the last signature div = "Adds code to be called back by REAPER...". The signature div's content "Lua: reaper.defer(function)" goes into the 'l' field (I extract the code text and strip the language prefix).
+
+Let me refine signature extraction: within the div, take the contents of the <code>...</code>, strip tags → e.g., "reaper.defer(function)". For c_func: "void Main_OnCommand(int command, int flag)".
+
+Let me rewrite the extraction and generate. Also verify: no entry's doc is empty? Let me check counts. And the GetMediaItemInfo_Value doc length.
+[36m[text] extraction works, but the doc field ended up picking up signature lines that had been left over. Fixing this (doc = text after the **last** signature div; signature = `<code>` content with the language prefix stripped) and verifying.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re, html as h, json
+        raw = open('docs/reaper-api.htm', encoding='utf-8', e…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re, html as h, json
+        raw = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        
+        def clean(s):
+            s = re.sub(r'<br\s*/?>', '\n', s)
+            s = re.sub(r'<[^>]+>', '', s)
+            s = h.unescape(s)
+            s = re.sub(r'[ \t]+', ' ', s)
+            s = re.sub(r'\n\s*', '\n', s)
+            return s.strip()
+        
+        def sig(div_html):
+            if not div_html: return ''
+            m = re.search(r'<code>(.*?)</code>', div_html, re.S)
+            if not m: return ''
+            return clean(m.group(1))
+        
+        parts = re.split(r'<a name="([^"]+)"><hr></a>', raw)
+        entries = {}
+        for i in range(1, len(parts)-1, 2):
+            name, body = parts[i], parts[i+1]
+            sigs = {}
+            last_end = 0
+            for lang in ('c','e','l','p'):
+                m = re.search(rf'<div class="{lang}_func".*?</div>', body, re.S)
+                if m:
+                    sigs[lang] = sig(m.group(0))
+                    last_end = max(last_end, m.end())
+            entries[name] = {'c': sigs.get('c',''), 'e': sigs.get('e',''),
+                             'l': sigs.get('l',''), 'p': sigs.get('p',''),
+                             'doc': clean(body[last_end:])}
+        
+        print("total:", len(entries))
+        no_doc = [n for n,x in entries.items() if not x['doc']]
+        print("empty docs:", no_doc)
+        for name in ['GetSetProjectInfo','lua_defer','CSurf_ScrubAmt','GetMediaItemInfo_Value','MB']:
+            x = entries[name]
+            print(f"--- {name}: c={x['c'][:80]!r} l={x['l'][:60]!r} doc_len={len(x['doc'])}")
+            print("   doc start:", x['doc'][:200].replace('\n',' / '))
+        json.dump(entries, open('/tmp/reaper_api_entries.json','w'))
+        
+        ```
+        
+        total: 924
+        … (12 more lines)[0m
+
+[90m[thinking] Extraction is currently in good shape. There are 105 entries where the docs are empty — for these, only the signature remains (that's fine, self-evident).
+
+Two fixes needed for the final document:
+1. `lua_defer` style entries: the `l` signature is empty, but the doc starts with "Lua: reaper.defer(function)". Wait — why is `l` empty? For lua_defer, the l_func div exists: `<div class="l_func" style="display: block;"><span class="all_view" style="display: none;">Lua: </span><code>reaper.defer(function)</code><br><br></div>`. My regex `<div class="l_func".*?</div>` is non-greedy — it stops at the first `</div>`. That should be fine... unless the div's contents don't include `<code>`... hmm wait, but the doc starts with "Lua: reaper.defer(function)" — meaning the l_func div didn't match and was left in the doc. Let me check: maybe the l_func div for these entries has `style="display: block;"`... my regex `<div class="l_func".*?</div>` — the `.` in `.*?` doesn't match newlines unless re.S! I passed re.S. Hmm, wait, I passed re.S to `re.search(rf'<div class="{lang}_func".*?</div>', body, re.S)`. That should match.
+
+But wait: for lua_defer, the e_func div is completely missing (not empty). The l_func div: `<div class="l_func" style="display: block;">`. Hmm — maybe there are nested divs? No, that's not it. Let me debug lua_defer's body directly.
+
+No wait, maybe — for these builtin functions, the signature div exists but the structure is different: the class might be on the span rather than the div... no, e_func and others were found without issue (CSurf_ScrubAmt's l was found). Let me look at the raw body of lua_defer.
+[36m[text] Nearly there — `lua_defer`-style builtins are losing their `l_func` signature. Let me check that body's raw HTML.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import re
+        raw = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import re
+        raw = open('docs/reaper-api.htm', encoding='utf-8', errors='replace').read()
+        i = raw.find('<a name="lua_defer">')
+        print(raw[i:i+900])
+        
+        ```
+        
+        <a name="lua_defer"><hr></a><br>
+        Lua: <code>reaper.defer(function)</code><br><br>
+        Adds code to be called back by REAPER. Used to create persistent ReaScripts that continue to run and respond to input, while the user does other tasks. Identical to runloop().<br>Note that no undo point will be automatically created when the script finishes, unless you create it explicitly.<br><br>
+        <a name="lua_get_action_context"><hr></a><br>
+        Lua: <code>reaper.get_action_context()</code><br><br>
+        is_new_value,filename,sectionID,cmdID,mode,resolution,val,contextstr = reaper.get_action_context()<br>Returns contextual information about the script, typically MIDI/OSC input values.<br>val will be set to a relative or absolute value depending on mode (=0: absolute mode, &gt;0: relative modes).<br>resolution=127 for 7-bit resolution, =16383 for 14-bit resolution.<br>sectionID, and cmdID will be set to -1 if the sc
+        [0m
+
+[90m[thinking] The built-in language functions don't have a `_func` div — they're plain text like `Lua: <code>...</code>`. So for these, the first line of the body is "Lua: code". Extraction method: if there's no signature div, parse the first line: `^(Lua|EEL2|Python|C): <code>(...)</code>` — capture the language + code, and set doc = the rest.
+
+Revised extraction:
+- For each body: look for the signature div. If none, check the first line for `^(C|EEL2|Lua|Python): <code>sig</code>`.
+- doc = the remainder.
+
+Next, generate the final Markdown. Finalize the section plan and write the generator. Format for each entry:
+
+```
+- **Name** — C: `sig`
+  doc line 1
+  doc line 2 ...
+```
+
+If the doc is empty → no sub-line.
+
+For built-ins (section 10) use the detected language (Lua/EEL2/Python).
+
+Also, note the REAPER version (from table 0, "Generated by REAPER v7.82/win64") — good for the header.
+
+Now I'll write the generator script. Sections (final version):
+
+1. Transport and playback
+2. Edit cursor and markers/tempo
+3. Time maps (time ↔ QN/measures)
+4. Actions and commands
+5. Transport buttons and control surfaces (CSurf)
+6. View, zoom, scroll
+7. Project, markers/regions, ext state
+8. Track, selection, media items
+9. Undo
+10. ReaScript runtime and helpers
+11. System, console, debugging
+
+Followed by "Complete function index (924)" — all names in alphabetical order, 4 per line.
+
+Header note: this subset was selected for the Speed Editor transport plugin. Function names correspond 1:1 with the REAPER SDK host API (reaper_plugin_functions.h), and in C++ you retrieve them with `rec->GetFunc("Name")`. For EEL2/Lua/Python variants, refer to the original htm.
+
+Now let's write the script. For safety, do it in a single pass: re-extract with the builtin fix, apply the whitelist, and generate docs/reaper-api-subset.md. Then verify the output (size, spot-check a few entries).
+
+For the name list in the index, use all 924 names sorted.
+
+One more formatting consideration: markdown bullet entries — if a doc line contains characters like `:`, no problem. Backticks in the doc? Possible. To be safe, wrap the signature in backticks, and keep the doc as plain indented text (2 spaces). If the doc itself contains backticks, it might break the code span… but only the signature line has backticks. Plain doc text is fine.
+
+Also, should I include both `CSurf_OnFwd`/`CSurf_OnRew`/`CSurf_OnRewFwd` (which I missed in the list earlier — they exist: CSurf_OnFwd, CSurf_OnRew, CSurf_OnRewFwd)? I had them in the name list. Let me check my whitelist — did I write CSurf_OnFwd? No, I didn't include CSurf_OnFwd/CSurf_OnRew/CSurf_OnRewFwd in section 5. Adding them (these are transport direction actions). Also `CSurf_OnPause` etc. Let me finalize the CSurf list from the actual complete list of CSurf_* names in the data: CSurf_FlushUndo, CSurf_GetTouchState, CSurf_GoEnd, CSurf_GoStart, CSurf_NumTracks, CSurf_OnArrow, CSurf_OnFXChange, CSurf_OnFwd, CSurf_OnInputMonitorChange, CSurf_OnInputMonitorChangeEx, CSurf_OnMuteChange, CSurf_OnMuteChangeEx, CSurf_OnPanChange, CSurf_OnPanChangeEx, CSurf_OnPause, CSurf_OnPlay, CSurf_OnPlayRateChange, CSurf_OnRecArmChange, CSurf_OnRecArmChangeEx, CSurf_OnRecord, CSurf_OnRecvPanChange, CSurf_OnRecvVolumeChange, CSurf_OnRew, CSurf_OnRewFwd, CSurf_OnScroll, CSurf_OnSelectedChange, CSurf_OnSendPanChange, CSurf_OnSendVolumeChange, CSurf_OnSoloChange, CSurf_OnSoloChangeEx, CSurf_OnStop, CSurf_OnTempoChange, CSurf_OnTrackSelection, CSurf_OnVolumeChange, CSurf_OnVolumeChangeEx, CSurf_OnWidthChange, CSurf_OnWidthChangeEx, CSurf_OnZoom, CSurf_ResetAllCachedVolPanStates, CSurf_ScrubAmt, CSurf_SetAutoMode, CSurf_SetPlayState, CSurf_SetRepeatState, CSurf_SetSurfaceMute, CSurf_SetSurfacePan, CSurf_SetSurfaceRecArm, CSurf_SetSurfaceSelected, CSurf_SetSurfaceSolo, CSurf_SetSurfaceVolume, CSurf_SetTrackListChange, CSurf_TrackFromID, CSurf_TrackToID → include all 47.
+
+In code, build the whitelist programmatically: include all CSurf_* (simple prefix rule), plus the explicit names for the other sections.
+
+OK, let's write the generator.
+[36m[text] The built-in functions use plain `Lua: <code>...` lines rather than divs. Currently working on creating the final generator: re-extract with that fix applied, apply the curated whitelist, and output `docs/reaper-api-subset.md`.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] write[0m
+[33m        /tmp/gen_reaper_api_subset.py (10.6KB)[0m
+[33m[tool] [result] write[0m
+[33m        Successfully wrote 10889 bytes to /tmp/gen_reaper_api_subset.py[0m
+
+[90m[thinking] Wait, there's a bug in the index output. This line:
+
+```python
+L.append('`. '.join(names[i:i+4]) + '`' if len(names[i:i+4]) == 4 else '  '.join('`' + n + '`' for n in names[i:i+4]))
+```
+
+This produces "`.name name name`" — backticks surrounding the entire line, which is wrong as Markdown (it would become one big code span containing the name separators). Better: join each name in its own backticks with spaces. Let me fix it: `L.append('  '.join('`%s`' % n for n in chunk))`.
+[0m
+
+[33m[tool] [calling] edit[0m
+[33m        /tmp/gen_reaper_api_subset.py (1 edit)[0m
+[33m[tool] [result] edit[0m
+[33m        Successfully replaced 1 block(s) in /tmp/gen_reaper_api_subset.py.[0m
+
+[90m[thinking] Wait, that edit contained a weird \r character. Let me check what happened to the file.
+[36m[text] That edit looks like it went wrong (carriage returns). Let me check the file.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ tail -8 /tmp/gen_reaper_api_subset.py | cat -A | head -20[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 337B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        L.append('- Local: `docs/reaper-plugin.md` (architecture), `docs/reaper-dev-env.md` (build env).')$
+        L.append('')$
+        $
+        out = '\n'.join(L)$
+        open('docs/reaper-api-subset.md', 'w', encoding='utf-8').write(out)$
+        print('missing from htm:', missing)$
+        print('entries written:', sum(len(n) for _, n in SECTIONS))$
+        print('output bytes:', len(out))$
+        [0m
+
+[90m[thinking] The end of the file seems fine. Let me check the lines I edited.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ grep -n "range(0, len(names)" -A2 /tmp/gen_reaper_api_subset.py | cat -A[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 123B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        205:for i in range(0, len(names), 4):$
+        206-    L.append('  '.join('`' + n + '`' for n in names[i:i+4]))$
+        207-L.append('')$
+        [0m
+
+[90m[thinking] The edits were applied without any issues. Next, I'll run the generator.
+[36m[text] Edit applied cleanly. Running the generator:
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && python3 /tmp/gen_reaper_api_subset.py[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 62B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        missing from htm: []
+        entries written: 285
+        output bytes: 98681
+        [0m
+
+[90m[thinking] Generated 285 entries, 98.7 KB — about 11x smaller than the 1.1MB HTML. No missing names. Next, verify the output quality: check the header, spot-check a few sections, make sure there's no garbage mixed into the doc text, and check the index formatting.
+[36m[text] Generated: 285 curated entries, 98.7 KB (vs 1.1 MB source). Let me verify the output quality.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/docs/reaper-api-subset.md[0m
+[33m[tool] [result] read[0m
+[33m        # REAPER API subset for the Speed Editor plugin
+        
+        Token-efficient extraction of the REAPER API function list from
+        `docs/reaper-api.htm` (source: REAPER v7.82/win64). Curated for this project:
+        transport / playback state, edit cursor, tempo & time maps, actions,
+        control surface (CSurf), view/zoom/scroll, project & markers, undo,
+        and the ReaScript runtime helpers used for prototyping.
+        
+        ## How to use
+        
+        - Every function name below is also a **REAPER SDK host API**: in the C++
+          plugin fetch it with `rec->GetFunc("FunctionName")` — signatures match
+          `vendor/reaper-sdk/sdk/reaper_plugin_functions.h`. This doc is therefore
+          also the catalog of the transport-related host APIs (see
+          `docs/reaper-plugin.md` §3–§4 for which ones the plugin uses).
+        - Signatures shown are the C form; EEL2/Lua/Python variants of every
+          function remain in the full `docs/reaper-api.htm` (search the function
+          name — each entry has a `#Name` anchor).
+        - `ReaProject* proj` parameters: pass `nullptr` for the active project.
+        - Entries with no description are self-evident in the full doc.
+        
+        ## Sections
+        
+        ## 1. Transport & playback
+        
+        - **GetPlayState** — C: `int GetPlayState()`
+          &1=playing, &2=paused, &4=is recording
+        - **GetPlayStateEx** — C: `int GetPlayStateEx(ReaProject* proj)`
+          &1=playing, &2=paused, &4=is recording
+        - **GetPlayPosition** — C: `double GetPlayPosition()`
+          returns latency-compensated actual-what-you-hear position
+        - **GetPlayPositionEx** — C: `double GetPlayPositionEx(ReaProject* proj)`
+        … (70 more lines)[0m
+
+[90m[thinking] The output looks good. However, I noticed that the documentation for `GetSetProjectInfo` is missing the important RPPB_ flags (RPPB_PLAYING, RPPB_CURSORPOS, RPPB_STARTEND, RPPB_LOOP, RPPB_TEMPO, RPPB_TIMEFORMAT...)? The doc shows RENDER_*, PROJECT_*, PLAYBACK_STOP, READONLY, DIRTY, ARRANGE_*, VKB_*, RULER_* — but where are the RPPB_ flags? Let me check the full doc of GetSetProjectInfo in the JSON — the doc_len is 5996, and the output shows a lot of content. Let me search for RPPB within the file.
+
+Wait, actually — in the htm, the description of GetSetProjectInfo should list RPPB_ flags at the top, before RENDER_SETTINGS. The doc I extracted starts with "Get or set project information." and then continues with "RENDER_SETTINGS : ...". Hmm, are the RPPB_ flags further down in the doc? Let me grep.
+[36m[text] Output looks good, but I need to verify the RPPB_ flags (the most important part for transport state) made it in.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -c "RPPB_" docs/reaper-api-subset.md && grep -n "RPPB_PLAYING\|RPPB_CURSORPOS\|RPPB_STARTEND\|RPPB_LOOP\b" docs/reaper-api-subset.md | head[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 2B[0m
+[1A[2K[31m[tool] [error] bash[0m
+[31m        0
+        
+        
+        Command exited with code 1[0m
+
+[90m[thinking] No RPPB_ flags in the output! This is a serious omission — RPPB_PLAYING/RPPB_CURSORPOS/RPPB_STARTEND are the core of transport control. Let me check the original htm: maybe the RPPB_ list is inside a `<table>` within the GetSetProjectInfo documentation, and my clean() is stripping out the tags… but in that case the text should still remain. Or maybe the RPPB flags are in a separate anchor/named section within the htm. Let me try searching for RPPB_ in the raw htm.
+[36m[text] RPPB_ flags are missing — they're core to transport state. Let me find where they are in the source.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -c "RPPB_" docs/reaper-api.htm; grep -o 'RPPB_[A-Z_]*' docs/reaper-api.htm | sort -u | head -40[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 2B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        0
+        [0m
+
+[90m[thinking] The htm itself doesn't contain RPPB_! In other words, this version of reaper-api.htm (v7.82) describes the keys of GetSetProjectInfo in a different way. Let me check the raw HTML around GetSetProjectInfo and see what the complete list looks like. The documentation I extracted lists RENDER_SETTINGS, PROJECT_SRATE..., PLAYBACK_STOP, READONLY, DIRTY, ARRANGE_W/H, VKB_*, RULER_*..., but there's no PLAYING/CURSORPOS/STARTEND.
+
+Wait — maybe the flag names in this version are different. Let me look at the full text of GetSetProjectInfo's documentation from the JSON (5996 characters) and check what's between "Get or set project information." and RENDER_SETTINGS. Actually, in my read output, the documentation started immediately with "Get or set project information." followed by "RENDER_SETTINGS :". Hmm, but let me dump the entire documentation from the JSON and check everything.
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: python, code: import json
+        e = json.load(open('/tmp/reaper_api_entries.json'))
+        d = e['GetSetPro…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```python
+        import json
+        e = json.load(open('/tmp/reaper_api_entries.json'))
+        d = e['GetSetProjectInfo']['doc']
+        print(d)
+        
+        ```
+        
+        Get or set project information.
+        RENDER_SETTINGS : (&(1|2)==0)=master mix, &1=stems+master mix, &2=stems only, &4=multichannel tracks to multichannel files, &8=use render matrix, &16=tracks with only mono media to mono files, &32=selected media items, &64=selected media items via master, &128=selected tracks via master, &256=embed transients if format supports, &512=embed metadata if format supports, &1024=embed take markers if format supports, &2048=2nd pass render, &4096=render razor edits, &8192=pre-fader stems (not if via master), &16384=only stem channels sent to parent, &32768=preserve source metadata if possible, &(1<<16)=preserve source start offset if possible, &(2<<16)=preserve source media sample rate if possible, &(4<<16)=if rendering selected items or razor edits, render as a single file, &(8<<16)=parallel render via master, &(16<<16)=delay render start to allow FX to initialize and load samples
+        RENDER_BOUNDSFLAG : 0=custom time bounds, 1=entire project, 2=time selection, 3=all project regions, 4=selected media items, 5=selected project regions, 6=all project markers, 7=selected project markers
+        RENDER_CHANNELS : number of channels in rendered file
+        RENDER_SRATE : sample rate of rendered file (or 0 for project sample rate)
+        RENDER_STARTPOS : render start time when RENDER_BOUNDSFLAG=0
+        RENDER_ENDPOS : render end time when RENDER_BOUNDSFLAG=0
+        … (42 more lines)[0m
+
+[90m[thinking] The documentation for GetSetProjectInfo in the htm really is missing the RPPB_ flags (PLAYING, CURSORPOS, STARTEND, LOOP, TEMPO, TIMEFORMAT, etc.)! Interesting — the v7.82 htm documentation for GetSetProjectInfo doesn't enumerate the RPPB_ keys. (In the actual REAPER documentation, GetSetProjectInfo is documented with RPPB_ keys in reaper-sdk's reaper_plugin_functions.h, or in the "REAPER API" reference at reaper.fm — but this particular htm is the ReaScript API reference, and apparently either the description there is truncated, or in this version those keys aren't documented in this file.)
+
+Wait, let me double-check: maybe the RPPB_ flags are documented under a different function in this htm... I already grepped: RPPB_ occurrences are 0. So they simply aren't documented in this file.
+
+Hmm, wait — is that really true? Let me search for "CURSORPOS" in the htm.
+[36m[text] The source htm really doesn't document RPPB_ keys. Let me double-check for cursor/loop/playing key names under any spelling:
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && for s in CURSORPOS STARTEND LOOP TEMPO TIMEFORMAT PLAYING RPPB; do printf "%s: " "$s"; grep -c "$s" docs/reaper-api.htm; done[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 11B[0m
+[1A[2K[33m[tool] [running] bash → 75B[0m
+[1A[2K[31m[tool] [error] bash[0m
+[31m        CURSORPOS: 0
+        STARTEND: 0
+        LOOP: 3
+        TEMPO: 0
+        TIMEFORMAT: 0
+        PLAYING: 0
+        RPPB: 0
+        
+        
+        Command exited with code 1[0m
+
+[90m[thinking] Confirmed: in this htm, the RPPB_ keys of GetSetProjectInfo are not documented at all. This is a genuine gap for this project (RPPB_PLAYING/RPPB_CURSORPOS/RPPB_STARTEND/RPPB_LOOP are the bread and butter of transport plugins).
+
+The C++ SDK header `vendor/reaper-sdk/sdk/reaper_plugin_functions.h` is in the repo, and it documents the RPPB_ keys in the comments for GetSetProjectInfo! This is the authoritative local source. The task is to "extract a useful subset of docs/reaper-api.htm," and adding supplementary information from the SDK header for the missing flag table is exactly what would make this doc "useful." Add a small supplement: document that the ReaScript reference in the htm omits the RPPB_ keys, and include the RPPB_ key list from the comments of reaper_plugin_functions.h (verified against the vendored header).
+
+Let me check the SDK header for the documentation comment on GetSetProjectInfo.
+[36m[text] In this htm, the RPPB_ keys are actually omitted — this is a gap for the transport plugin. The vendored SDK header `reaper_plugin_functions.h` is the authoritative source for that flag table. Let's verify:
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "GetSetProjectInfo" vendor/reaper-sdk/sdk/reaper_plugin_functions.h | head -5[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 573B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        313:// Calculates loudness statistics of media via dry run render. Statistics will be displayed to the user; call GetSetProjectInfo_String("RENDER_STATS") to retrieve via API. Returns 1 if loudness was calculated successfully, -1 if user canceled the dry run render.
+        3045:// deprecated, see GetSetProjectInfo_String with desc="PROJECT_AUTHOR"
+        3058:#if defined(REAPERAPI_WANT_GetSetProjectInfo) || !defined(REAPERAPI_MINIMAL)
+        3060:// GetSetProjectInfo
+        3111:  double (*REAPERAPI_FUNCNAME(GetSetProjectInfo))(ReaProject* project, const char* desc, double value, bool is_set);
+        [0m
+
+[90m[thinking] Let's read the RPPB_ documentation block inside the SDK header (around lines 3058–3111).
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vendor/reaper-sdk/sdk/reaper_plugin_functions.h:3058-3116[0m
+[33m[tool] [result] read[0m
+[33m        #if defined(REAPERAPI_WANT_GetSetProjectInfo) || !defined(REAPERAPI_MINIMAL)
+        REAPERAPI_DEF //==============================================
+        // GetSetProjectInfo
+        // Get or set project information.
+        // RENDER_SETTINGS : (&(1|2)==0)=master mix, &1=stems+master mix, &2=stems only, &4=multichannel tracks to multichannel files, &8=use render matrix, &16=tracks with only mono media to mono files, &32=selected media items, &64=selected media items via master, &128=selected tracks via master, &256=embed transients if format supports, &512=embed metadata if format supports, &1024=embed take markers if format supports, &2048=2nd pass render, &4096=render razor edits, &8192=pre-fader stems (not if via master), &16384=only stem channels sent to parent, &32768=preserve source metadata if possible, &(1<<16)=preserve source start offset if possible, &(2<<16)=preserve source media sample rate if possible, &(4<<16)=if rendering selected items or razor edits, render as a single file, &(8<<16)=parallel render via master, &(16<<16)=delay render start to allow FX to initialize and load samples
+        // RENDER_BOUNDSFLAG : 0=custom time bounds, 1=entire project, 2=time selection, 3=all project regions, 4=selected media items, 5=selected project regions, 6=all project markers, 7=selected project markers
+        // RENDER_CHANNELS : number of channels in rendered file
+        // RENDER_SRATE : sample rate of rendered file (or 0 for project sample rate)
+        // RENDER_STARTPOS : render start time when RENDER_BOUNDSFLAG=0
+        … (51 more lines)[0m
+
+[90m[thinking] Interestingly, the SDK header has the same documentation as the htm, and there are no RPPB_ keys either. So both local sources are missing the RPPB_ list. The RPPB_ keys are documented in the official REAPER API reference (the "Reaper API" page on reaper.fm — actually, the RPPB_ keys are documented in the SDK header of the newer version... hmm).
+
+Actually, I just remembered: the official documentation for GetSetProjectInfo is at https://www.reaper.fm/sdk/reaper/reaperapi.html (REAPER API reference, C++), and that's the one that lists RPPB_PLAYING and so on. The htm I have on hand is the *ReaScript* API (a different document: reaper.fm/sdk/reaper/reascriptapi.html? or is it generated from REAPER's scripter?).
+
+Options:
+1. Leave the documentation as is (faithful to the source htm), and add a note that RPPB_ keys are not documented in the source, pointing to the official REAPER API reference URL for them.
+2. Fetch the official REAPER API reference (reaperapi.html) and extract the RPPB_ list to supplement the GetSetProjectInfo entry.
+
+The task is to extract a subset from docs/reaper-api.htm — but the intent is a *useful* reference for the plugin. A note + pointer is the honest and minimal approach; supplementing with a small verified table of the RPPB_ keys that transport needs (PLAYING, CURSORPOS, STARTEND, LOOP, TEMPO, TIMEFORMAT, RECORD...) would be genuinely useful. But if I add unverified content from the web, there's a risk of inaccuracy. I could also fetch the official page and add it with a clear source attribution.
+
+Hmm. Let me think about the scope. The task: "extract a useful subset of docs/reaper-api.htm into a more token-efficient format and add it as docs/??". Faithful extraction + full index + notes on usage. Adding a web-sourced RPPB_ table exceeds the scope of the task, but it's useful... The safest and most complete thing is to add a note in the GetSetProjectInfo entry saying that the RPPB_ keys are not documented in the source, and point to the official reference. Actually — wait, let me reconsider: is it possible that the RPPB_ documentation is on the *other* official page (reaperapi.html), and I should fetch it just for this one table? That's a single targeted fetch, and it would significantly improve the usefulness of the document for exactly this project (transport state!). Let's do it: fetch https://www.reaper.fm/sdk/reaper/reaperapi.html, extract the comment block for GetSetProjectInfo, and include it as a clearly marked supplement.
+
+Let me fetch it and check.
+[36m[text] Both local sources have omitted the RPPB_ key. The official REAPER API reference (reaperapi.html) documents them, and since transport state is the core of this project, let's grab just that one table and add it as a clearly marked supplement.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /tmp && curl -sL --max-time 60 "https://www.reaper.fm/sdk/reaper/reaperapi.html" -o reaperapi.html; ls -la reaperapi.html && grep -c "RPPB_" reaperapi.html[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 63B[0m
+[1A[2K[33m[tool] [running] bash → 65B[0m
+[1A[2K[31m[tool] [error] bash[0m
+[31m        -rw-r--r-- 1 vkhougaz vkhougaz 302 Oct 10 22:44 reaperapi.html
+        0
+        
+        
+        Command exited with code 1[0m
+
+[90m[thinking] The fetch only got 302 bytes — probably a redirect page or an error. Let me check the contents and try the correct URL. The official REAPER API reference URL is https://www.reaper.fm/sdk/reaper/reaperapi.html — maybe it needs to be accessed via a different path. Let's take a look at the 302-byte file.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /tmp && cat reaperapi.html; echo; curl -sIL --max-time 60 "https://www.reaper.fm/sdk/reaper/reaperapi.html" | head -20[0m
+[31m[tool] [error] bash[0m
+[31m        Use context-mode MCP tools (execute, fetch_and_index) instead of inline HTTP clients. Raw curl/wget output floods the context window. For an MCP-down escape hatch, use silent + file output: `curl -s -o /tmp/x.json URL` or `wget -q -O /tmp/x.json URL`.[0m
+
+[90m[thinking] A local proxy is intercepting curl and telling me to use context-mode MCP tools. For fetching, I'll use ctx_fetch_and_index — fetch the official reaperapi.html, index it, and then search for the RPPB_ block with ctx_search.
+[36m[text] A local hook redirects raw HTTP to the ctx tools. Using `ctx_fetch_and_index` instead:
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_fetch_and_index[0m
+[33m        url: https://www.reaper.fm/sdk/reaper/reaperapi.html, source: reaper-official-api-reaperapi.html[0m
+[31m[tool] [error] ctx_fetch_and_index[0m
+[31m        Failed to fetch https://www.reaper.fm/sdk/reaper/reaperapi.html: HTTP 404
+        [0m
+
+[90m[thinking] 404. Let me find the correct URL for the official REAPER API reference. I'll search the web.
+[0m
+
+[33m[tool] [calling] web_search[0m
+[33m        query: REAPER API reference reaper.fm GetSetProjectInfo RPPB_PLAYING documentation, max_results: 6[0m
+[33m[tool] [running] web_search → 101B[0m
+[1A[2K[33m[tool] [result] web_search[0m
+[33m        **Search results for "REAPER API reference reaper.fm GetSetProjectInfo RPPB_PLAYING documentation":**
+        
+        1. **REAPER API functions**
+           https://www.reaper.fm/sdk/reascript/reascripthelp.html
+           <strong>REAPER provides an API (advanced programming interface) for users and third parties to create extended functionality</strong>. API functions can be called from a compiled C/C++ dynamic library that is loaded by REAPER, or at run-time by user-created ReaScripts that can be written using REAPER&#x27;s own editor.
+        
+        2. **https://www.reaper.fm/sdk/plugin/reaper_plugin_fun...**
+           https://www.reaper.fm/sdk/plugin/reaper_plugin_functions.h
+           Returns true if the state changed. bool (*REAPERAPI_FUNCNAME(AudioAccessorValidateState))(AudioAccessor* accessor); #endif #if defined(REAPERAPI_WANT_BypassFxAllTracks) || !defined(REAPERAPI_MINIMAL) REAPERAPI_DEF //============================================== // BypassFxAllTracks // -1 = bypass all if not all bypassed,otherwise unbypass all void (*REAPERAPI_FUNCNAME(BypassFxAllTracks))(int bypass); #endif #if defined(REAPERAPI_WANT_CalcMediaSrcLoudness) || !defined(REAPERAPI_MINIMAL) REAPERAPI_DEF //============================================== // CalcMediaSrcLoudness // Calculates loudness statistics of media via dry run render. Statistics will be displayed to the user; call GetSetProjectInfo_String(&quot;RENDER_STATS&quot;) to retrieve via API.
+        
+        3. **ReaScript API Documentation - by X-Raym**
+           https://www.extremraym.com/cloud/reascript-doc/
+        … (13 more lines)[0m
+
+[90m[thinking] The official reaper_plugin_functions.h is at https://www.reaper.fm/sdk/plugin/reaper_plugin_functions.h — same as the vendored copy (which doesn't contain RPPB_). Hmm.
+
+Where is RPPB_PLAYING officially documented? I'm pretty sure it's in the REAPER API reference... let me think. Actually, the RPPB_ keys are documented in the REAPER 6+ SDK in the header comments of reaper_plugin_functions.h — but apparently not in this version. Hmm, wait, let me actually grep the vendored header again, more carefully — maybe they're under a different spelling, or inside GetSetProjectInfo_String?
+[36m[text] Let me check the vendored SDK header for how it documents project info keys (maybe `GetSetProjectInfo_String` or elsewhere):
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "PLAYING\|CURSORPOS\|STARTEND" vendor/reaper-sdk/sdk/reaper_plugin_functions.h | head -20[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        (no output)[0m
+
+[90m[thinking] The vendored SDK headers don't mention these either. In other words, in this vendored SDK (matching REAPER 7.82), the RPPB_ keys really aren't documented locally. They're documented in the official online "REAPER API reference" — but where?
+
+Let me search specifically for where RPPB_PLAYING is documented.
+[0m
+
+[33m[tool] [calling] web_search[0m
+[33m        query: "RPPB_PLAYING" "RPPB_CURSORPOS" REAPER API documentation, max_results: 6[0m
+[33m[tool] [running] web_search → 82B[0m
+[1A[2K[33m[tool] [result] web_search[0m
+[33m        No results found for ""RPPB_PLAYING" "RPPB_CURSORPOS" REAPER API documentation".[0m
+
+[90m[thinking] Hmm, no search results. Wait — I might be confusing this with something else. Let me think about what the actual key names for GetSetProjectInfo are.
+
+According to the official REAPER documentation (the GetSetProjectInfo page on reaper.fm): the keys include "RENDER_SETTINGS", "PROJECT_SRATE", etc. — as far as I can see, the htm I have here seems to be complete for that function. As for transport, the standard approach is:
+- Play state: `GetPlayState()` (bitfield) — already in my subset ✓
+- Cursor position: `GetCursorPosition`/`SetEditCurPos` (time selection / edit cursor), `GetPlayPositionEx` ✓
+- Loop points: `GetSet_LoopTimeRange` ✓
+- Start/end (project region): `GetSetProjectInfo` with "RPPB_STARTEND"?
+
+Hmm, wait a moment. I'm starting to lose confidence in whether RPPB_ even exists in the first place. Let me verify: REAPER's ReaScript API… I remember the keys for `reaper.GetSetProjectInfo` being things like "RENDER_STARTPOS", "PROJECT_TIMEFORMAT", "DIRTY", "PLAYBACK_STOP"… and I also have a memory of the keys "RPPB_..."? Hmm, no — that doesn't sound right either.
+
+Wait, actually I think I'm confusing this with `GetSetMediaTrackInfo_Value` (D_VOL, D.pan, etc.) or `GetSetMediaItemInfo_Value` (I_POSITION, I_LENGTH…). And regarding the project: the actual keys for GetSetProjectInfo documented in the official docs include "RENDER_SETTINGS", "RENDER_BOUNDSFLAG", … "PROJECT_SRATE", "PROJECT_TIMEBASE", "PLAYBACK_STOP", "READONLY", "DIRTY", "ARRANGE_W"… — which is exactly what's in the htm. And there's no RPPB_ prefix at all — my memory of "RPPB_PLAYING" is wrong / fabricated. Good thing I checked! The htm's list is complete, and the RPPB_ thing was a phantom.
+
+Therefore, the current document is faithful and complete with respect to the source. No supplementation needed. The transport state the plugin needs is covered by: GetPlayState(Ex) (play state), GetPlayPositionEx (cursor during playback), GetCursorPositionEx (edit cursor), GetSet_LoopTimeRange (loop/in-out), GetProjectLength, GetProjectTimeOffset — all already included.
+
+OK. The generated document is faithful. So let me finish the verification:
+1. Check the middle sections (CSurf, runtime builtins) and the index format.
+2. Confirm the file renders correctly (no broken markdown from special characters).
+3. Cross-check that a few signatures exactly match the SDK headers (e.g., CSurf_ScrubAmt(double), GetPlayPositionEx).
+
+Let me look at more of the generated files — section 5 (CSurf), section 10 (builtins), and the end (index).
+[36m[text] Good — the htm list was actually complete. My memory of the "RPPB_" key was a phantom. The transport state is fully covered by GetPlayState/GetPlayPositionEx/GetCursorPositionEx/GetSet_LoopTimeRange, all of which are included in the subset. No supplementation needed. Alright, let's verify the rest of the generated files:
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && sed -n '/^## 5\./,/^## 6\./p' docs/reaper-api-subset.md | head -40 && echo ===== && sed -n '/^## 10\./,/^## 11\./p' docs/reaper-api-subset.md | head -30 && echo ===== && tail -20 docs/reaper-api-subset.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 2.7KB[0m
+[1A[2K[33m[tool] [running] bash → 6.1KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        ## 5. Transport buttons & control surface (CSurf)
+        
+        - **OnPlayButton** — C: `void OnPlayButton()`
+          direct way to simulate play button hit
+        - **OnPlayButtonEx** — C: `void OnPlayButtonEx(ReaProject* proj)`
+          direct way to simulate play button hit
+        - **OnStopButton** — C: `void OnStopButton()`
+          direct way to simulate stop button hit
+        - **OnStopButtonEx** — C: `void OnStopButtonEx(ReaProject* proj)`
+          direct way to simulate stop button hit
+        - **OnPauseButton** — C: `void OnPauseButton()`
+          direct way to simulate pause button hit
+        - **OnPauseButtonEx** — C: `void OnPauseButtonEx(ReaProject* proj)`
+          direct way to simulate pause button hit
+        - **CSurf_FlushUndo** — C: `void CSurf_FlushUndo(bool force)`
+          call this to force flushing of the undo states after using CSurf_On*Change()
+        - **CSurf_GetTouchState** — C: `bool CSurf_GetTouchState(MediaTrack* trackid, int isPan)`
+        - **CSurf_GoEnd** — C: `void CSurf_GoEnd()`
+        - **CSurf_GoStart** — C: `void CSurf_GoStart()`
+        - **CSurf_NumTracks** — C: `int CSurf_NumTracks(bool mcpView)`
+        - **CSurf_OnArrow** — C: `void CSurf_OnArrow(int whichdir, bool wantzoom)`
+        - **CSurf_OnFXChange** — C: `bool CSurf_OnFXChange(MediaTrack* trackid, int en)`
+        - **CSurf_OnFwd** — C: `void CSurf_OnFwd(int seekplay)`
+        - **CSurf_OnInputMonitorChange** — C: `int CSurf_OnInputMonitorChange(MediaTrack* trackid, int monitor)`
+        - **CSurf_OnInputMonitorChangeEx** — C: `int CSurf_OnInputMonitorChangeEx(MediaTrack* trackid, int monitor, bool allowgang)`
+        … (68 more lines)[0m
+
+[90m[thinking] Almost done, but section 10 has a bug: for builtins, my fallback parsing sets sigs['l'] (Lua) — but the output shows "Python: ``" and the doc starts with "Lua: reaper.defer(function)". So the regex `(Lua|EEL2|Python|C):\s*<code>(.*?)</code>(.*)` matched with language… no wait, if it had matched "Lua" it should have set sigs['l']. The output shows "Python: ``" — meaning x['p'] was truthy but empty? No — the output picks `sig = x['c'] or x['l'] or x['e'] or x['p']` and labels by the first truthy one. If it displayed "Python: ``", then x['c'], x['l'], x['e'] were all falsy and x['p'] was truthy… but x['p'] is empty
+[ralph] pi invocation timed out after 600s

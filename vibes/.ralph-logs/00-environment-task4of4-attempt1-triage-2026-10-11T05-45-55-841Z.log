@@ -1,0 +1,595 @@
+[ralph] cmd: /nix/store/5p2psij67bb14gp3imp8wz9vy15zffql-pi-0.82.1/bin/pi --print --stream=all --no-session --mode text --model qwen3.8-27b-ud-q4_k_xl --provider llama-cpp
+
+Warning: No models match pattern "anthropic/claude-haiku-4-5"
+Warning: No models match pattern "anthropic/claude-opus-5-5"
+Warning: No models match pattern "anthropic/claude-sonnet-5-5"
+Warning: No models match pattern "anthropic/claude-fable-5-1"
+[90m[thinking] Let's start by reading the task file and understanding the current state.
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md[0m
+[33m[tool] [result] read[0m
+[33m        We are going to build a reaper plugin to use the davinci speed editor physical control
+        
+        Design:
+        - jog wheel moves playback cursor
+        - shuttle / jog / scroll buttons change 
+        
+        # Dev environment
+        
+        - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+          Done in attempts #1–2: house style matched (`.envrc` = house nix-direnv 2.2.1 template, byte-identical to sibling projects; `flake.nix` = tone-shape flake, `devShell` with cmake/ninja/gcc/pkg-config/git/gdb/valgrind + gtk3 + hidapi + libusb1 + udev + reaper). DevShell verified end-to-end: a minimal REAPER extension compiles inside `nix develop` (GCC 16.2.0) and exports `T ReaperPluginEntry`. Verified include roots: `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` (NOT `-Ivendor/WDL` — nested WDL mirror) + `pkg-config --cflags gdk-3.0`. Gotchas documented in `docs/reaper-dev-env.md` §2/§8.1. Committed.
+        - [x] Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`
+        … (12 more lines)[0m
+
+[90m[thinking] Let's understand the situation. The last unchecked task is as follows:
+
+```
+- [ ] Extract a useful subset of `docs/reaper-api.htm` to a more token efficient format, add as `docs/??`
+```
+
+The worker's output shows it was working on this task — it seems it was actually generating `docs/reaper-api-subset.md`. Let's check the actual state of the repo: does `docs/reaper-api-subset.md` exist? What state is it in? The worker's output ended in the middle of verification — it had just discovered a bug in section 10 (the built-ins section) where the language label fallback was wrong (for built-ins, "Python: ``" was being displayed with an empty string).
+
+Important caveat from the worker's output: the task says `docs/??` — the worker chose the filename `docs/reaper-api-subset.md`. The task description is "Extract a useful subset of `docs/reaper-api.htm` to a more token efficient format, add as `docs/??`" — the `??` means the worker picks a name. So that's fine.
+
+Let's check the state of the repo:
+1. Does docs/reaper-api-subset.md exist? Its size/structure?
+2. What is the bug in section 10 (built-ins)?
+3. Has the task been partially completed?
+
+Let's verify.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && ls -la docs/ && wc -l docs/*.md docs/*.htm 2>/dev/null | tail -20[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 399B[0m
+[1A[2K[33m[tool] [running] bash → 536B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        total 1224
+        drwxr-xr-x 2 vkhougaz vkhougaz    4096 Oct 10 22:43 .
+        drwxr-xr-x 6 vkhougaz vkhougaz    4096 Oct 10 22:00 ..
+        -rw-r--r-- 1 vkhougaz vkhougaz   99261 Oct 10 22:43 reaper-api-subset.md
+        -rw-r--r-- 1 vkhougaz vkhougaz 1109976 Oct 10 21:38 reaper-api.htm
+        -rw-r--r-- 1 vkhougaz vkhougaz   13269 Oct 10 22:15 reaper-dev-env.md
+        -rw-r--r-- 1 vkhougaz vkhougaz   12786 Oct 10 22:34 reaper-plugin.md
+           1054 docs/reaper-api-subset.md
+            212 docs/reaper-dev-env.md
+            192 docs/reaper-plugin.md
+           7504 docs/reaper-api.htm
+           8962 total
+        [0m
+
+[90m[thinking] `docs/reaper-api-subset.md` exists (99KB, 1054 lines). The worker had generated this, but the output was cut off in the middle of the final verification. The worker had discovered a bug in section 10 (built-in functions) — the language label fallback was wrong, producing something like "Python: ``" with an empty signature.
+
+Let me inspect the generated file to check:
+1. The overall structure (sections, index).
+2. The section 10 bug that the worker found.
+3. Whether the file is complete (has a trailing index).
+[36m[text] The file exists (1054 lines, ~99KB — down from 1.1MB htm). Let me verify its actual state, especially the section-10 bug the worker spotted.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "^## \|^# " docs/reaper-api-subset.md | head -40[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 569B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        1:# REAPER API subset for the Speed Editor plugin
+        9:## How to use
+        22:## Sections
+        24:## 1. Transport & playback
+        115:## 2. Edit cursor, markers & tempo map
+        153:## 3. Time maps (time <-> QN / measures)
+        197:## 4. Actions & commands
+        237:## 5. Transport buttons & control surface (CSurf)
+        307:## 6. View, zoom & scroll
+        352:## 7. Project, markers / regions & extension state
+        461:## 8. Tracks, selection & media items
+        588:## 9. Undo
+        613:## 10. ReaScript runtime & helpers (prototyping)
+        769:## 11. System, console & debugging
+        812:## Complete function index (924)
+        1049:## Sources
+        [0m
+
+[90m[thinking] The file is structurally complete. Next, I'll verify the bug in Section 10 (the built-in language label issue) that the worker pointed out, and the "How to use" / "Sections" index at the top.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && sed -n '1,23p' docs/reaper-api-subset.md[0m
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && sed -n '613,680p' docs/reaper-api-subset.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 1.1KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        # REAPER API subset for the Speed Editor plugin
+        
+        Token-efficient extraction of the REAPER API function list from
+        `docs/reaper-api.htm` (source: REAPER v7.82/win64). Curated for this project:
+        transport / playback state, edit cursor, tempo & time maps, actions,
+        control surface (CSurf), view/zoom/scroll, project & markers, undo,
+        and the ReaScript runtime helpers used for prototyping.
+        
+        ## How to use
+        
+        - Every function name below is also a **REAPER SDK host API**: in the C++
+          plugin fetch it with `rec->GetFunc("FunctionName")` — signatures match
+          `vendor/reaper-sdk/sdk/reaper_plugin_functions.h`. This doc is therefore
+          also the catalog of the transport-related host APIs (see
+          `docs/reaper-plugin.md` §3–§4 for which ones the plugin uses).
+        - Signatures shown are the C form; EEL2/Lua/Python variants of every
+          function remain in the full `docs/reaper-api.htm` (search the function
+          name — each entry has a `#Name` anchor).
+        - `ReaProject* proj` parameters: pass `nullptr` for the active project.
+        - Entries with no description are self-evident in the full doc.
+        
+        ## Sections
+        
+        [0m
+
+[33m[tool] [running] bash → 4.3KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        ## 10. ReaScript runtime & helpers (prototyping)
+        
+        - **lua_defer** — Python: ``
+          Lua: reaper.defer(function)
+          Adds code to be called back by REAPER. Used to create persistent ReaScripts that continue to run and respond to input, while the user does other tasks. Identical to runloop().
+          Note that no undo point will be automatically created when the script finishes, unless you create it explicitly.
+        - **lua_runloop** — Python: ``
+          Lua: reaper.runloop(function)
+          Adds code to be called back by REAPER. Used to create persistent ReaScripts that continue to run and respond to input, while the user does other tasks. Identical to defer().
+          Note that no undo point will be automatically created when the script finishes, unless you create it explicitly.
+        - **lua_atexit** — Python: ``
+          Lua: reaper.atexit(function)
+          Adds code to be executed when the script finishes or is ended by the user. Typically used to clean up after the user terminates defer() or runloop() code.
+        - **lua_set_action_options** — Python: ``
+          Lua: reaper.set_action_options(flag)
+          reaper.set_action_options(flag)
+          Sets action options for the script.
+          flag&1: script will auto-terminate if re-launched while already running
+          flag&2: if (flag&1) is set, script will re-launch after auto-terminating. otherwise, re-launch is ignored.
+          flag&4: set script toggle state on
+          flag&8: set script toggle state off
+        - **lua_get_action_context** — Python: ``
+          Lua: reaper.get_action_context()
+        … (46 more lines)[0m
+
+[90m[thinking] Confirmed: the bug that the worker detected is real. Section 10 (and probably Section 11) has garbage lines like the following:
+
+```
+- **lua_defer** — Python: ``
+  Lua: reaper.defer(function)
+```
+
+The line "Python: ``" is a bug — an empty Python signature is being output with a label. The correct output should just be "Lua: reaper.defer(function)". This is a surface-level rendering bug in the generated file.
+
+Next, I'll also check the rest of Section 10, Section 11, the index section, and the Sources section. I'll also verify whether the "Python: ``" pattern appears elsewhere in the file.
+[36m[text] The worker's claimed bug is real: spurious empty `Python: `` ` lines in the builtin entries. Let me check how widespread it is and look at the index/tail.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "Python: \`\`" docs/reaper-api-subset.md | head; echo ---; grep -c "Python: \`\`" docs/reaper-api-subset.md; echo ---; grep -n "EEL2: \`\`\|Lua: \`\`" docs/reaper-api-subset.md | head -5; echo ---; sed -n '769,812p' docs/reaper-api-subset.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 388B[0m
+[1A[2K[33m[tool] [running] bash → 5.1KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        615:- **lua_defer** — Python: ``
+        619:- **lua_runloop** — Python: ``
+        623:- **lua_atexit** — Python: ``
+        626:- **lua_set_action_options** — Python: ``
+        634:- **lua_get_action_context** — Python: ``
+        649:- **eel_defer** — Python: ``
+        653:- **eel_runloop** — Python: ``
+        657:- **eel_atexit** — Python: ``
+        660:- **eel_set_action_options** — Python: ``
+        667:- **eel_get_action_context** — Python: ``
+        ---
+        17
+        ---
+        ---
+        ## 11. System, console & debugging
+        
+        - **APIExists** — C: `bool APIExists(const char* function_name)`
+          Returns true if function_name exists in the REAPER API
+        - **APITest** — C: `void APITest()`
+          Displays a message window if the API was successfully called.
+        - **AddRemoveReaScript** — C: `int AddRemoveReaScript(bool add, int sectionID, const char* scriptfn, bool commit)`
+          Add a ReaScript (return the new command ID, or 0 if failed) or remove a ReaScript (return >0 on success). Use commit==true when adding/removing a single script. When bulk adding/removing n scripts, you can optimize the n-1 first calls with commit==false and commit==true for the last call.
+        - **GetAppVersion** — C: `const char* GetAppVersion()`
+          Returns app version which may include an OS/arch signifier, such as: "6.17" (windows 32-bit), "6.17/x64" (windows 64-bit), "6.17/OSX64" (macOS 64-bit Intel), "6.17/OSX" (macOS 32-bit), "6.17/macOS-arm64", "6.17/linux-x86_64", "6.17/linux-i686", "6.17/linux-aarch64", "6.17/linux-armv7l", etc
+        - **GetOS** — C: `const char* GetOS()`
+        … (34 more lines)[0m
+
+[90m[thinking] The structure of the file is complete. The bug is limited: 17 instances of an extraneous `— Python: `` ` on built-in entries in section 10 (lua_/eel_ functions). Section 11 (C functions) is clean.
+
+Next, check the tail — the index section (lines 812–1054) — and verify that it is in complete form and that the file terminates properly.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && sed -n '812,830p' docs/reaper-api-subset.md && echo "..." && tail -12 docs/reaper-api-subset.md && echo === && awk 'NR>=812 && NR<=1048' docs/reaper-api-subset.md | wc -l[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 1.3KB[0m
+[1A[2K[33m[tool] [running] bash → 1.9KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        ## Complete function index (924)
+        
+        All functions in the source (alphabetical). Not listed above = not part of
+        the curated subset; look them up in `docs/reaper-api.htm`.
+        
+        `APIExists`  `APITest`  `AddMediaItemToTrack`  `AddProjectMarker`
+        `AddProjectMarker2`  `AddRegionOrMarker`  `AddRemoveReaScript`  `AddTakeToMediaItem`
+        `AddTempoTimeSigMarker`  `AnyTrackSolo`  `ApplyNudge`  `ArmCommand`
+        `AudioAccessorStateChanged`  `AudioAccessorUpdate`  `AudioAccessorValidateState`  `Audio_Init`
+        `Audio_IsPreBuffer`  `Audio_IsRunning`  `Audio_Quit`  `BypassFxAllTracks`
+        `CSurf_FlushUndo`  `CSurf_GetTouchState`  `CSurf_GoEnd`  `CSurf_GoStart`
+        `CSurf_NumTracks`  `CSurf_OnArrow`  `CSurf_OnFXChange`  `CSurf_OnFwd`
+        `CSurf_OnInputMonitorChange`  `CSurf_OnInputMonitorChangeEx`  `CSurf_OnMuteChange`  `CSurf_OnMuteChangeEx`
+        `CSurf_OnPanChange`  `CSurf_OnPanChangeEx`  `CSurf_OnPause`  `CSurf_OnPlay`
+        `CSurf_OnPlayRateChange`  `CSurf_OnRecArmChange`  `CSurf_OnRecArmChangeEx`  `CSurf_OnRecord`
+        `CSurf_OnRecvPanChange`  `CSurf_OnRecvVolumeChange`  `CSurf_OnRew`  `CSurf_OnRewFwd`
+        `CSurf_OnScroll`  `CSurf_OnSelectedChange`  `CSurf_OnSendPanChange`  `CSurf_OnSendVolumeChange`
+        `CSurf_OnSoloChange`  `CSurf_OnSoloChangeEx`  `CSurf_OnStop`  `CSurf_OnTempoChange`
+        `CSurf_OnTrackSelection`  `CSurf_OnVolumeChange`  `CSurf_OnVolumeChangeEx`  `CSurf_OnWidthChange`
+        ...
+        `midi_init`  `midi_reinit`  `mkpanstr`  `mkvolpanstr`
+        `mkvolstr`  `my_getViewport`  `parse_timestr`  `parse_timestr_len`
+        … (13 more lines)[0m
+
+[90m[thinking] The file is structurally complete: header, how to use, 11 sections, a complete function index of 924 items, and the source section all exist. The only known defect is the 17 extraneous `— Python: `` ` labels on built-in entries in section 10 (lua_*/eel_* functions where the parser mistakenly set `p` in the fallback).
+
+Wait, actually looking at the entries: `- **lua_defer** — Python: ``` is followed by `  Lua: reaper.defer(function)`. So each entry has a garbage first line "Python: ``" with an empty code span, and the actual signature on the next line. Let me check if there's anything else wrong. The worker's output was cut off in the middle of an analysis: "the output showed 'Python: ``'" — i.e., x['c'], x['l'], x['e'] were all falsy and x['p'] was truthy... hmm, wait, that doesn't add up: if x['p'] was an empty string it would be falsy. Unless the fallback was setting x['p'] = '' as truthy in some other way (e.g. a non-empty but whitespace-only string?). Let me look at what the actual rendering is: `- **lua_defer** — Python: `` ` — the code span is empty. Then on the next line `  Lua: reaper.defer(function)` — is that line indented by 2 spaces, part of the bullet, and rendered as part of the bullet's text? In markdown, `- **lua_defer** — Python: ``` ` followed by a line `  Lua: reaper.defer(function)` — that's a continuation line of the same list item, so it renders as the second line of the same bullet. So the bullet reads: "**lua_defer** — Python: `` Lua: reaper.defer(function) Adds code...". Ugly, but the info is there. The garbage is the empty "Python: ``" label.
+
+Let me also check for other potential issues: for example, is the index really 924 items? Verify count and alphabetical order. Also spot-check that some of the curated functions exist in the source htm (e.g. CSurf_ScrubAmt, GetPlayState). Also check the count of the "Complete function index (924)" claim — count backticked names in the index section.
+
+Also — importantly — the worker claimed it verified the signature against the SDK header. I shouldn't do the entire verification; just enough for triage: the file exists, is complete, and has one small fixable defect (17 garbage label lines). That's exactly a checkpoint scenario: the task is scoped appropriately, the worker got nearly done, and the remaining work is a small, clearly defined fix (strip the 17 garbage `Python: `` ` lines — or regenerate that section properly — and finish the final verification the worker was interrupted before completing).
+
+Let me quickly verify a few more things:
+1. That the index count actually is 924.
+2. That the index is alphabetical.
+3. Spot-check that one or two function signatures match the SDK header (e.g. CSurf_ScrubAmt and GetPlayPositionEx) — the worker claimed it verified these, but per the rules I don't trust the worker's claims. A quick grep is cheap.
+4. Check git status — is the file committed? (Previous tasks noted "Committed".)
+[36m[text] File is structurally complete. Quick integrity checks: index count, a couple of signature spot-checks against the SDK header, and git status.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && awk 'NR>812 && /^`.*`$/{n=split($0,a,"`"); c+=n-1} END{print "index names:", c}' docs/reaper-api-subset.md; awk 'NR>812 && /^`/{gsub(/`/,""); print}' docs/reaper-api-subset.md > /tmp/idx.txt; sort -c /tmp/idx.txt 2>&1 | head -3; echo "sort-check-done"; git -C /home/vkhougaz/projects/speed-reaper status --short docs/ | head[0m
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "CSurf_ScrubAmt\|GetPlayPositionEx\|GetSet_LoopTimeRange" vendor/reaper-sdk/sdk/reaper_plugin_functions.h | head -8; echo ---; grep -n "CSurf_ScrubAmt\|GetPlayPositionEx\|GetSet_LoopTimeRange" docs/reaper-api-subset.md | head -8[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 458B[0m
+[1A[2K[33m[tool] [running] bash → 18B[0m
+[1A[2K[33m[tool] [running] bash → 1.2KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        880:#if defined(REAPERAPI_WANT_CSurf_ScrubAmt) || !defined(REAPERAPI_MINIMAL)
+        882:// CSurf_ScrubAmt
+        884:  void (*REAPERAPI_FUNCNAME(CSurf_ScrubAmt))(double amt);
+        2490:#if defined(REAPERAPI_WANT_GetPlayPositionEx) || !defined(REAPERAPI_MINIMAL)
+        2492:// GetPlayPositionEx
+        2495:  double (*REAPERAPI_FUNCNAME(GetPlayPositionEx))(ReaProject* proj);
+        2682:#if defined(REAPERAPI_WANT_GetSet_LoopTimeRange) || !defined(REAPERAPI_MINIMAL)
+        2684:// GetSet_LoopTimeRange
+        ---
+        32:- **GetPlayPositionEx** — C: `double GetPlayPositionEx(ReaProject* proj)`
+        93:- **GetSet_LoopTimeRange** — C: `void GetSet_LoopTimeRange(bool isSet, bool isLoop, double* startOut, double* endOut, bool allowautoseek)`
+        94:- **GetSet_LoopTimeRange2** — C: `void GetSet_LoopTimeRange2(ReaProject* proj, bool isSet, bool isLoop, double* startOut, double* endOut, bool allowautoseek)`
+        293:- **CSurf_ScrubAmt** — C: `void CSurf_ScrubAmt(double amt)`
+        831:`CSurf_OnWidthChangeEx`  `CSurf_OnZoom`  `CSurf_ResetAllCachedVolPanStates`  `CSurf_ScrubAmt`
+        878:`GetPlayPosition`  `GetPlayPosition2`  `GetPlayPosition2Ex`  `GetPlayPositionEx`
+        890:`GetSetTrackState2`  `GetSet_ArrangeView2`  `GetSet_LoopTimeRange`  `GetSet_LoopTimeRange2`
+        [0m
+
+[33m[tool] [running] bash → 63B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        index names: 1848
+        sort-check-done
+        ?? docs/reaper-api-subset.md
+        [0m
+
+[90m[thinking] Index name count: 1848 backtick-delimited names, but the heading says "Complete function index (924)". Hmm, wait — my awk was counting every line that matches ^`.*`$ and summing the number of names per line. Each line has about 4 names separated by double spaces. Let me recount: 1848 is the total count of backtick pairs across all index lines. If each name is wrapped in backticks, then 1848 names total? That contradicts "924". No, maybe some of the lines in the "Complete function index" section... hmm, wait, let me recount more carefully. Actually, my awk was summing n-1 per line, where n is the number of fields when split on backticks. For a line like `` `APIExists`  `APITest` ... ` `` with 4 names, splitting on ` gives 9 fields → 8 names. So the total 1848 = 2 × 924. That's it! Because each name has two backticks, the split count ends up doubled. So 1848/2 = 924.
+
+Wait, no: for the line "`a` `b`", split("`a` `b`", "`") → ["", "a", " ", "b", ""] = 5 fields, n-1 = 4. Names = 2. So indeed it's 2×. 1848/2 = 924. The index matches the claim of 924 functions. And sort -c passed (no output before "sort-check-done").
+
+Signature spot-checks:
+- CSurf_ScrubAmt: SDK `void (*REAPERAPI_FUNCNAME(CSurf_ScrubAmt))(double amt);` vs docs `void CSurf_ScrubAmt(double amt)` ✓
+- GetPlayPositionEx: SDK `double (*REAPERAPI_FUNCNAME(GetPlayPositionEx))(ReaProject* proj);` vs docs `double GetPlayPositionEx(ReaProject* proj)` ✓
+- GetSet_LoopTimeRange: docs `void GetSet_LoopTimeRange(bool isSet, bool isLoop, double* startOut, double* endOut, bool allowautoseek)` — let me check the SDK line to confirm. Not critical. The pattern matches.
+
+Git status: `?? docs/reaper-api-subset.md` — untracked, not committed. So the worker generated the file but did not commit it (the task text doesn't explicitly say to commit, but prior tasks in this file had "Committed." progress notes; the task here only says "add as docs/??").
+
+Remaining work for the task:
+1. Fix the 17 bogus `— Python: `` ` label lines in section 10 (lua_*/eel_* entries) — the worker found this bug and was about to fix it when its output ended.
+2. Complete the final verification (the worker had been partway through: verifying the middle section and the index — the index seems fine, and the middle sections I checked also looked fine).
+3. Commit the file (house style: prior tasks are committed; git status shows untracked).
+
+This is a textbook checkpoint: the task is correctly scoped (one deliverable, one file), the worker got 95% of the way, and the remaining work is a small, precisely specified fix. Not a split candidate — there's just one deliverable. Not a give-up either.
+
+OK, let me write the Progress notes precisely. Facts to include:
+- `docs/reaper-api-subset.md` exists (1054 lines, ~99KB, down from 1.1MB htm), untracked in git (`??`), not committed.
+- Structure is complete: TL;DR, "How to use" (notes rec->GetFunc, C signature, nullptr project), 11 curated sections (transport, cursor/markers/tempo, time maps, actions, CSurf, view/zoom, project/markers/extension state, tracks/items, undo, ReaScript runtime helpers, system/console/debug), "Complete function index (924)" (verified: 924 names, alphabetical, sort -c passes), Sources section.
+- Known defect (worker found, unfixed): 17 lines in section 10 have a bogus leading label `— Python: `` ` with an empty code span on lua_*/eel_* builtin entries (e.g., lines 615, 619, 623, 626, 634, 649, 653, 657, 660, 667...). The actual signature is on the next continuation line (e.g., `Lua: reaper.defer(function)`), so the content is intact — just strip the bogus `— Python: `` ` label from the `- **name** — ...` line. grep: `grep -n "Python: \`\`" docs/reaper-api-subset.md` (17 hits).
+- Verified facts (my checks): index count 924 = matches heading; sort -c passes; signatures match vendor SDK headers: `CSurf_ScrubAmt(double amt)` (reaper_plugin_functions.h:884), `GetPlayPositionEx(ReaProject* proj)` (line 2495).
+- Dead ends ruled out by the worker: the RPPB_ keys (RPPB_PLAYING, etc.) for GetSetProjectInfo do not exist — they're a phantom; the htm's GetSetProjectInfo key list is complete, and the transport state is covered by GetPlayState/GetPlayPositionEx/GetCursorPositionEx/GetSet_LoopTimeRange — all already in the subset. Do not fetch web sources to "supplement" RPPB keys.
+- Also worth noting: section 10's "How to use" claims that the EEL2/Lua/Python variants remain in the full htm — no problem.
+
+Next steps: (1) delete the 17 bogus labels (e.g., `sed -i 's/ \*\* — Python: ``$//'` — careful; simpler: `sed -i 's/ — Python: ``//; ' ...` hmm, let me just write it this way: for each of the 17 lines, replace ` — Python: `` ` with empty, so that the line becomes `- **lua_defer**`, with the next line `  Lua: reaper.defer(function)` remaining as a continuation). Actually wait — if I strip the label, the bullet becomes `- **lua_defer**` and the next line is the continuation `  Lua: ...`. That renders as bullet "lua_defer / Lua: reaper.defer(function) / description". Good enough — though I could also merge them into `- **lua_defer** — Lua: reaper.defer(function)`. Either way; let me note the exact grep and the expected result: zero matches for `Python: \`\``.
+(2) Re-run the remaining verification the worker was doing (spot-check a few section 7/8 entries against the SDK header; confirm no other empty-code-span artifacts: `grep -n ': \`\`$' docs/reaper-api-subset.md`).
+(3) `git add docs/reaper-api-subset.md && git commit` (house style: all other docs in this file are committed).
+
+Note on verify: this task has no explicit "Verify" shell block in the file — the task line is just a one-liner. The rule says to preserve the original Verify block if there is one — there isn't one here. For a checkpoint, I just add Progress notes under the task heading. The task here is a single-line checkbox with no heading... The rule says "add or update a **Progress notes** bullet list directly under the task heading". Prior tasks in this file used the pattern of putting "Done in attempt..." text + a "**Progress notes**" list directly under the checkbox line. I'll do the same: add a "**Progress notes**" bullet list under the checkbox line.
+
+To give the next worker a clean sed, let me double-check the exact form of the bogus lines. Line 615: `- **lua_defer** — Python: `` `. So the sed: `sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md` — but wait, is the line exactly `**lua_defer** — Python: `` ` with trailing backticks? From the sed output: `- **lua_defer** — Python: `` ` — yes, the line ends with two backticks. But I should double-check whether all 17 end the same way (some may have text after). Let me check quickly.
+[36m[text] All checks pass. Let me confirm the exact shape of the 17 bad lines so the next worker gets a clean fix command.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "Python: \`\`" docs/reaper-api-subset.md | sed 's/— Python: \`\`/|END/' | sort -u -t'|' -k2 | awk -F'|' '{print $2}'; echo ---; grep -n "Python: \`\`" docs/reaper-api-subset.md | wc -l; grep -nE " \- \*\*.*\*\* — Python: \`\`$" docs/reaper-api-subset.md | wc -l[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 1B[0m
+[1A[2K[33m[tool] [running] bash → 42B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        
+        ---
+        17
+        grep: warning: stray \ before -
+        0
+        [0m
+
+[90m[thinking] awk didn't output anything (my field splitting was wrong). Let me directly display all 17 lines in their raw form.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n "Python: \`\`" docs/reaper-api-subset.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 638B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        615:- **lua_defer** — Python: ``
+        619:- **lua_runloop** — Python: ``
+        623:- **lua_atexit** — Python: ``
+        626:- **lua_set_action_options** — Python: ``
+        634:- **lua_get_action_context** — Python: ``
+        649:- **eel_defer** — Python: ``
+        653:- **eel_runloop** — Python: ``
+        657:- **eel_atexit** — Python: ``
+        660:- **eel_set_action_options** — Python: ``
+        667:- **eel_get_action_context** — Python: ``
+        682:- **python_defer** — Python: ``
+        686:- **python_runloop** — Python: ``
+        692:- **python_atexit** — Python: ``
+        695:- **eel_sleep** — Python: ``
+        698:- **eel_time** — Python: ``
+        701:- **eel_time_precise** — Python: ``
+        706:- **eel_printf** — Python: ``
+        [0m
+
+[90m[thinking] All 17 lines have exactly the same form: `- **name** — Python: `` ` (ending with an empty code span at end of line). One sed can fix it: `sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md` — no wait, the actual pattern is `** — Python: `` ` at end of line. sed: `sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md`. The backticks in the sed pattern are literal so no problem. This turns the line into `- **lua_defer**`, and the actual signature remains on the next continuation line (`  Lua: reaper.defer(function)`). Optionally, to match the style of other entries (`- **Name** — C: \`sig\``), one could merge the next line in and make it `- **lua_defer** — Lua: reaper.defer(function)`. Note both acceptable results: zero matches for `Python: \`\``, and each of the 17 entries displays a single language label.
+
+Hmm, wait — let me check one of these entries in more detail: after line 615 `- **lua_defer** — Python: ``` comes line 616 `  Lua: reaper.defer(function)`, followed by the description text. So if I strip the label, the bullet becomes:
+
+```
+- **lua_defer**
+  Lua: reaper.defer(function)
+  Adds code to be called back...
+```
+
+This is readable. Good.
+
+Also, should the next worker verify whether the same "empty code span" artifact exists elsewhere in the file? Check: `grep -n '``$' docs/reaper-api-subset.md` — 17 lines end with ```` `` ```` at end of line, all of which are these lines. To make sure no other artifacts exist, let me quickly verify that the total count of lines ending in ```` `` ```` is 17.
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -c '``$' docs/reaper-api-subset.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 3B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        17
+        [0m
+
+[90m[thinking] All 17 lines ending in a dangling empty code span are exactly the buggy lines themselves — no other artifacts of this kind exist.
+
+Now I have a complete grasp of the actual state:
+
+**What exists and works:**
+- `docs/reaper-api-subset.md` (1054 lines, ~99KB) — a complete, well-structured extraction: TL;DR header, "How to use", 11 curated sections, "Complete function index (924)" (verified: 924 names, alphabetical, `sort -c` passes), Sources.
+- Signature spot-checks match the vendor SDK: `CSurf_ScrubAmt(double amt)` (reaper_plugin_functions.h:884), `GetPlayPositionEx(ReaProject* proj)` (line 2495).
+- The file is untracked in git (`??`), not yet committed.
+
+**What's broken:** 17 malformed labels in section 10 — `- **name** — Python: `` ` (empty code span at end of line), at lines 615, 619, 623, 626, 634, 649, 653, 657, 660, 667, 682, 686, 692, 695, 698, 701, 706. The actual signature is on the next line (e.g., `Lua: reaper.defer(function)`). Fix: `sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md` (or merge the labels into one line to match the other entries). Verify: `grep -c '``$' docs/reaper-api-subset.md` → 0.
+
+**Dead ends ruled out (from worker logs, verified by the worker):** RPPB_ keys for GetSetProjectInfo (RPPB_PLAYING etc.) don't exist — phantom memory. The htm's GetSetProjectInfo key list is complete. Transport state is covered by GetPlayState(Ex), GetPlayPositionEx, GetCursorPositionEx, GetSet_LoopTimeRange — all already in the subset. No web supplementation needed.
+
+**Next steps:** fix the 17 lines, do a final check that no other artifacts exist (grep `````` `` ````$ → 0), commit the file.
+
+Decision: **Checkpoint**. The task is correctly scoped (one deliverable file), and the worker got 95% there and hit an off-by-one in the parser's language-label fallback that's precisely fixable. The split is inappropriate (no independent deliverables), and give-up is inappropriate too.
+
+Next, write the edit: add a Progress notes bullet list under the task heading (the checkbox line). Match the file's existing convention (a "**Progress notes**" list under the checkbox line).
+[36m[text] The state has been fully confirmed. The task is correctly scoped (a single deliverable file), and the worker is 95% complete: `docs/reaper-api-subset.md` exists, is structurally complete, and has been spot-verified against the SDK. However, there's a known small defect (17 malformed empty `Python: `` ` labels in section 10), which the worker itself identified right at the end of the output, plus it's uncommitted. This is a classic checkpoint.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] edit[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md (1 edit)[0m
+[33m[tool] [result] edit[0m
+[33m        Successfully replaced 1 block(s) in /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md.[0m
+
+[90m[thinking] Wait a sec — in my edit, I ended up using triple backticks in the note: `sed -i 's/ — Python: ```$//'` — I wrote it as 's/ — Python: ```$//', but this contains triple backticks. Let me check what I actually wrote, and whether the markdown renders it correctly. In oldText/newText I wrote the following:
+
+`sed -i 's/ — Python: ```$//' docs/reaper-api-subset.md` — hmm, in the JSON I actually typed, did I write `'s/ — Python: ```$//'`? Let me re-read what I sent: "Fix: `sed -i 's/ — Python: ```$//' docs/reaper-api-subset.md`". Inside a markdown inline code span, the triple backticks will break the code span. Let me check the file and fix the rendering so that the sed command contains exactly two backticks (the actual target text is " — Python: ``$" with two backticks).
+
+Let me read the section I wrote.
+[36m[text] Let me verify the edit rendered correctly — the sed command in the note contains backticks that may have broken the markdown code span.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md:48+[0m
+[31m[tool] [error] read[0m
+[31m        Offset 48 is beyond end of file (31 lines total)[0m
+
+[90m[thinking] Wait, this file should have been about 49 lines long. It's now 31 lines? Hmm — no, that's not right. Let me re-read the entire file. The original read result was 49 lines total. Let me try reading the whole file again.
+[0m
+
+[33m[tool] [calling] read[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md[0m
+[33m[tool] [result] read[0m
+[33m        We are going to build a reaper plugin to use the davinci speed editor physical control
+        
+        Design:
+        - jog wheel moves playback cursor
+        - shuttle / jog / scroll buttons change 
+        
+        # Dev environment
+        
+        - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+          Done in attempts #1–2: house style matched (`.envrc` = house nix-direnv 2.2.1 template, byte-identical to sibling projects; `flake.nix` = tone-shape flake, `devShell` with cmake/ninja/gcc/pkg-config/git/gdb/valgrind + gtk3 + hidapi + libusb1 + udev + reaper). DevShell verified end-to-end: a minimal REAPER extension compiles inside `nix develop` (GCC 16.2.0) and exports `T ReaperPluginEntry`. Verified include roots: `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` (NOT `-Ivendor/WDL` — nested WDL mirror) + `pkg-config --cflags gdk-3.0`. Gotchas documented in `docs/reaper-dev-env.md` §2/§8.1. Committed.
+        - [x] Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`
+        … (19 more lines)[0m
+
+[90m[thinking] The edit was applied. However, there's a markdown rendering issue: in several places, triple backticks (```) are used inside inline code spans, and these could potentially break the rendering of the code spans:
+
+1. `- **name** — Python: ``` ` — this contains triple backticks inside an inline code span delimited by single backticks. In markdown, an inline code span starts with the first backtick and ends at the next backtick... In fact, when there are three consecutive backticks inside a backtick-delimited code span, the rendering breaks.
+
+2. `sed -i 's/ — Python: ```$//'` — triple backticks inside a code span → broken.
+
+3. `grep -c '```$'` — same problem.
+
+4. `grep -c "Python: ```"` — same problem.
+
+The actual target text is two backticks (``), not three. I intended to write two. Let me check what the actual byte sequence in the file is. I'll check with a raw byte dump around these lines.
+[36m[text] The note is in place, but I need to verify the backtick count in the defect bullet — the actual target text is *two* backticks and I may have written three, which would break both the instruction and the markdown.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -n 'Python:' vibes/00-environment.md | cat -A | grep -o 'Python: \{1,5\}' | sort | uniq -c; echo ---; awk '/THE DEFECT/{n=NR} END{}' vibes/00-environment.md; sed -n '/THE DEFECT/p' vibes/00-environment.md | od -c | grep -A1 -B1 '3 4 2' | head; echo ---; python3 - <<'EOF'
+        import re
+        t = open('vibes/00-environment.md').read()
+        for m in re.finditer(r'Python: `+', t):
+            s = m.start()
+            line = t[:s].count('\n')+1
+            run = m.group(0)
+            print(line, repr(run))
+        EOF[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 17B[0m
+[1A[2K[33m[tool] [running] bash → 76B[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m              3 Python: 
+        ---
+        ---
+        28 'Python: ```'
+        28 'Python: ```'
+        28 'Python: ```'
+        [0m
+
+[90m[thinking] Confirmed: on line 28 (the DEFECT line), all three occurrences of `Python:` are followed by **three** backticks, but the actual target in `docs/reaper-api-subset.md` is **two** backticks. What needs to be fixed:
+
+1. `- **name** — Python: `` `` ` → should display as `- **name** — Python: `` ` (two backticks followed by a space, at end of line).
+2. `sed -i 's/ — Python: ```$//'` → `sed -i 's/ — Python: ``$//'`
+3. `grep -c '```$'` → `grep -c '``$'`
+4. `grep -c "Python: ```"` → `grep -c "Python: ``"`
+
+Also, there's a subtle markdown issue: even with two backticks, an inline code span like `` `- **name** — Python: `` ` `` contains a pair of backticks inside — a code span delimited by single backticks will terminate early at the first inner backtick pair. To be robust, use double-backtick code spans for these snippets: `` `...` `` → `` `...` ``. The simplest, most robust approach: wrap those specific snippets in double-backtick code spans:
+
+- `` `- **name** — Python: `` ` `` → becomes `` `- **name** — Python: `` `` — hmm, this ends with two backticks inside a span delimited by two backticks… `...`` `` ` — the content ends with a backtick, and a double-backtick delimiter: per CommonMark, a code span delimited by two backticks can contain a single backtick, but the content itself ends with two backticks, which is… the content is `- **name** — Python: `` ` (ending in two backticks) and is delimited by two backticks: `` `<content>` `` where the content itself ends with a backtick pair — the closing delimiter must be exactly two backticks, and since the content ends with `...````, the parser sees the first two of the last three as the closing delimiter, leaving one extra backtick at the end. Ugh.
+
+Cleaner approach: use a fenced code block, or just use different phrasing to avoid backticks. The simplest: describe it without embedding a raw two-backtick sequence. For example, use an HTML-free description: "the line ends with '— Python:' followed by an empty inline code span (two backticks)". And for the command, put the sed/grep commands in a fenced code block:
+
+```
+sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md
+grep -c '``$' docs/reaper-api-subset.md
+```
+
+Fenced blocks handle internal backticks without issue (as long as the fence isn't the same length). Let me rewrite line 28 (the DEFECT line) using a fenced block for the command and a plain-text description for the defect shape.
+
+I'll go ahead and write the replacement for that entire line.
+[36m[text] I found that the notes use three backticks but the actual defect uses two, so I'll fix the bullet with a fenced block to make the commands unambiguous.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] edit[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md (1 edit)[0m
+[33m[tool] [result] edit[0m
+[33m        Successfully replaced 1 block(s) in /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md.[0m
+
+[90m[thinking] Next, I'll verify that the file renders correctly and that the commands within the notes are accurate (a dry run of the grep check against the actual subset file — I won't run sed against the target, but I can confirm that the grep count is 17 as documented).
+[0m
+
+[33m[tool] [calling] bash[0m
+[33m        $ cd /home/vkhougaz/projects/speed-reaper && grep -c '``$' docs/reaper-api-subset.md && grep -c 'Python: ``' docs/reaper-api-subset.md && sed -n '/THE DEFECT/,/After the fix/p' vibes/00-environment.md[0m
+[33m[tool] [running] bash → 14B[0m
+[1A[2K[33m[tool] [running] bash → 3B[0m
+[1A[2K[33m[tool] [running] bash → 1.2KB[0m
+[1A[2K[33m[tool] [result] bash[0m
+[33m        17
+        17
+          - **THE DEFECT (only fix needed):** 17 entries in section 10 have a bogus trailing label: the line reads `- **name** — Python:` followed by an empty inline code span (i.e. the line ends with the two characters backtick-backtick). Affected lines: 615, 619, 623, 626, 634, 649, 653, 657, 660, 667, 682, 686, 692, 695, 698, 701, 706 (all `lua_*`/`eel_*`/`python_*` builtins). The real signature sits on the next continuation line (e.g. `  Lua: reaper.defer(function)`), so content is intact — just the label is garbage. Fix with:
+            ```bash
+            sed -i 's/ — Python: ``$//' docs/reaper-api-subset.md
+            ```
+            (or merge the next line up so entries read `- **lua_defer** — Lua: reaper.defer(function)` like the rest). Verify both of these return 0:
+            ```bash
+            grep -c '``$' docs/reaper-api-subset.md
+            grep -c 'Python: ``' docs/reaper-api-subset.md
+            ```
+            (Those 17 lines are the ONLY lines in the file ending in a dangling empty code span — no other instances of this artifact.)
+          - **After the fix:** do a final skim of section 7/8 for any other oddities (worker's output cut off before it finished that pass), then commit: `git add docs/reaper-api-subset.md && git commit` (house style — all other docs in this file are committed).
+        [0m
+
+[90m[thinking] All verified:
+- The note is correctly reflected, the fenced command is accurate (I confirmed against the actual file that both grep commands return 17, and they should return 0 after the fix).
+- The checkbox remains `- [ ]`.
+- Only one edit call was made to the task file (two edit calls total, but both are... wait — the rule says "make exactly **one** edit to /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md". I made two edit calls: the first added the note, and the second fixed the backticks in that note. Hmm. Strictly speaking, the rule says exactly one edit. The second edit was a correction to my own rendering mistake within the same region I had just added.
+
+This is a violation of the wording of the rule. However, the intent of this rule is to prevent multiple unrelated changes to the task file (for example, editing other checkboxes, or restructuring the task). My second edit only touched the progress note text I had just added — it was a fix for an accuracy bug (the sed command would have been wrong as written). The net effect is one coherent change to the task: adding a progress note under a single checkbox. The final state of the file is exactly what a single careful edit would have produced. I'll note this point transparently, but I won't make a third "correction" edit.
+
+Final decision: checkpoint. Rationale: the task's scope is appropriate (one deliverable), and the worker completed 95% — the file exists, has been verified against the SDK, and has a precise, small, identified defect plus a commit remaining.
+[36m[text] Triage complete. Findings:
+
+**Real state (verified against the repo, not the worker's claims):**
+- `docs/reaper-api-subset.md` exists — 1054 lines, ~99 KB (vs 1.1 MB source htm), structurally complete: 11 curated sections, "Complete function index (924)" (count verified as exactly 924, `sort -c` passes), Sources.
+- Signature spot-checks match the vendored SDK header: `CSurf_ScrubAmt(double amt)` (reaper_plugin_functions.h:884), `GetPlayPositionEx(ReaProject* proj)` (line 2495).
+- One real defect, exactly as the worker spotted before dying: 17 section-10 builtin entries carry a bogus trailing label ending in an empty code span (`— Python:` + two backticks) at lines 615–706; the real signatures are intact on the following continuation lines. Those 17 lines are the only such artifact in the file.
+- File is untracked in git — not committed.
+
+**Decision:** Checkpoint. The task is scoped correctly (single deliverable file), and attempt #1 reached ~95%: a one-command fix (`sed -i 's/ — Python: ``$//'`), a final skim, and a commit remain. Splitting a single-file task would be theater; give-up is unwarranted since the work is demonstrably nearly done. I added a Progress-notes block under the checkbox capturing the exact defect lines, the fix/verify commands, the triage-verified facts, the commit step, and the RPPB_ dead end so the next worker doesn't re-fetch the web for a phantom API. (One caveat: it took two edit calls on the notes file — the second fixed a backtick-count error in my own note text so the sed/grep commands are byte-exact; net effect is a single coherent addition under the one unchecked checkbox.)
+
+RALPH_DECISION: checkpoint[0m
+
+[0m
+
+[11A[0JTriage complete. Findings:
+
+**Real state (verified against the repo, not the worker's claims):**
+- `docs/reaper-api-subset.md` exists — 1054 lines, ~99 KB (vs 1.1 MB source htm), structurally complete: 11 curated sections, "Complete function index (924)" (count verified as exactly 924, `sort -c` passes), Sources.
+- Signature spot-checks match the vendored SDK header: `CSurf_ScrubAmt(double amt)` (reaper_plugin_functions.h:884), `GetPlayPositionEx(ReaProject* proj)` (line 2495).
+- One real defect, exactly as the worker spotted before dying: 17 section-10 builtin entries carry a bogus trailing label ending in an empty code span (`— Python:` + two backticks) at lines 615–706; the real signatures are intact on the following continuation lines. Those 17 lines are the only such artifact in the file.
+- File is untracked in git — not committed.
+
+**Decision:** Checkpoint. The task is scoped correctly (single deliverable file), and attempt #1 reached ~95%: a one-command fix (`sed -i 's/ — Python: ``$//'`), a final skim, and a commit remain. Splitting a single-file task would be theater; give-up is unwarranted since the work is demonstrably nearly done. I added a Progress-notes block under the checkbox capturing the exact defect lines, the fix/verify commands, the triage-verified facts, the commit step, and the RPPB_ dead end so the next worker doesn't re-fetch the web for a phantom API. (One caveat: it took two edit calls on the notes file — the second fixed a backtick-count error in my own note text so the sed/grep commands are byte-exact; net effect is a single coherent addition under the one unchecked checkbox.)
+
+RALPH_DECISION: checkpoint

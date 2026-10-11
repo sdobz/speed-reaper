@@ -1,0 +1,415 @@
+[ralph] cmd: /nix/store/5p2psij67bb14gp3imp8wz9vy15zffql-pi-0.82.1/bin/pi --print --stream=all --no-session --mode text --model qwen3.8-27b-ud-q4_k_xl --provider llama-cpp
+
+[90m[thinking] First, let me check the task file to understand what the first unfinished task is, and check the current state of the repository.
+[0m
+
+[33m[tool] [calling] ctx_execute_file[0m
+[33m        path: /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md, language: javascript, code: const lines = FILE_CONTENT.split('\n');
+        lines.forEach((l, i) => { if (/^\s*- \[ …[0m
+[33m[tool] [result] ctx_execute_file[0m
+[33m        path=/home/vkhougaz/projects/speed-reaper/vibes/00-environment.md
+        ```javascript
+        const lines = FILE_CONTENT.split('\n');
+        lines.forEach((l, i) => { if (/^\s*- \[ \]/.test(l) || /^\s*- \[x\]/.test(l)) console.log(`${i+1}: ${l.trim()}`); });
+        console.log('---TOTAL LINES:', lines.length);
+        // show first 60 lines for context
+        console.log('=== HEAD ===');
+        console.log(lines.slice(0, 60).join('\n'));
+        
+        ```
+        
+        9: - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        10: - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+        12: - [ ] Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`
+        13: - [ ] Extract a useful subset of `docs/reaper-api.htm` to a more token efficient format, add as `docs/??`
+        ---TOTAL LINES: 14
+        === HEAD ===
+        We are going to build a reaper plugin to use the davinci speed editor physical control
+        
+        Design:
+        - jog wheel moves playback cursor
+        - shuttle / jog / scroll buttons change 
+        
+        # Dev environment
+        
+        - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+        … (5 more lines)[0m
+
+[90m[thinking] The first incomplete task is on line 12:
+
+`- [ ] Find prior art, examples, demos. Describe the plugin architecture at a high level in docs/reaper-plugin.md`
+
+Worker's output: The worker did a large amount of investigation (REAPER's scrub action, bmd.py protocol, prior art, SDK registration types) and was about to write `docs/reaper-plugin.md` when it ran out of budget (truncated at 126450 characters — massive amount of context consumption). The worker hadn't written the file yet.
+
+Let me check the current state of the repository:
+1. Does `docs/reaper-plugin.md` exist?
+2. What's in docs/?
+3. Check the vendor directory and existing docs.
+
+Task content: "Find prior art, examples, demos. Describe the plugin architecture at a high level in docs/reaper-plugin.md"
+
+This bundles two deliverables: (a) find prior art/examples/demos, (b) describe the plugin architecture in docs/reaper-plugin.md. In practice these are pretty tightly coupled — the prior art is an input to the architecture document. The worker did (a) almost completely and was just about to start on (b). This is a single coherent task that produces one deliverable (the document).
+
+Let me check the state of the repository to see what actually exists.
+[36m[text] The first incomplete task is line 12. Let me verify the real repo state — does `docs/reaper-plugin.md` exist, what's in docs, and what prior-art material is actually available locally.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: javascript, code: const fs = require('fs');
+        const path = require('path');
+        const root = '/home/vkho…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```javascript
+        const fs = require('fs');
+        const path = require('path');
+        const root = '/home/vkhougaz/projects/speed-reaper';
+        function ls(dir, depth=1) {
+          try {
+            for (const e of fs.readdirSync(dir, {withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))) {
+              const p = path.join(dir, e.name);
+              console.log('  '.repeat(depth) + (e.isDirectory() ? e.name + '/' : e.name));
+              if (e.isDirectory() && depth < 2 && !['.git','vendor','node_modules','build','target'].includes(e.name)) ls(p, depth+1);
+            }
+          } catch (err) { console.log('  '.repeat(depth) + 'ERR ' + err.message); }
+        }
+        console.log('== repo root ==');
+        ls(root, 1);
+        console.log('== docs/ ==');
+        ls(path.join(root,'docs'));
+        console.log('== vibes/ ==');
+        ls(path.join(root,'vibes'));
+        // check reaper-plugin.md
+        for (const f of ['docs/reaper-plugin.md','docs/reaper-dev-env.md','docs/reaper-api.htm']) {
+          const p = path.join(root, f);
+          if (fs.existsSync(p)) { const s = fs.statSync(p); console.log(`EXISTS ${f} size=${s.size} mtime=${s.mtime.toISOString()}`); }
+          else console.log(`MISSING ${f}`);
+        }
+        // git status of vibes file and docs
+        const { execSync } = require('child_process');
+        console.log('== git status ==');
+        console.log(execSync('git -C ' + root + ' status --porcelain=v1 2>&1 | head -20', {encoding:'utf8'}));
+        console.log('== last 5 commits ==');
+        console.log(execSync('git -C ' + root + ' log --oneline -5 2>&1', {encoding:'utf8'}));
+        console.log('== untracked/new files in docs ==');
+        … (46 more lines)[0m
+
+[90m[thinking] Checking the state:
+- `docs/reaper-plugin.md` does not exist (MISSING).
+- `docs/reaper-dev-env.md` exists (committed).
+- `docs/reaper-api.htm` exists.
+- Worker did extensive research, but never once wrote the file. This task has already been split 0 times. The worker consumed a massive amount of context (126KB truncated) mostly on research, and was literally just about to start writing the document when it ran out.
+
+Now the decision: Split or Checkpoint.
+
+Task: "Find prior art, examples, demos. Describe the plugin architecture at a high level in docs/reaper-plugin.md"
+
+This is really a single deliverable: one markdown document. The prior-art discovery is an input to the document, not an independent deliverable. The worker already did most of the prior-art research in its (indexed) output. The remaining work is: writing the doc.
+
+Would splitting help? Options:
+1. "Find prior art" — nearly done; the worker discovered bmd.py (smunaut), JamesBalazs/speed-editor-client (Go), reaper_csurf in the SDK, the SWS extension, the REAPER scrub action, etc. Splitting this as its own task would mean the next worker has to write it down somewhere (there's no separate deliverable file), and it's already effectively complete.
+2. "Write the architecture doc" — the remaining deliverable.
+
+But here's the trap: the worker's research output is in the ralph log, but is it indexed in the context-mode knowledge base? In the worker output I can see a `ctx_search` call with source "reaper.blog scrub and jog" and "execute:shell" indexing — those were inside the worker's session. Each ralph worker attempt presumably has its own session, so its knowledge base may not carry over. Hmm, actually ctx_search said "[current-session | 2026-0011...]" — the current session at that moment (the worker's session). The triage log is separate. So the research details may not be available to the next worker via ctx_search, but the full worker output log exists in vibes/.ralph-logs/ — the next worker could read that log file. Though it's huge (126KB+).
+
+The instructions say: "Add a 'Progress notes' bullet list under the first subtask (for split) or directly under the task heading (for checkpoint), and record all the concrete facts you (or the worker) have already confirmed."
+
+So either way I have to distill the confirmed facts into the vibes file. That's where the value is.
+
+Which option fits better?
+
+Option 1 (Split): "Choose this when the task bundles multiple independent deliverables (e.g. 'wire X, then write test A, then write test B, then prove invariant C')." Does this task bundle multiple independent deliverables? "Find prior art, examples, demos" + "describe the plugin architecture at a high level in docs/reaper-plugin.md". The prior-art discovery isn't an independently verifiable deliverable — it only exists as content within the doc. The deliverable is a single doc. The two halves are not independent: the prior-art section IS part of the architecture doc. Splitting "find prior art" as an independent task with no file to write doesn't meet the "independently completable and independently verifiable" criterion — there's no artifact to verify other than the doc itself.
+
+Also, the guardrail says: "If you're not confident further splitting will actually help, prefer Give Up" — that's about the give-up choice. But I think checkpointing is the right call here: the task is properly scoped (a single doc), the worker got most of the way (did all the research and was one step from writing the doc), and the failure reason is fixable — it spent too much context on research (repeated web fetches, forum bot-walls, SDK greps) and never got to the writing step. A checkpoint with a solid Progress notes section containing all the confirmed facts (protocol details, prior-art list, SDK registration types, exact doc structure plan, pointers to the worker log) would let the next attempt go straight to writing the doc.
+
+Wait — but could a local LLM write a good architecture doc from Progress notes alone? Progress notes can be substantial. The worker's log is also on disk at vibes/.ralph-logs/00-environment-task3of4-attempt1-worker-...log — I can point the next worker to it. Let me confirm the log file name: the log is "00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log" — task3of4 matches line 12 (first [ ] = 3rd checkbox). Yes.
+
+Let me verify the key claims the worker made so Progress notes is accurate (don't trust the worker's claims — check the files):
+
+1. bmd.py — where is it? The worker referenced "smunaut/bmd.py, Apache-2.0, 2011" as prior art. Is it local? Probably not in the repo. Let me check if it's somewhere in the repo or on this machine. The worker cited protocol details: VID 0x1edb / PID 0xda0e, auth via report ID 6, input reports 0x03 jog / 0x04 key / 0x07 battery, output 0x02 LED / 0x03 jog mode / 0x04 mode LED. Let me check for local bmd-related files.
+
+2. JamesBalazs/speed-editor-client (Go) — web prior art, probably not local.
+
+3. REAPER SDK: vendor/reaper-sdk exists (submodule). The worker claimed `rec->Register("timer", ...)`, the hookcommand2 signature, KbdSectionInfo. Let me quickly verify that Register exists in the SDK header, and check whether "timer" is in the registration list.
+
+4. docs/reaper-dev-env.md §7 has "Hardware: Speed Editor requirements" — exists (worker read lines 110–155). Good.
+
+5. The sibling project ~/projects/speed-audacity/plugin.md exists (worker read it).
+
+Let me verify some of the key SDK claims and the bmd.py location so Progress notes is trustworthy.
+[36m[text] `docs/reaper-plugin.md` does not exist — the worker completed all the research, but never once wrote the file. Before deciding, I'll verify the worker's main claims against the actual files (bmd.py protocol details, SDK registration types, existing docs).
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: shell, code: cd /home/vkhougaz/projects/speed-reaper
+        echo "=== bmd.py / speed editor local fi…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```shell
+        cd /home/vkhougaz/projects/speed-reaper
+        echo "=== bmd.py / speed editor local files anywhere in repo or home projects (shallow) ==="
+        find . -path ./vendor -prune -o -iname '*bmd*' -print 2>/dev/null
+        find ~/projects -maxdepth 3 -iname '*bmd*' 2>/dev/null | head
+        find ~/projects/speed-audacity -maxdepth 2 -type f 2>/dev/null | head -20
+        echo "=== vendor submodules ==="
+        cat .gitmodules 2>/dev/null
+        ls vendor/ 2>/dev/null
+        echo "=== SDK: Register + registration types (timer?) ==="
+        SDK=vendor/reaper-sdk/sdk
+        ls $SDK 2>/dev/null | head
+        grep -n '"timer"' $SDK/reaper_plugin.h | head -5
+        grep -n 'Register(' $SDK/reaper_plugin.h | head -5
+        echo "=== hookcommand2 signature ==="
+        grep -n -B2 -A8 'hookcommand2' $SDK/reaper_plugin.h | head -40
+        echo "=== csurf registration struct ==="
+        grep -n -A6 'reaper_csurf_reg_t' $SDK/reaper_plugin.h | head -20
+        echo "=== CSurf_ScrubAmt / scrub API in functions header ==="
+        grep -n 'ScrubAmt\|scrub' $SDK/reaper_plugin_functions.h | head -10
+        
+        ```
+        
+        === bmd.py / speed editor local files anywhere in repo or home projects (shallow) ===
+        /home/vkhougaz/projects/speed-audacity/README.md
+        /home/vkhougaz/projects/speed-audacity/.git/description
+        /home/vkhougaz/projects/speed-audacity/.git/HEAD
+        /home/vkhougaz/projects/speed-audacity/.git/config
+        /home/vkhougaz/projects/speed-audacity/plugin.md
+        === vendor submodules ===
+        [submodule "vendor/reaper-sdk"]
+        	path = vendor/reaper-sdk
+        	url = https://github.com/justinfrankel/reaper-sdk
+        [submodule "vendor/WDL"]
+        … (69 more lines)[0m
+
+[90m[thinking] Key claims verified:
+- `rec->Register("hookcommand2", ...)` exists, and the signature `bool onAction(KbdSectionInfo *sec, int command, int val, int val2, int relmode, HWND hwnd)` has been confirmed in the header (lines 213–221 of reaper_plugin.h).
+- `reaper_csurf_reg_t` exists (line 1535), and the registration is done with "csurf".
+- `CSurf_ScrubAmt(double amt)` exists in reaper_plugin_functions.h.
+- No bmd.py file exists locally. Prior art is on the web (smunaut/blackmagic-misc, JamesBalazs/speed-editor-client).
+- docs/reaper-dev-env.md exists, with §5 Prior art, §7 Hardware: Speed Editor requirements.
+- Sibling project ~/projects/speed-audacity has README.md and plugin.md (research on the Audacity side).
+- The worker's full log is at vibes/.ralph-logs/00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log.
+
+I'll also confirm the "timer" registration type (it's listed in the doc comment of reaper_plugin.h), and I'll check what reaper-dev-env.md §7 says about the hardware, so that the notes I write down will be accurate. In addition, I'll briefly verify the contents of §7, and confirm the existence of the scrub settings in REAPER's preferences (this is on the web, not in the repo — the worker confirmed the REAPER action name via reaper.blog: "Transport: Scrubbing fine control (MIDI CC relative Only)").
+
+To make the progress notes accurate, I'll quickly check §7 of reaper-dev-env.md, and additionally grep for "timer" in the registration list.
+[36m[text] The main SDK claims have been verified. Let me check §7 of the dev-env documentation and the "timer" registration, so that my progress notes are accurate.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: shell, code: cd /home/vkhougaz/projects/speed-reaper
+        echo "=== dev-env doc: headings + sectio…[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```shell
+        cd /home/vkhougaz/projects/speed-reaper
+        echo "=== dev-env doc: headings + section 7 ==="
+        grep -n '^#' docs/reaper-dev-env.md
+        sed -n '/^## 7/,/^## 8/p' docs/reaper-dev-env.md | head -40
+        echo "=== timer in registration list ==="
+        grep -n '"timer"' vendor/reaper-sdk/sdk/reaper_plugin.h | head
+        grep -n -B4 -A8 'rec->Register("timer"' vendor/reaper-sdk/sdk/reaper_plugin.h | head -20
+        echo "=== worker log exists? size ==="
+        ls -la vibes/.ralph-logs/ | head
+        wc -c vibes/.ralph-logs/*task3of4*worker* 2>/dev/null
+        
+        ```
+        
+        === dev-env doc: headings + section 7 ===
+        1:# Research: REAPER C++ plugin development environment
+        8:## TL;DR
+        36:## 1. Anatomy of a REAPER extension
+        56:## 2. The SDK
+        81:## 3. Compiler / toolchain requirements per platform
+        90:## 4. Build system
+        110:## 5. Prior art / references
+        120:## 6. REAPER runtime for testing
+        132:## 7. Hardware: Speed Editor requirements
+        149:## 8. This machine + dev env (implemented)
+        178:### 8.1 Verified working (2026-10, in `nix develop`)
+        201:## Sources
+        ## 7. Hardware: Speed Editor requirements
+        
+        - The Blackmagic Speed Editor is a **USB HID** device (not MIDI) — the SDK
+          gives no device access; the plugin must open it itself.
+        - Linux: device appears as `/dev/hidrawN` (and/or raw USB). Requirements:
+          - user in `input` group **or** a udev rule granting read access to the
+            device's VID/PID (verify with `lsusb` / `ls -l /dev/hidraw*`)
+          - candidate stacks: `libhidapi` (hidraw backend), raw `hidraw` + `libudev`
+            for hotplug, or `libusb`
+        … (22 more lines)[0m
+
+[90m[thinking] Interesting point: `grep '"timer"' reaper_plugin.h` returned nothing. That means the worker's claim that "timer" registration exists needs verification. Let me check the actual list of registration types inside the header. The worker said "the timer registration is not documented in this header (it's in the registration type list at the tail)" and then stated "timer has been confirmed to be in the list of registration types." But grep found nothing for "timer" with quotes. Let me grep more broadly.
+
+Also, let me confirm the exact log name for task3: `00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log` (147 KB).
+
+Let me check what registration types actually exist in the header.
+[36m[text] One claim to double-check — the worker claimed `rec->Register("timer", ...)` exists, but grep found no `"timer"` in the header. Let me check the actual registration type list.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] ctx_execute[0m
+[33m        language: shell, code: cd /home/vkhougaz/projects/speed-reaper
+        SDK=vendor/reaper-sdk/sdk
+        echo "=== all …[0m
+[33m[tool] [result] ctx_execute[0m
+[33m        ```shell
+        cd /home/vkhougaz/projects/speed-reaper
+        SDK=vendor/reaper-sdk/sdk
+        echo "=== all Register type strings in header ==="
+        grep -oE 'rec->Register\("[^"]+"' $SDK/reaper_plugin.h | sort -u
+        echo "=== any mention of timer at all ==="
+        grep -n -i 'timer' $SDK/reaper_plugin.h | head -10
+        echo "=== GetTrack / main loop guidance (how plugins get periodic work) ==="
+        grep -n -i 'settime\|SetTime\|time interval\|every' $SDK/reaper_plugin.h | head -10
+        echo "=== how does example register things ==="
+        grep -rn 'Register(' $SDK/example_m3u/*.c* 2>/dev/null | head
+        ls $SDK/example_raw 2>/dev/null
+        
+        ```
+        
+        === all Register type strings in header ===
+        rec->Register("-pcmsink"
+        rec->Register("API_myfunction"
+        rec->Register("APIdef_myfunction"
+        rec->Register("hookcommand"
+        rec->Register("hookcommand2"
+        rec->Register("hookpostcommand"
+        rec->Register("hookpostcommand2"
+        rec->Register("pcmsink"
+        === any mention of timer at all ===
+        247:  timer:
+        248:    Runs a timer periodically:
+        249:      void (*timer_function)();
+        === GetTrack / main loop guidance (how plugins get periodic work) ===
+        31:#define REASAMPLE_SIZE 8 // if we change this it will break everything!
+        202:    Registers a hook which runs prior to every action in the main section:
+        214:    Registers a hook which runs prior to every action triggered by a key/MIDI event:
+        611:    virtual int GetBitsPerSample() { return 0; } // returns bits/sample, if available. only used for metadata purposes, since everything returns as doubles anyway
+        … (9 more lines)[0m
+
+[90m[thinking] `timer` registration is confirmed: lines 247–249 of reaper_plugin.h: "timer: Runs a timer periodically: void (*timer_function)();". The worker was correct (the reason the earlier grep failed was because the header uses "  timer:" in a different format — the quoted form was "rec->Register(\"timer\"" — no wait, actually lines 247–249 say `timer:` without `rec->Register(`. Let me look at the exact text. Line 247: "  timer:", line 248: "Runs a timer periodically:", line 249: "void (*timer_function)();". Hmm, there's no `rec->Register("timer"...` line here. Let me quickly check the surrounding lines... Actually it's a minor point — the documentation block confirms that a `timer` registration type exists ("Runs a timer periodically"). That's enough for the progress notes: I'll cite lines 247–249.
+
+So now I've got a solid, verified set of facts:
+
+**Verified in the repo:**
+- `docs/reaper-plugin.md` doesn't exist. First incomplete task = line 12: "Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`".
+- `docs/reaper-dev-env.md` (committed, 13 KB) has the following sections: §1 anatomy of the extension, §2 SDK, §5 prior art (SWS, reaper_csurf, reaper-sdk-vscode template, reaper-api.htm, sibling project speed-audacity), §6 testing runtime, §7 hardware (USB HID, /dev/hidrawN, input group / udev, hidapi / raw hidraw+libudev / libusb, worker thread polling, headless CLI test tool, Win32 hid.dll), §8.1 verified dev environment (GCC 16.2.0, include roots `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` + `pkg-config --cflags gdk-3.0`).
+- SDK is vendored: vendor/reaper-sdk (justinfrankel/reaper-sdk), vendor/WDL (justinfrankel/WDL). Include path for WDL is `vendor/WDL/WDL` (nested mirror).
+- `ReaperPluginEntry(HINSTANCE, reaper_plugin_info_t*)` is the entry point; `rec->GetFunc` (host API), `rec->Register(...)` (type registration).
+- Confirmed registration types (reaper_plugin.h): `hookcommand` (around line 202), `hookcommand2` (lines 213–221, signature `bool onAction(KbdSectionInfo *sec, int command, int val, int val2, int relmode, HWND hwnd)`, val/val2/relmode semantics for MIDI/OSC/mousewheel), `hookpostcommand2` (line 223, 7-argument version), `timer` (lines 247–249, `void (*timer_function)()` periodic execution), `custom_action` (line 1102 onwards, REAPER_custom_action_register_t with uniqueSectionId/idStr/name; "return value of register = command ID"), `reaper_csurf_reg_t` (lines 1535–1544, registration via "csurf", IReaperControlSurface), `pcmsink`, `projectimport`, `ext_name/ext_vendor`.
+- `CSurf_ScrubAmt(double amt)` host API exists (reaper_plugin_functions.h lines 880–884).
+- No bmd.py in this repo or in ~/projects (searched) — HID protocol prior art is on the web: smunaut/blackmagic-misc `bmd.py` (Python + python-hid, Apache-2.0) and JamesBalazs/speed-editor-client (Go + go-hid).
+- The worker's full investigation log is at `vibes/.ralph-logs/00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log` (147 KB) — the next worker can read it, but it's large; better to rely on the progress notes.
+- Sibling project `~/projects/speed-audacity` (README.md, plugin.md) — research on the Audacity side; its §TL;DR states that in Audacity 4.0.0 the plugin mechanism doesn't fit the transport control goal, and that a 3.7.9 or OS-level fallback is planned. Same hardware.
+
+**From worker's web investigation (not verifiable in the repo, but the worker confirmed it):**
+- REAPER native action: "Transport: Scrubbing fine control (MIDI CC relative Only)" — stopped = scrub, playing = jog; response is tunable in Preferences/Audio/Playback (source: reaper.blog 2017/12 scrub-and-jog).
+- BMD protocol per bmd.py: USB HID keyboard, VID 0x1edb PID 0xda0e; mandatory mutual authentication via SET_FEATURE/GET_FEATURE on report ID 6 (public algorithm bmd_kbd_auth: lookup table + rotation); input reports: 0x03 jog (u8 mode, le32 signed, u8 unknown), 0x04 keys (6×LE16 keycodes, full set of held keys per change, no auto-repeat), 0x07 battery; output: 0x02 main LED (LE32 bitfield), 0x03 jog mode set (u8 mode, u32 0, u8 255), 0x04 jog mode button LED (u8 bitfield); jog modes RELATIVE_0=0, ABSOLUTE_CONTINUOUS=1 (±4096 ≈ half turn, baseline = position at time of mode set), RELATIVE_2=2, ABSOLUTE_DEADZERO=3. 44 keys (STOP_PLAY 0x3c, JOG 0x1d, CAM1-9, IN/OUT...).
+- Cockos forum thread t=250358 is blocked by bot check (can't verify demand there — minor).
+
+**Why did the worker fail?** It consumed about 147 KB of context on investigation (repeated web fetches, indexed searches, SDK greps) and was just about to write the document — it ran out of budget before writing even a single byte. No wrong assumptions were found; all of its claims that I checked out were accurate.
+
+**Decision: checkpoint.** Rationale:
+- Task = one deliverable (a single markdown document). "Find prior art" isn't an independently verifiable deliverable — the prior art becomes a section of the document. Splitting it out would create a task with no artifact.
+- The worker got about 90% of the way there (all investigation done, structure planned) and just failed to write the file. A checkpoint with a dense progress notes section will let the next attempt write the doc in one sitting.
+- The instructions say "don't split just to keep the loop going" — and there's no concrete bundling here to break up.
+
+Wait, let me think about whether splitting could actually help. "Split" option: "Pick this when the task bundles multiple independent deliverables." Deliverables here: (1) finding prior art, (2) writing the architecture doc. Independent? No — the prior art goes into the doc. If I split:
+- [ ] 3a: Document prior art (sources + links) as section 1 of docs/reaper-plugin.md
+- [ ] 3b: Complete the rest of the architecture doc...
+
+But then 3a alone leaves a half-document; the verification for 3a is "file exists with a prior-art section" — completable, but 3b still has to read 3a's output and continue. That's a sequential dependency, not independence. And the actual cause of failure wasn't scope — it was context exhaustion during investigation. With progress notes providing all the facts, the investigation is nearly free. So checkpoint is correct.
+
+Now, let me write the progress notes. Requirements for Option 2: "Directly under the task heading, add or update a '**Progress notes**' bulleted list, stating precisely and concretely: what already exists / what already works, what's broken or missing, the exact next steps for the next attempt."
+
+The task on line 12 has no heading; "directly under the task" = the line immediately following `- [ ] Find prior art...`. I'll insert the bulleted list indented below it (like the "Done in attempts #1–2:" paragraph under line 10). I'll match the file's style — line 11 is an indented continuation paragraph. I'll add a bulleted list with 2-space indentation.
+
+Draft of progress notes (concrete, verified facts):
+
+**Progress notes** (from attempt #1, verified against repo by triage):
+- `docs/reaper-plugin.md` doesn't exist yet. Attempt #1 did all the investigation but wrote 0 bytes — it ran out of context during web/SDK research. Full log: `vibes/.ralph-logs/00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log` (147 KB; skimmable but prefer these notes).
+- **Do not redo the investigation.** All the facts below were verified by the worker (and cross-checked by triage against the repo). Next attempt: write the doc directly; only do additional web research if a fact is explicitly marked "unverified".
+- Prior art (web): smunaut/blackmagic-misc `bmd.py` (Python+python-hid, Apache-2.0 — Speed Editor HID protocol reference implementation); JamesBalazs/speed-editor-client (Go+go-hid, key tables, jog modes, LED control, "volume wheel" example); REAPER's own `reaper_csurf` (SDK repo) for control surface patterns; SWS (github.com/reaper-oss/sws) as canonical SDK reference (already listed in docs/reaper-dev-env.md §5); community "unlock" apps that make the Speed Editor a plain keyboard (alternative route without a plugin, coarse: no mode awareness / no LED feedback). Cockos forum thread t=250358 about this device is bot-walled — skip.
+- REAPER native prior art: built-in action "Transport: Scrubbing fine control (MIDI CC relative Only)" (reaper.blog 2017-12 scrub-and-jog): stopped = scrub, playing = jog; response is tunable in Preferences→Audio→Playback. A minimal implementation could translate the wheel into that action/CC rather than reimplementing scrubbing.
+- Protocol (per bmd.py; unverified against real hardware): USB HID keyboard, VID 0x1edb / PID 0xda0e; mandatory mutual auth via SET_FEATURE/GET_FEATURE on report ID 6 (public algorithm `bmd_kbd_auth`: lookup table + rotation) — device sends no reports until authenticated. Input reports: 0x03 jog (u8 mode, le32 signed value), 0x04 keys (6×LE16 keycodes, full set of held keys per change, no auto-repeat), 0x07 battery. Output reports: 0x02 main LED (LE32 bitfield), 0x03 jog-mode set (u8 mode, u32 0, u8 255), 0x04 jog-mode button LED (u8 bitfield). Jog modes: 0=relative, 1=absolute continuous (±4096 ≈ half turn; baseline = position at time of mode set), 2=relative, 3=absolute deadzone. 44 keys (STOP_PLAY 0x3c, JOG 0x1d, CAM1–9, IN/OUT...).
+- SDK facts (verified against `vendor/reaper-sdk/sdk/reaper_plugin.h` + `reaper_plugin_functions.h`): entry `ReaperPluginEntry(HINSTANCE, reaper_plugin_info_t*)`; `rec->GetFunc` for host API; `rec->Register(...)` for everything else. Types confirmed to exist: `hookcommand2` (lines 213–221: `bool onAction(KbdSectionInfo*, int command, int val, int val2, int relmode, HWND)`, val/val2 for MIDI/OSC/mousewheel, relmode 0/1/2/3) — intercepts every action including mousewheel; `hookpostcommand2` (line 223, 7-argument version with ReaProject*); `timer` (lines 247–249, periodic `void (*timer_function)()`); `custom_action` + `action_help` (REAPER_custom_action_register_t, around line 1107); `reaper_csurf_reg_t` (lines 1535–1544, registers "csurf", create() → IReaperControlSurface); host API `CSurf_ScrubAmt(double amt)` (reaper_plugin_functions.h around line 880). No legacy on_main struct — everything is Register().
+- Hardware / environment context already in `docs/reaper-dev-env.md` (committed): §5 prior art table, §7 Speed Editor = USB HID (not MIDI) — plugin must open it itself; /dev/hidrawN + input group or udev rule; hidapi / raw hidraw+libudev / libusb candidates; poll from worker thread (don't block REAPER UI); headless CLI test tool de-risks HID first; Win32 hid.dll on the Windows side. §8.1: dev environment verified (GCC 16.2.0, includes are `-Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL` + `pkg-config --cflags gdk-3.0`). Don't duplicate this; cross-reference it.
+- Sibling project `~/projects/speed-audacity` (README.md, plugin.md) = same Speed Editor hardware, Audacity side; that plugin.md concluded Audacity 4.0.0's plugin mechanisms don't fit transport control (Nyquist is the practical choice for effects; extensions system is experimental). Share USB/HID approach.
+- Doc structure planned by the worker (good starting point): 1) device overview (HID, auth, reports, jog modes, prior art list) 2) how REAPER extensions work (entry, GetFunc/Register, hookcommand2, timer, csurf, custom actions) 3) end-to-end architecture (HID worker thread → state (mode/jog value) → transport action/CSurf_ScrubAmt mapping; mode buttons → SHTL/JOG/SCRL) 4) build plan / next steps. Style: match docs/reaper-dev-env.md (TL;DR + numbered sections + sources).
+- Broken / missing: the file itself. Verification: `test -s docs/reaper-plugin.md` + contains a prior-art section with real URLs + a high-level architecture section naming the SDK registration types above.
+- Next step: write `docs/reaper-plugin.md` using the notes above; do not re-investigate; keep the doc high-level (architecture, not code).
+
+That's thorough. Now, let me make the edit. Insert after line 12, before line 13. The edit has to be unique: oldText = the line 12 string.
+
+One concern: "Don't edit anything..." — no, for option 2 I make exactly one edit to the vibes file. Good.
+
+Indentation: line 11 (the continuation paragraph) is indented 2 spaces. I'll indent my bulleted list with 2 spaces too so it nests under the checkbox (markdown list continuation).
+
+Let me keep the notes concise and concrete. Also I should mention the exact verification command for the task. And "the next attempt should not do web research" — although, one caveat: the protocol details come from bmd.py on the web, and I can't verify them in the repo; I marked them "unverified against hardware". Fine.
+
+Now let me write the edit.
+[36m[text] All facts verified. Assessment:
+
+**State:** `docs/reaper-plugin.md` does not exist. The worker (attempt #1, task 3of4) performed *all* the necessary research — BMD HID protocol, REAPER native scrub/jog actions, SDK registration types, prior-art list — and was just about to write the doc when it ran out of context. Its log (147 KB) is at `vibes/.ralph-logs/00-environment-task3of4-attempt1-worker-2026-10-11T05-17-22-059Z.log`.
+
+**Verification of worker claims:** All repo-verifiable claims are correct — `hookcommand2` (reaper_plugin.h:213-221), `timer` (247-249), `reaper_csurf_reg_t` (1535-1544), `CSurf_ScrubAmt` (functions header:880), nested WDL include path, dev-env doc §5/§7 content. The only thing I couldn't verify: the bmd.py protocol details (no local copy — it's web prior art).
+
+**Decision — checkpoint, not split:** This task is a *single deliverable* (one doc). "Find prior art" is not an independently verifiable artifact — the prior art becomes a section within that doc. The failure mode is context exhaustion during research, not mis-scope. With a dense progress-notes block, the next attempt can skip research entirely and just write the file. Splitting would produce dependent subtasks (write part A of a doc, then part B that has to read part A) — no concrete bundling to break.
+
+[0m
+
+[0m
+
+[33m[tool] [calling] edit[0m
+[33m        /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md (1 edit)[0m
+[33m[tool] [result] edit[0m
+[33m        Successfully replaced 1 block(s) in /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md.[0m
+
+[90m[thinking] Editing complete. Checking whether the file can be read correctly.
+[0m
+
+[33m[tool] [calling] ctx_execute_file[0m
+[33m        path: /home/vkhougaz/projects/speed-reaper/vibes/00-environment.md, language: javascript, code: const lines = FILE_CONTENT.split('\n');
+        lines.forEach((l,i)=>{ if(/^\s*- \[/.tes…[0m
+[33m[tool] [result] ctx_execute_file[0m
+[33m        path=/home/vkhougaz/projects/speed-reaper/vibes/00-environment.md
+        ```javascript
+        const lines = FILE_CONTENT.split('\n');
+        lines.forEach((l,i)=>{ if(/^\s*- \[/.test(l)) console.log(`${i+1}: ${l.trim()}`); });
+        console.log('total lines:', lines.length);
+        
+        ```
+        
+        9: - [x] Research reaper c++ plugin development environment - put requirements into `docs/reaper-dev-env.md`
+        10: - [x] Research the house style in `~/projects/*.nix` - including envrc. Implement `docs/reaper-dev-env.md`
+        12: - [ ] Find prior art, examples, demos. Describe plugin architecture at a high level in `docs/reaper-plugin.md`
+        22: - [ ] Extract a useful subset of `docs/reaper-api.htm` to a more token efficient format, add as `docs/??`
+        total lines: 23
+        [0m
+
+[90m[thinking] The file looks fine: the checkbox on line 12 remains unchecked, the progress note is inserted between it and the next task, and there's exactly one edit.
+
+Final answer: checkpoint.
+[36m[text] Done. The task at line 12 remains unchecked, with a dense **Progress notes** block inserted directly under it (verified above: checkboxes intact, exactly one edit).
+
+**Why checkpoint, not split or give-up:** The task bundles no *independent* deliverables — "find prior art" only exists as a section inside `docs/reaper-plugin.md`, so splitting would create sequentially-dependent sub-tasks (write part A, then part B that must read part A) with no independent verification point. The worker didn't fail on scope or a wrong path: every repo-verifiable claim I re-checked (SDK registration types `hookcommand2`/`timer`/`csurf`/`custom_action`, `CSurf_ScrubAmt`, the nested WDL include path, dev-env doc content) was accurate. It simply burned its entire ~147 KB context on research and wrote zero bytes. The progress notes capture all confirmed facts (prior-art URLs, BMD protocol with auth/report layout/jog modes, exact SDK line numbers, what's already in `docs/reaper-dev-env.md` to cross-reference instead of duplicate) plus an explicit "do not re-research, write the doc directly" instruction and a verify criterion — giving the next attempt a single, completable-in-one-sitting job: write the file.
+
+RALPH_DECISION: checkpoint[0m
+
+[0m
+
+[5A[0JDone. The task at line 12 remains unchecked, with a dense **Progress notes** block inserted directly under it (verified above: checkboxes intact, exactly one edit).
+
+**Why checkpoint, not split or give-up:** The task bundles no *independent* deliverables — "find prior art" only exists as a section inside `docs/reaper-plugin.md`, so splitting would create sequentially-dependent sub-tasks (write part A, then part B that must read part A) with no independent verification point. The worker didn't fail on scope or a wrong path: every repo-verifiable claim I re-checked (SDK registration types `hookcommand2`/`timer`/`csurf`/`custom_action`, `CSurf_ScrubAmt`, the nested WDL include path, dev-env doc content) was accurate. It simply burned its entire ~147 KB context on research and wrote zero bytes. The progress notes capture all confirmed facts (prior-art URLs, BMD protocol with auth/report layout/jog modes, exact SDK line numbers, what's already in `docs/reaper-dev-env.md` to cross-reference instead of duplicate) plus an explicit "do not re-research, write the doc directly" instruction and a verify criterion — giving the next attempt a single, completable-in-one-sitting job: write the file.
+
+RALPH_DECISION: checkpoint
