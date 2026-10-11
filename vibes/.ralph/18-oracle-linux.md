@@ -114,3 +114,11 @@ M vibes/.ralph/18-oracle-linux.md
   - First version lost CLI args on re-exec: the option-parsing loop `shift`s away `$@` before `exec nix develop --command "$0" "$@"`. Fix: save `ORIG_ARGS=("$@")` before parsing and re-exec with it.
 - Next:
   - Task 6: crash capture (gdb `bt.txt`, `LD_DEBUG=libs` → `reaper.stderr`, `noop.lua`, exit ≥128/124 → reason mentions crash/timeout). Reuse `REAPER_RC` handling already in `run_reaper`; note timeout=124, and `run_reaper` currently does not distinguish them.
+
+Result: exit 0; done; log: logs/18-oracle-linux-L78-a5-1791757661139.log
+
+### Done — 2026-10-11 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+```
