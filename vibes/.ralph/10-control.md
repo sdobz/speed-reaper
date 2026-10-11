@@ -43,3 +43,41 @@ Files:
 ```
 M vibes/.ralph/10-control.md
 ```
+
+## Task: Research reaper editing workflows in `docs/reaper-workflow.md`
+
+### Attempt 1 — 2026-10-11T21:04:58Z — budget 600s
+
+Facts:
+- Wrote `docs/reaper-workflow.md` — REAPER-side counterpart to
+  `speed-editor-workflow.md`: editing model (arrange/edit cursor/items/
+  takes), ripple is a 3-state dial (off/per-track/all-tracks, `Alt+P`,
+  7.35 toolbar change, cmd 1155) + independent trim-behind toggle
+  (`Shift+X`), edit modes, selection-centric action semantics, S/D
+  editing, verified default keymap (S split, Tab transients, Ctrl+[ ]
+  item edges, ,/. nudges, M markers, T/Shift+T takes, Alt+S snap, X
+  crossfade, Alt+X auto-crossfade), CSurf API path for wheel modes
+  (`CSurf_ScrubAmt`, `CSurf_OnPlayRateChange` + `Master_NormalizePlayRate`
+  for the SHTL law, `CSurf_OnScroll`/`OnZoom`), no built-in analog
+  shuttle in REAPER (community uses ShuttlePRO + playrate actions),
+  transitions = crossfades only (no transition objects), multicam ≈
+  takes + REAPER 7 multitrack, hidden-state/LED inventory, and a
+  full device-label→REAPER-concept congruence table (✅ native / ⚠️
+  reinterpret or composite).
+- Biggest congruence gaps for task 3: no Smart Indicator (actions target
+  cursor or selection, not nearest edge), no Source Tape (Media Explorer
+  instead; IN/OUT ≈ time selection/trim points), SOURCE/TIMELINE focus,
+  CLOSE UP / overwrite variants = plugin composites, ripple needs a
+  3-value LED encoding.
+
+Dead ends:
+- `https://www.reaper.com/manual/` and `/manual` → 404 (no online manual
+  there anymore); ask.video ripple article → 403. Used tutorialtactic
+  cheat sheet + urosbaric series + airwiggles instead.
+
+Next:
+- Task 3: `docs/reaper-plugin-workflow.md` (mode switches + label
+  congruence design; the congruence table in `reaper-workflow.md` §10 is
+  its direct input). Verify the "(verify in app)" items during first
+  smoke test: edit-mode list, Ctrl+drag-edge roll, Alt+X auto-crossfade,
+  multitrack feature name.

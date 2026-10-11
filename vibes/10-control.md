@@ -2,7 +2,8 @@ How, specifically, will this plugin work?
 
 - [x] Research the davinci speed editor workflow in `docs/speed-editor-workflow.md`
   Done: `docs/speed-editor-workflow.md` — Cut-page model (Smart Indicator, Source Tape, Ripple state), SOURCE/TIMELINE focus, wheel JOG/SHTL/SCRL usage + shuttle control law, tap/double-tap/hold+rotate grammar with full 2nd-label inventory (cross-checked vs vendored key tables), assembly/trim/transition/marker/multicam workflows, LED & battery semantics, and 7 port constraints for the REAPER plugin.
-- [ ] Research reaper editing workflows in `docs/reaper-workflow.md`
+- [x] Research reaper editing workflows in `docs/reaper-workflow.md`
+  Done: `docs/reaper-workflow.md` — REAPER editing model (arrange/edit cursor/items/takes, S/D editing), ripple as a 3-state dial + trim-behind + edit modes, verified default keymap, CSurf API path for JOG/SHTL/SCRL (incl. the SHTL shuttle law via playrate; REAPER has no built-in shuttle), crossfades as the only transition concept, takes/multitrack as the multicam substitute, hidden-state/LED inventory, and a full device-label→REAPER congruence table with the Cut-page gaps (no Smart Indicator, no Source Tape) flagged for task 3.
 - [ ] Propose how the speed editor can be used, including mode switches, and keeping the labeled terms on the speed editor congruent to reaper functionality. Provide specific examples into `docs/reaper-plugin-workflow.md`
 - [ ] Research how plugins are configured (learning? tuning? `Shift+?` options) - what parameters will the speed editor need?
 
