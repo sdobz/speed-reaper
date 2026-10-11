@@ -20,6 +20,7 @@
         cmake
         ninja
         gcc
+        gnumake
         pkg-config
         git
         gdb
@@ -42,7 +43,8 @@
         echo "  cmake    $(cmake --version 2>/dev/null | head -1)"
         echo "  reaper   $(reaper --version 2>/dev/null || echo 'not on PATH')"
         echo "SDK include roots: -Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL (see docs/reaper-dev-env.md §2)"
-        echo "Build: cmake -S src -B build -G Ninja && cmake --build build"
+        echo "Build CLI (task 3): make -C src            → build/speedcli"
+        echo "(REAPER plugin, later tasks: cmake -S src -B build -G Ninja && cmake --build build)"
       '';
     };
   }));
