@@ -28,8 +28,8 @@
         # SWELL on Linux resolves gdk-3.0 via pkg-config at build time
         gtk3
 
-        # the Speed Editor is a USB HID device
-        libhidapi
+        # the Speed Editor is a USB HID device (hidraw backend built in on Linux)
+        hidapi
         libusb1
         udev
 
@@ -41,7 +41,7 @@
         echo "  g++      $(g++ --version 2>/dev/null | head -1)"
         echo "  cmake    $(cmake --version 2>/dev/null | head -1)"
         echo "  reaper   $(reaper --version 2>/dev/null || echo 'not on PATH')"
-        echo "SDK headers: vendor/reaper-sdk/sdk + vendor/WDL (git submodules)"
+        echo "SDK include roots: -Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL (see docs/reaper-dev-env.md §2)"
         echo "Build: cmake -S src -B build -G Ninja && cmake --build build"
       '';
     };
