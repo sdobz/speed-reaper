@@ -81,3 +81,11 @@ Next:
   its direct input). Verify the "(verify in app)" items during first
   smoke test: edit-mode list, Ctrl+drag-edge roll, Alt+X auto-crossfade,
   multitrack feature name.
+
+Result: exit 0; done; log: logs/10-control-L5-a1-1791752698920.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/10-control.md
+```
