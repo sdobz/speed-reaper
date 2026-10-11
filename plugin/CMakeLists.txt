@@ -10,9 +10,13 @@
 # Install for testing (see SMOKE-TEST.md):
 #   cp build/plugin/reaper_speed_reaper.so ~/.config/REAPER/UserPlugins/
 #
-# Windows: REAPER extensions must be built with MSVC (SDK header note; the
-# C++ ABI must match REAPER's MSVC build — mingw is not supported), so the
-# cross-toolchain in flake.nix cannot build this yet.
+# Cross-platform: builds on Linux (native .so) and Windows (cross .dll via
+# nixpkgs' mingwW64 toolchain, see CROSS-PLATFORM.md at the repo root and
+# flake.nix). The SDK README says Windows extensions need MSVC, but that
+# constraint only bites when REAPER C++ interface objects cross the plugin
+# boundary; this extension's entire surface to REAPER is C-ABI
+# (ReaperPluginEntry + function-pointer calls), so MinGW works.
+# On Windows the output is reaper_speed_reaper.dll, installed like the .so.
 
 cmake_minimum_required(VERSION 3.13)
 project(speed_reaper LANGUAGES CXX)
@@ -22,15 +26,30 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra)
 
 if(WIN32 AND NOT MSVC)
-  message(FATAL_ERROR
-    "REAPER extensions for Windows require MSVC "
-    "(see docs/reaper-dev-env.md §3). Build on Linux or use MSVC on Windows.")
+  # MinGW path (see CROSS-PLATFORM.md): fine as long as this extension
+  # implements none of REAPER's C++ interface classes. If that changes,
+  # restore the hard MSVC-only check.
+  message(STATUS "Non-MSVC Windows build: C-ABI-only REAPER surface assumed "
+                 "(no C++ objects cross the plugin boundary). See CROSS-PLATFORM.md.")
 endif()
+
+# REAPER-free sources: linked into both the plugin and the unit tests
+# (plugin/test/). Add new pure-logic .cpp files here, never to the
+# plugin-only list below.
+set(PLUGIN_PURE_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/jog_engine.cpp
+)
 
 add_library(speed_reaper SHARED
   src/main.cpp
-  src/jog_engine.cpp
+  ${PLUGIN_PURE_SOURCES}
 )
+
+# Guarded: cross builds (flake) may pack a tree that predates test/.
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/CMakeLists.txt)
+  enable_testing()
+  add_subdirectory(test)
+endif()
 
 # SWS convention: reaper_<name>.so (no lib prefix).
 set_target_properties(speed_reaper PROPERTIES
@@ -49,6 +68,11 @@ target_include_directories(speed_reaper SYSTEM PRIVATE
   ${REPO_ROOT}/vendor/reaper-sdk/sdk
   ${REPO_ROOT}/vendor/WDL/WDL
 )
+
+if(MINGW)
+  # Self-contained .dll: no libstdc++/libgcc dependency on the target.
+  target_link_options(speed_reaper PRIVATE -static-libstdc++ -static-libgcc)
+endif()
 
 if(UNIX AND NOT APPLE)
   # SWELL on Linux resolves gdk-3.0 via pkg-config at build time (header-only;

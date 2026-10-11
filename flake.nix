@@ -79,6 +79,58 @@
               if cross then "speedcli.exe" else "speedcli";
           };
         };
+      # REAPER plugin cross-build (vibes/05-prototypes.md task 7): same
+      # CMake source as the Linux dev-shell build, compiled with mingwW64
+      # → self-contained reaper_speed_reaper.dll (static C++ runtime).
+      # MinGW works because the extension's REAPER surface is C-ABI only
+      # (see CROSS-PLATFORM.md at the repo root).
+      makeSpeedReaperPlugin = { spkgs, targetSystem, cross, artifactSuffix }:
+        spkgs.stdenv.mkDerivation {
+          pname = "reaper-speed-reaper";
+          version = "0.1.0";
+
+          # Whole repo: plugin/CMakeLists.txt pulls vendor/reaper-sdk +
+          # vendor/WDL from the repo root via REPO_ROOT.
+          src = ./.;
+
+          nativeBuildInputs = [ spkgs.cmake spkgs.ninja ];
+
+          # The CMakeLists.txt is in plugin/ (not the source root), and the
+          # whole repo is the source (CMakeLists pulls vendor/ via REPO_ROOT).
+          # The stdenv cmake hook's default configurePhase would run
+          # `cmake` against the source root and fail, so both phases are
+          # overridden explicitly.
+          configurePhase = ''
+            # $cmakeFlags carries the stdenv cross-compiler +
+            # -DCMAKE_SYSTEM_NAME=Windows settings; without them CMake
+            # misdetects the platform as Unix (host) and the pkg-config/
+            # gdk branch fires.
+            cmake $cmakeFlags -S plugin -B build -G Ninja
+          '';
+
+          buildPhase = ''
+            cmake --build build
+          '';
+
+          # ''…'' not """…""": the """ multiline-string syntax was
+          # removed in newer Nix (2.34 here) — """ now mis-parses as "" "…".
+          installPhase = ''
+            mkdir -p $out/reaper
+            install -m644 build/reaper_speed_reaper${artifactSuffix} $out/reaper/
+          '';
+
+          meta = {
+            description = "Speed Reaper REAPER extension (smooth playhead jog demo)";
+            homepage = "https://www.reaper.fm/sdk/plugin/plugin.php";
+            # Same check-meta quirk as speedcli: cross builds need both the
+            # triple and the elaborated target spellings.
+            platforms =
+              if cross
+              then [ targetSystem (pkgs.lib.systems.elaborate targetSystem).system ]
+              else [ targetSystem ];
+            crossPlatforms = pkgs.lib.optionals cross [ linuxSystem ];
+          };
+        };
     in
     {
       devShells.${linuxSystem}.default = pkgs.mkShell {
@@ -115,6 +167,8 @@
           echo "                   nix build .#packages.x86_64-pc-windows-gnu.speedcli → .../bin/speedcli.exe"
           echo "Build REAPER plugin (task 6): cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin"
           echo "  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, 'REAPER plugin' section)"
+          echo "Build REAPER plugin for Windows (task 7): nix build .#reaper-plugin-windows → .../reaper/reaper_speed_reaper.dll"
+          echo "  Cross-platform matrix + gotchas: CROSS-PLATFORM.md"
         '';
       };
 
@@ -130,6 +184,8 @@
         };
         # Compat alias for task 4's `nix build .#speedcli-windows`.
         speedcli-windows = self.packages.${winSystem}.speedcli;
+        # Cross-platform REAPER plugin (task 7, see CROSS-PLATFORM.md).
+        reaper-plugin-windows = self.packages.${winSystem}.reaper-plugin;
       };
 
       packages.${winSystem} = {
@@ -138,6 +194,13 @@
           hidapi = hidapiWin;
           cross = true;
           targetSystem = winSystem;
+        };
+        # Windows parity build of the REAPER plugin (task 7).
+        reaper-plugin = makeSpeedReaperPlugin {
+          spkgs = pkgsWin;
+          targetSystem = winSystem;
+          cross = true;
+          artifactSuffix = ".dll";
         };
       };
 

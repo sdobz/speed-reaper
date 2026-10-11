@@ -209,5 +209,29 @@ REAPER.
   action list, not a MIDI editor list.
 - **Build fails with `gdk/gdk.h: No such file`** → you are outside the nix
   dev env (`gdk-3.0` pkg-config module missing); re-run in `nix develop`.
-- **Windows**: not buildable with the mingw cross-toolchain — REAPER
-  requires MSVC for extensions (see `docs/reaper-dev-env.md` §3).
+- **Windows**: build via the flake cross path, not the dev shell —
+  `nix build .#reaper-plugin-windows` (see the next section and
+  `CROSS-PLATFORM.md` at the repo root).
+
+### Windows build (cross, from the Linux dev env)
+
+This project is cross-platform — see `CROSS-PLATFORM.md` for the matrix.
+The same plugin sources build a Windows `.dll` via the flake (MinGW
+toolchain; works because the plugin's REAPER surface is C-ABI only):
+
+```sh
+nix build .#reaper-plugin-windows
+file $(nix path-info .#reaper-plugin-windows)/reaper/reaper_speed_reaper.dll
+```
+
+**Expected:** `PE32+ DLL` / x86-64, no compiler warnings.
+
+To test on a Windows machine: copy `reaper_speed_reaper.dll` to
+`%APPDATA%\REAPER\UserPlugins\`, start REAPER, and run Tests 5–7 above
+identically (Options → Extensions should list *"Speed Reaper (hello
+world)"*; the action names are the same). The DLL statically links its
+C++ runtime — no Visual C++ redistributable needed.
+
+If a future version of the plugin implements REAPER C++ interface
+classes (vtables REAPER instantiates), the MinGW path stops being safe —
+build on Windows with MSVC instead and update `CROSS-PLATFORM.md`.
