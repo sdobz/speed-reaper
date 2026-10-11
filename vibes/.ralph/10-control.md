@@ -189,3 +189,36 @@ Files:
 ```
 M vibes/.ralph/10-control.md
 ```
+
+## Task: Prioritize features into milestones and write vibe documents similar to this one. Include specific completion criteria. 
+
+### Attempt 1 — 2026-10-11T21:21:55Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Wrote `vibes/20-milestones.md` — 7 milestones M1–M7, each a checkbox
+  block with tasks, `Research:` items, a `SMOKE-TEST.md task:` bullet, and
+  explicit completion criteria; per-milestone hand test maps to workflow
+  examples E1–E8 (M1 wheel, M2 modes+shuttle=E1/E2, M3 verbs+ripple LED
+  =E3/E5, M4 crossfades/roll/takes=E3/E4/E6/E8, M5 SOURCE focus=E7,
+  M6 config per plugin-configuration §4, M7 composites+multicam v1.1).
+- Sequencing rationale: real-HID integration first (de-risk, reuses
+  `IWheelSource` seam from the hello-world plugin), then behavior layers,
+  config second-to-last (parameters default in code from M1), composites
+  last. Windows plugin builds excluded from all milestones (needs MSVC;
+  mingw can't build REAPER extensions — already noted in 05-prototypes).
+- Research tasks included (per task instruction, not designed here):
+  HID keyboard-event leak into REAPER (M1), hot-unplug teardown (M1),
+  ABSOLUTE_DEADZERO real-device semantics (M2), playrate/shuttle API path
+  (M2), API-level read of ripple 3-state + trim-behind + snap for the LED
+  loop (M3), crossfade-length API (M4), I_STARTOFFS live scrub + undo
+  grouping + item-flash mechanism (M5), LED value bands + REAPER-side
+  config window (M6), multitrack sync + live take switching (M7).
+
+Dead ends:
+- (none — synthesis of the four done design docs; no new research needed)
+
+Next:
+- M1 in `vibes/20-milestones.md`: integrate `src/speed_editor/` into
+  `plugin/` as `HidWheelSource`; first research items are the HID
+  keyboard-leak check and the unplug teardown path.
