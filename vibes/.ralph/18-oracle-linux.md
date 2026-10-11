@@ -7,6 +7,7 @@ Workers update their own `## Task:` section; ralph writes results.
 
 Durable facts every task should know (keep short).
 - `tools/check [regex]` works from the worker shell: no `cmake` on PATH, but the script falls back to `nix develop` itself. Build is incremental in `build/plugin`; re-runs take ~10 s.
+- `REAPERAPI_LoadAPI` (with `REAPERAPI_IMPLEMENT` + full `reaper_plugin_functions.h` include, as main.cpp does) probes **every** SDK API name — so the host's GetFunc list gates the whole entry result, not just what the plugin calls.
 
 
 ## Task: 1. Plugin trace
@@ -59,4 +60,28 @@ M vibes/.ralph/18-oracle-linux.md
  M vibes/18-oracle-linux.md
 ?? docs/notes/
 ?? oracle/
+```
+
+## Task: 3. `plugin_host` (Linux)
+
+### Attempt 3 — 2026-10-11T22:20:14Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- SDK `reaper_plugin_info_t` layout (vendor/reaper-sdk/sdk/reaper_plugin.h): `{int caller_version; HWND; int (*Register)(const char*, void*); void* (*GetFunc)(const char*)}`; caller_version = 0x20E; on Linux HWND is void*.
+- Wrote `plugin/tools/plugin_host.cpp` (dlopen/LoadLibrary→Linux dlopen only; own struct copy of `reaper_plugin_info_t` with variadic Register since the plugin casts to `plugin_register_variadic`; one `extern "C"` stub for all listed names; `custom_action` → ids 40001+; `timer` → (id, ms, fn) captured; `--expect-actions` matches id_str or cmd number).
+- CMake: `add_executable(plugin_host tools/plugin_host.cpp)` + `target_link_libraries(... dl)`, guarded by `if(EXISTS ...)` like test/. Output lands at `build/plugin/plugin_host`.
+- Build + Verify pass (exit 0), log `vibes/.ralph/logs/build.log`. Host output: `api_names=... (874) / loaded / entry=0 registered= / actions= / timers= / ticks=50 / unloaded`.
+- Why entry=0 today (expected): main.cpp does `#define REAPERAPI_IMPLEMENT` + `#include "reaper_plugin_functions.h"`, so `REAPERAPI_LoadAPI` probes **every** SDK API name; the oracle list is the ReaScript doc index and is missing ~145 SDK names → missing>0 → plugin returns 0 before any Register. Generic stub is indeed never called.
+- Next: none — line 51 ticked.
+
+Result: exit 0; done; 3 files changed, 25 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L51-a3-1791757214456.log
+
+### Done — 2026-10-11 — 3 attempt(s)
+Files:
+```
+M plugin/CMakeLists.txt
+ M vibes/.ralph/18-oracle-linux.md
+ M vibes/18-oracle-linux.md
+?? plugin/tools/
 ```

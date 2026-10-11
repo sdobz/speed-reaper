@@ -48,7 +48,7 @@ test "$(wc -l < oracle/reaper_api_names.txt)" -gt 800 && grep -qx GetPlayPositio
 tools/check && ./build/plugin/plugin_host build/plugin/reaper_speed_reaper.so --report-only | grep -q '^entry='
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Oracle tools in the dev shell
 

@@ -52,6 +52,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/CMakeLists.txt)
   add_subdirectory(test)
 endif()
 
+# Oracle host (docs/plugin-oracle-design.md §3): stand-in for REAPER with no
+# GUI; loads the built plugin and fakes reaper_plugin_info_t. Guarded like
+# test/ above (cross builds may pack an older tree).
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/plugin_host.cpp)
+  add_executable(plugin_host tools/plugin_host.cpp)
+  if(UNIX AND NOT APPLE)
+    target_link_libraries(plugin_host PRIVATE dl)
+  endif()
+endif()
+
 # SWS convention: reaper_<name>.so (no lib prefix).
 set_target_properties(speed_reaper PROPERTIES
   PREFIX ""
