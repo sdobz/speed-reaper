@@ -136,3 +136,11 @@ M vibes/.ralph/18-oracle-linux.md
 - Dead ends:
   - `gdb -batch ... --args reaper` directly: gdb rejects the nix wrapper script; `bt` is empty ("No stack").
 - Notes for task 7: `reaper.stderr` (LD_DEBUG) shows `calling init: .../UserPlugins/reaper_speed_reaper.so` then `error: symbol lookup error: undefined symbol: SWELL_dllMain (fatal)` — but the plugin DOES load (dlopen RTLD_NOW in isolation is clean; trace shows `entry rec=non-null`), so this is REAPER-side (reaper ELF exports `SWELLAPI_GetFunc`/`SWELLAppMain` but no `SWELL_dllMain`). Load failure is `loadapi missing` — see trace.txt.
+
+Result: exit 0; done; log: logs/18-oracle-linux-L91-a6-1791758068437.log
+
+### Done — 2026-10-11 — 6 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+```
