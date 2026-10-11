@@ -91,3 +91,11 @@ M plugin/CMakeLists.txt
 ### Attempt 4 — 2026-10-11T22:26:53Z — budget 600s
 - Facts: `gdb` was already in devShell buildInputs; added `xvfb-run`, `xorg-server`, `strace`, `xdotool`, `python3` (one commented block after `reaper`) plus one banner line mentioning `tools/reaper-oracle`. Verify command exits 0 (xvfb-run 1+g87f6705, Xvfb xorg-server-21.1.24, gdb 17.2, strace 7.2, reaper 7.81).
 - Next: task 4 done; proceed to task 5 (`tools/reaper-oracle`).
+
+Result: exit 0; done; log: logs/18-oracle-linux-L64-a4-1791757613442.log
+
+### Done — 2026-10-11 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+```
