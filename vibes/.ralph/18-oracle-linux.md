@@ -41,3 +41,22 @@ M docs/plugin-design-m1-m3.md
 ?? docs/plugin-oracle-design.md
 ?? vibes/19-oracle-device-windows.md
 ```
+
+## Task: 2. The REAPER 7.81 API name list
+
+### Attempt 2 — 2026-10-11T22:18:44Z — budget 600s
+
+- Facts: `docs/reaper-api-subset.md` "Complete function index" section (line 793 to EOF) contains **874** backticked names (4 per line); the heading's "(924)" label is inaccurate — 874 is the true count. SDK header uses `(*REAPERAPI_FUNCNAME(Name))(`; 877 declarations total, 145 missing from the doc list (mostly REAPERAPI_EXPOSED functions, e.g. `FreeHeapPtr`, `get_config_var`).
+- Facts: Deliverables done: `oracle/extract_api_names.py` (rerunnable), `oracle/reaper_api_names.txt` (874 lines, no dupes, `GetPlayPosition` present), `docs/notes/sdk-vs-reaper-api.md` (script stdout). Verify command passes.
+- Next: none — task complete.
+
+Result: exit 0; done; 2 files changed, 9 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L38-a2-1791757124621.log
+
+### Done — 2026-10-11 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+ M vibes/18-oracle-linux.md
+?? docs/notes/
+?? oracle/
+```

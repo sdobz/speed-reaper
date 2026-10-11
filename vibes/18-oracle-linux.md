@@ -35,7 +35,7 @@ tools/check trace
 test "$(wc -l < oracle/reaper_api_names.txt)" -gt 800 && grep -qx GetPlayPosition oracle/reaper_api_names.txt && test -s docs/notes/sdk-vs-reaper-api.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. `plugin_host` (Linux)
 
