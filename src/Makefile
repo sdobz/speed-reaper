@@ -7,9 +7,11 @@
 # Requires: g++, pkg-config, the hidapi-hidraw pkg-config module
 # (all provided by flake.nix devShell).
 #
-# Cross-compile for Windows (vibes task 4) — driven by flake.nix
-# (package `speedcli-windows`); equivalently:
-#   make -C src CROSS=1 CXX=x86_64-w64-windows-gnu-g++ HIDAPI_PREFIX=<hidapi-out>
+# Flakified (vibes task 5, parity for both platforms) — driven by flake.nix:
+#   nix build .#x86_64-linux.speedcli            → .../bin/speedcli
+#   nix build .#x86_64-pc-windows-gnu.speedcli   → .../bin/speedcli.exe
+# Equivalent to by hand (Windows):
+#   make -C src CROSS=1 CXX=x86_64-w64-mingw32-g++ HIDAPI_PREFIX=<hidapi-out>
 #   → build/speedcli.exe (fully self-contained: static libstdc++/libgcc,
 #     static hidapi winapi backend that LoadLibrary()s the system hid.dll).
 
@@ -22,14 +24,24 @@ ifeq ($(CROSS),1)
 # Windows cross-build: HIDAPI_PREFIX is the (cross-compiled) hidapi output
 # with include/hidapi/hidapi.h and lib/libhidapi.a (static winapi backend).
 CLI        := $(BUILD_DIR)/speedcli.exe
+HIDAPI_LIB  ?= hidapi
 HIDAPI_CFLAGS := -I$(HIDAPI_PREFIX)/include
-HIDAPI_LIBS   := -L$(HIDAPI_PREFIX)/lib -lhidapi
+HIDAPI_LIBS   := -L$(HIDAPI_PREFIX)/lib -l$(HIDAPI_LIB)
 # Fully self-contained exe (no libstdc++.dll / libgcc dll needed on the target):
 EXTRA_LDFLAGS := -static
 else
 CLI        := $(BUILD_DIR)/speedcli
-HIDAPI_CFLAGS := $(shell pkg-config --cflags hidapi-hidraw)
-HIDAPI_LIBS   := $(shell pkg-config --libs hidapi-hidraw)
+# nixpkgs' hidapi installs per-backend libraries (libhidapi-hidraw.so,
+# libhidapi-libusb.so) — no generic libhidapi.so — so link the backend.
+HIDAPI_LIB  ?= hidapi-hidraw
+ifneq ($(HIDAPI_PREFIX),)
+# flake.nix passes the store path of nixpkgs' hidapi directly.
+HIDAPI_CFLAGS := -I$(HIDAPI_PREFIX)/include
+HIDAPI_LIBS   := -L$(HIDAPI_PREFIX)/lib -l$(HIDAPI_LIB)
+else
+HIDAPI_CFLAGS := $(shell pkg-config --cflags $(HIDAPI_LIB))
+HIDAPI_LIBS   := $(shell pkg-config --libs $(HIDAPI_LIB))
+endif
 endif
 
 .PHONY: all clean
