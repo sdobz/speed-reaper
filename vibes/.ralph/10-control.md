@@ -7,6 +7,16 @@ Workers update their own `## Task:` section; ralph writes results.
 
 Durable facts every task should know (keep short).
 
+- `docs/reaper-plugin-workflow.md` (task 3) is the design contract for the
+  plugin: 3-axis state model (wheel mode / TIMELINE-SOURCE focus / tap-
+  double-tap-hold gesture), SOURCE focus = S/D source-edge editing of the
+  selection (no fake Source Tape), SHTL shuttle law over playrate
+  (deadzero, smoothstep to 8×), nearest-edge targeting only for SMART
+  INSRT, LED status bar (ripple 3-state on CUT/DIS bits, trim-behind on
+  LIVE_OWR, CAM LEDs = active take). Weak labels (VIDEO/AUDIO_ONLY, FULL
+  VIEW, CLOSE UP, O/WR variants) are composites/reinterpreted. Parameters
+  (timing, curve, step sizes) deferred to the config task.
+
 
 ## Task: Research the davinci speed editor workflow in `docs/speed-editor-workflow.md`
 
@@ -89,3 +99,33 @@ Files:
 ```
 M vibes/.ralph/10-control.md
 ```
+
+## Task: Propose how the speed editor can be used, including mode switches, and keeping the labeled terms on the speed editor con
+
+### Attempt 1 — 2026-10-11T21:11:38Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Wrote `docs/reaper-plugin-workflow.md` (~11 sections): state model, focus
+  modes, wheel modes + shuttle control law, gesture engine, targeting
+  rule, LED assignment table, full 43-button mapping (primary + 2nd-label
+  secondary + REAPER action), 8 worked button-by-button examples (E1–E8),
+  weak-label summary, deferrals, smoke-test hooks.
+- Key design decisions: SOURCE focus reinterpreted as S/D source-edge
+  editing (labels IN/OUT/SLIP SRC stay literally true in REAPER); SCRL =
+  view scroll only (cursor untouched) so JOG stays frame-precise;
+  SMART INSRT = nearest-edit-point insert (the one plugin-implemented
+  Smart-Indicator analog); device never silently writes REAPER state —
+  state is displayed on LEDs, changed via its own buttons.
+- Ripple 3-state LED encoding: off = dark, per-track = CUT bit, all-tracks
+  = CUT+DIS bits; trim-behind = LIVE_OWR bit ("tape mode" = all three on).
+
+Dead ends:
+- (none — pure synthesis of the two workflow docs + capabilities; no new
+  web research needed)
+
+Next:
+- Task 4: plugin configuration research (learning? tuning? Shift+? options)
+  — pick up every "config parameter" callout in reaper-plugin-workflow.md
+  (§1 gesture timings, §3 shuttle curve/max rate, §4 step sizes, §6 LED
+  scheme toggle, §2.3 SOURCE-focus LED).
