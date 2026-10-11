@@ -110,3 +110,32 @@ Files:
 ```
 M vibes/.ralph/05-prototypes.md
 ```
+
+## Task: Build a hello-world reaper plugin in such a manner that it will be easy to integrate the cpp code in the future, to demo
+
+### Attempt 1 — 2026-10-11T20:50:46Z — budget 600s
+
+- Facts:
+  - Vendored SDK (`vendor/reaper-sdk/sdk`, justinfrankel @ c0eafe8 "sdk 7.82") uses the string-based `rec->Register(name, info)` API, **not** int regtypes. `reaper_plugin.h` declares `Register` with 2 params, but REAPER's real `plugin_register` is variadic — "timer" needs `(name, id, ms, fn)`, so I cast the fn ptr to `int (*)(const char*, ...)` (same ABI). Documented in main.cpp.
+  - `custom_action_register_t` fields: `{uniqueSectionId(0=main), idStr, name, extra}`; `Register("custom_action", &ca)` returns the command id. SDK header says custom-action callbacks must be registered with `hookcommand2` (bool fn, 6 args), which I use.
+  - APIs verified present in `reaper_plugin_functions.h`: `CSurf_ScrubAmt(double)`, `Main_OnCommand`, `GetPlayPosition`, `SetEditCurPos`. No `Context_ShowStatusMsg`/`GetEditCurPos` in this header gen — feedback is the visible playhead motion, no status bar.
+  - `REAPERAPI_impl;` at file scope + `REAPERAPI_LoadAPI(rec->GetFunc)` (returns failcnt, 0 = ok) in the entry; entry is `extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(...)`; `rec == NULL` = unload → return 1.
+  - Layout: `plugin/src/{main.cpp,jog_engine.{h,cpp}}` + `plugin/CMakeLists.txt` → `build/plugin/reaper_speed_reaper.so` (PREFIX "", SWS naming). Seam: `IWheelSource` interface — `DemoWheelSource` now, `HidWheelSource` wrapping `src/speed_editor/` later; `JogEngine` = exp-velocity smoothing (tau 50 ms) → `IPlayheadSink` = `CSurf_ScrubAmt`. Timer id 1, 8 ms (125 Hz).
+  - Build in dev env via `nix develop --command bash -c 'cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin'` (plain PATH has g++ 15.2 but no cmake/pkg-config). Background log: `vibes/.ralph/logs/plugin-build.log`.
+  - Windows: CMakeLists FATAL_ERRORs on non-MSVC (SDK: mingw not supported, MSVC C++ ABI required) — parity with speedcli's mingw build is impossible for extensions; documented in SMOKE-TEST.md.
+- Facts (round 2):
+  - Build errors fixed: (a) SDK usage is `#define REAPERAPI_IMPLEMENT` before including `reaper_plugin_functions.h` in exactly one TU — `REAPERAPI_impl;` does not exist in this header gen; (b) `switch (case g_cmd_x)` fails (non-const) → if/else; (c) -Wall -Wextra floods from vendor SDK headers → CMake `target_include_directories(... SYSTEM ...)` for vendor + GDK roots.
+  - Final: `cmake --build build/plugin --clean-first` → zero warnings, `build/plugin/reaper_speed_reaper.so` (ELF 64-bit), `nm -D | grep -w ReaperPluginEntry` → `T`. Line 16 ticked with Done note; SMOKE-TEST.md has the "REAPER plugin: hello world" section (Tests 5–7); flake shellHook updated with the plugin build command.
+- Next: (done — committed)
+
+Result: timeout after 600s; done; 4 files changed, 98 insertions(+), 2 deletions(-); log: logs/05-prototypes-L16-a1-1791751846845.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M flake.nix
+ M vibes/.ralph/05-prototypes.md
+ M vibes/05-prototypes.md
+?? plugin/
+```

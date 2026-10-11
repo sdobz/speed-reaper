@@ -134,3 +134,80 @@ the wheel, compare delta semantics with mode 0).
 - **buttons report but no LEDs change** → you are looking at the wrong
   device / another app stole the device (exclusivity).
 - Protocol reference: `docs/speed-editor-capabilities.md`.
+
+## REAPER plugin: hello world (smooth playhead control)
+
+The `plugin/` extension (no Speed Editor hardware needed — it uses a
+synthetic wheel source standing in for the driver) registers three actions
+that move the playhead through the same `IWheelSource → JogEngine →
+CSurf_ScrubAmt` pipeline the real editor will use.
+
+### Build
+
+```sh
+cmake -S plugin -B build/plugin -G Ninja
+cmake --build build/plugin
+```
+
+**Expected:** `build/plugin/reaper_speed_reaper.so`, no compiler warnings.
+
+### Install (once)
+
+```sh
+cp build/plugin/reaper_speed_reaper.so ~/.config/REAPER/UserPlugins/
+```
+
+(`UserPlugins/` or `Plugins/` under the REAPER resource path — find it via
+Options → *Show REAPER resource path in explorer* if REAPER is installed
+portably instead of via nixpkgs.)
+
+**Restart REAPER** (or Options → Extensions — the plugin must be loaded for
+its actions to exist). Verify: Options → Extensions shows
+*"Speed Reaper (hello world)"*.
+
+### Test 5 — actions exist
+
+Actions → Show Action List → search `Speed Reaper`. **Expected:** three
+actions:
+- `Speed Reaper: jog demo (smooth playhead)`
+- `Speed Reaper: scrub forward 0.5 s`
+- `Speed Reaper: scrub back 0.5 s`
+
+### Test 6 — jog demo: smooth playhead control
+
+1. Open any project (an empty one is fine), click somewhere in the timeline
+   to place the edit cursor, make sure transport is **stopped**.
+2. Run *"Speed Reaper: jog demo (smooth playhead)"* (double-click or the
+   Run button).
+
+**Expected:** the edit cursor/playhead **glides forward** over ~1.2 s
+(accelerates, cruises, coasts to a stop) — it does not jump. Run it again
+while it is still moving → it stops. Run it a third time → a new turn
+starts from the current position. The playhead ends ~0.5 s ahead of where
+it started.
+
+### Test 7 — one-shot nudges (sink path without the source)
+
+Run *"Speed Reaper: scrub forward 0.5 s"* → playhead jumps +0.5 s in one
+step (no smoothing — this bypasses the wheel). Run *"scrub back 0.5 s"* →
+returns to the previous position. Both work while stopped; while playing,
+`CSurf_ScrubAmt` scrubs the play position (audio tracks the scrub — that
+is REAPER's built-in scrub behaviour, not the plugin's).
+
+### Uninstall
+
+Delete `~/.config/REAPER/UserPlugins/reaper_speed_reaper.so`, restart
+REAPER.
+
+### Troubleshooting
+
+- **Actions missing** → plugin not loaded: check Options → Extensions
+  (it appears after a REAPER restart), and that the `.so` is in the
+  resource path (Options → Show REAPER resource path in explorer).
+- **Action runs but nothing moves** → REAPER version too old or wrong
+  section: the actions live in the *main* section; run them from the main
+  action list, not a MIDI editor list.
+- **Build fails with `gdk/gdk.h: No such file`** → you are outside the nix
+  dev env (`gdk-3.0` pkg-config module missing); re-run in `nix develop`.
+- **Windows**: not buildable with the mingw cross-toolchain — REAPER
+  requires MSVC for extensions (see `docs/reaper-dev-env.md` §3).

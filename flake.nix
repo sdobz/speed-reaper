@@ -113,7 +113,8 @@
           echo "Build CLI (task 3): make -C src                → build/speedcli"
           echo "Build CLI (task 5): nix build .#packages.x86_64-linux.speedcli              → .../bin/speedcli"
           echo "                   nix build .#packages.x86_64-pc-windows-gnu.speedcli → .../bin/speedcli.exe"
-          echo "(REAPER plugin, later tasks: cmake -S src -B build -G Ninja && cmake --build build)"
+          echo "Build REAPER plugin (task 6): cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin"
+          echo "  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, 'REAPER plugin' section)"
         '';
       };
 
