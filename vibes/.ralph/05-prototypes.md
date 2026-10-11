@@ -102,3 +102,11 @@ Facts:
 - Fixed: nixpkgs' hidapi installs per-backend libraries only (`libhidapi-hidraw.so`, `libhidapi-libusb.so`) — there is NO generic `libhidapi`, so the Makefile's native `HIDAPI_PREFIX` branch failed with `cannot find -lhidapi`. Now the Makefile links `-l$(HIDAPI_LIB)` with defaults `hidapi` (CROSS=1) / `hidapi-hidraw` (native, also used for pkg-config), overridable.
 - Final state verified (vibes/.ralph/logs/t5-builds2.log): `nix build .#packages.x86_64-linux.speedcli` → ELF 64-bit x86-64 pie; `.#packages.x86_64-pc-windows-gnu.speedcli` → PE32+ x86-64; task-4 compat alias `.#speedcli-windows` still builds the same PE32+ drv. `nix flake check` passes; `nix eval .#packages.x86_64-pc-windows-gnu.speedcli.name` = `speedcli-x86_64-w64-mingw32-0.1.0`.
 - Note: `defaultPackages` is not a recognized flake output (nix flake check warns) — the flake uses per-system `defaultPackage.<sys>.speedcli` instead.
+
+Result: exit 0; done; log: logs/05-prototypes-L14-a3-1791751406045.log
+
+### Done — 2026-10-11 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/05-prototypes.md
+```
