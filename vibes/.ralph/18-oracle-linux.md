@@ -218,3 +218,35 @@ M vibes/.ralph/18-oracle-linux.md
  M vibes/18-oracle-linux.md
 ?? docs/notes/oracle-load-diagnosis.md
 ```
+
+## Task: 8. Fix the load failure
+
+### Attempt 1 — 2026-10-11T23:31:51Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Only two REAPER API functions are called by plugin code: `CSurf_ScrubAmt` + `GetPlayPosition` (both in `ReaperPlayheadSink`, main.cpp; jog_engine/trace are REAPER-free). Both names are in `oracle/reaper_api_names.txt` (host layer, 874 names).
+- Applied the note's `Fix:`: `#define REAPERAPI_MINIMAL` + two `REAPERAPI_WANT_` lines (one per called function) before including `reaper_plugin_functions.h`, with the rule ("every function a milestone adds needs its REAPERAPI_WANT line in the same change") as a comment above the list. `REAPERAPI_IMPLEMENT` kept.
+- Exit-139-on-quit: `bt.txt` SIGSEGV backtrace is 6 frames entirely inside REAPER's `.reaper-wrapped` (no plugin frames; `0 unload` trace line completed normally) → not our code; recorded in `docs/notes/oracle-load-diagnosis.md` per the task and moving on.
+
+Result: timeout after 600s; progress; 4 files changed, 23 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L133-a1-1791761511767.log
+
+### Attempt 2 — 2026-10-11T23:42:34Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Attempt 1's tree already contains the complete fix (REAPERAPI_MINIMAL + 2 REAPERAPI_WANT lines + rule comment in plugin/src/main.cpp; exit-139 note in docs/notes/oracle-load-diagnosis.md). No rework needed.
+- Attempt 1's verify actually passed: `vibes/.ralph/logs/task8-verify.log` ends with `PASS=True` / `ORACLE PASS all/load`; `build/oracle/result.json` pass=true (entry=1, 3 actions registered on REAPER 7.81). Timeout was the worker's poll loop, not the verify.
+- `reaper --version` does not hang (exits 0 in <10 s, even with stdin=/dev/null, no display) — but it dumps 63 lines of usage into the nix develop greeting. Attempt 1's flake.nix change (greeting shows `reaper   ...` instead) is kept: cosmetic + avoids the usage dump; verified non-load-bearing but harmless.
+- Re-running full `tools/check && tools/reaper-oracle --layer all --scenario load` in background: log `vibes/.ralph/logs/task8-verify-a2.log` (grep for `VERIFY_EXIT=`).
+Next: confirm VERIFY_EXIT=0 in task8-verify-a2.log, tick line 133, stop.
+
+Result: exit 0; done; 5 files changed, 35 insertions(+), 2 deletions(-); log: logs/18-oracle-linux-L133-a2-1791762154259.log
+
+### Done — 2026-10-11 — 2 attempt(s)
+Files:
+```
+M docs/notes/oracle-load-diagnosis.md
+ M flake.nix
+ M plugin/src/main.cpp
+ M vibes/.ralph/18-oracle-linux.md
+ M vibes/18-oracle-linux.md
+```

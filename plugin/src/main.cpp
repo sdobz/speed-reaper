@@ -20,6 +20,17 @@
 
 #include "reaper_plugin.h"
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
+// REAPERAPI_MINIMAL: REAPERAPI_LoadAPI only probes the functions below
+// instead of all ~877 SDK names. Without this, the entry refuses to load
+// on any host whose GetFunc lacks even one SDK name (docs/notes/
+// oracle-load-diagnosis.md).
+// RULE: every REAPER API function a milestone adds to this plugin MUST get
+// its REAPERAPI_WANT_<name> line in the same change, or LoadAPI probes it
+// as missing and the plugin refuses to load.
+#define REAPERAPI_MINIMAL
+// --- REAPERAPI_WANT list: keep in sync with REAPER functions called here ---
+#define REAPERAPI_WANT_CSurf_ScrubAmt // ReaperPlayheadSink::ScrubBySeconds
+#define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "trace.h"

@@ -130,7 +130,7 @@ grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' do
 tools/check && tools/reaper-oracle --layer all --scenario load
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 9. Behavior scenario: `jog_demo`
 

@@ -42,3 +42,5 @@ reaper_speed_reaper.so: error: symbol lookup error: undefined symbol: SWELL_dllM
 Root cause: `REAPERAPI_LoadAPI` under `REAPERAPI_IMPLEMENT` (full header include in `plugin/src/main.cpp`) probes all 877 SDK names; REAPER 7.81's GetFunc lacks `EnumThemeColors` (the 1 missing name in `docs/notes/oracle-missing-names.md`), and the host layer lacks the 145 names listed in `docs/notes/sdk-vs-reaper-api.md`, so `ReaperPluginEntry` returns 0 and registers nothing.
 
 Fix: in `plugin/src/main.cpp`, define `REAPERAPI_MINIMAL` before including `reaper_plugin_functions.h` and add one `REAPERAPI_WANT_<name>` per REAPER function the plugin actually calls (applied in task 8).
+
+Exit-139-on-quit: `build/oracle/bt.txt` (gdb, crash-capture run) shows a SIGSEGV with a 6-frame backtrace entirely inside REAPER's own `.reaper-wrapped` binary (`0x??` frames, `_start` → `__libc_start_main_impl` → REAPER code) and **no plugin frames**; `trace.txt` shows the plugin's `0 unload` line completed normally on the host layer. The crash is REAPER's, not the plugin's unload path — no plugin-side fix; moving on.

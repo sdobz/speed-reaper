@@ -168,7 +168,7 @@
           echo "Welcome to the speed-reaper development environment!"
           echo "  g++      $(g++ --version 2>/dev/null | head -1)"
           echo "  cmake    $(cmake --version 2>/dev/null | head -1)"
-          echo "  reaper   $(reaper --version 2>/dev/null || echo 'not on PATH')"
+          echo "  reaper   ..."
           echo "SDK include roots: -Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL (see docs/reaper-dev-env.md §2)"
           echo "Build CLI (task 3): make -C src                → build/speedcli"
           echo "Build CLI (task 5): nix build .#packages.x86_64-linux.speedcli              → .../bin/speedcli"
