@@ -129,3 +129,11 @@ Next:
   — pick up every "config parameter" callout in reaper-plugin-workflow.md
   (§1 gesture timings, §3 shuttle curve/max rate, §4 step sizes, §6 LED
   scheme toggle, §2.3 SOURCE-focus LED).
+
+Result: exit 0; done; log: logs/10-control-L7-a1-1791753098855.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/10-control.md
+```
