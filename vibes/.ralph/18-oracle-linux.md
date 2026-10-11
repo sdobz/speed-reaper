@@ -99,3 +99,18 @@ Files:
 ```
 M vibes/.ralph/18-oracle-linux.md
 ```
+
+## Task: 5. `tools/reaper-oracle`: host layer + real-REAPER `load` scenario
+
+### Attempt 5 — 2026-10-11T22:27:41Z — budget 600s
+
+- Facts:
+  - `tools/reaper-oracle` done: option parsing, re-exec into `nix develop` (gate on `command -v reaper`), host layer (tools/check cmake flags + `plugin_host --expect-entry 1 --expect-actions …`, stdout appended to `trace.txt`), reaper layer (isolated wiped `HOME=build/oracle/home`, plugin copied to `UserPlugins/`, `timeout 60 xvfb-run -a reaper -newinst -nosplash oracle/scenarios/<name>.lua`, `SPEED_REAPER_TRACE`/`ORACLE_LIB`/`ORACLE_OUT` set, optional `oracle/scenarios/<name>.env` sourced), `result.json` derived in python3 from `probe.json` + exit codes. No gdb (task 6).
+  - `oracle/lib.lua`: `check`, `record`, `wait_ms(ms, fn, on_done)`, `finish()` (writes `probe.json` = `{checks, info}`, quits via `Main_OnCommand(40004,0)`); hand-rolled JSON encoder. Names also exposed unqualified; scenarios still do `dofile(os.getenv("ORACLE_LIB"))`.
+  - `oracle/scenarios/load.lua`: 3 action checks via `reaper.NamedCommandLookup("_"..id)`, records `app_version`.
+  - Real REAPER 7.81 runs under xvfb fine (~10 s with `--report-only`); `reaper -nosplash file.lua` works. In real REAPER `loadapi missing=1` (host: 145) — useful for task 7.
+  - Both layers currently FAIL as expected (`entry=0`, all `NamedCommandLookup`=0). `--report-only` → exit 0; without it → exit 1. Verify passes.
+- Dead ends:
+  - First version lost CLI args on re-exec: the option-parsing loop `shift`s away `$@` before `exec nix develop --command "$0" "$@"`. Fix: save `ORIG_ARGS=("$@")` before parsing and re-exec with it.
+- Next:
+  - Task 6: crash capture (gdb `bt.txt`, `LD_DEBUG=libs` → `reaper.stderr`, `noop.lua`, exit ≥128/124 → reason mentions crash/timeout). Reuse `REAPER_RC` handling already in `run_reaper`; note timeout=124, and `run_reaper` currently does not distinguish them.
