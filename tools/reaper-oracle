@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# tools/reaper-oracle — agent-runnable verdict on "does the plugin load and work".
+# Design: docs/plugin-oracle-design.md §1 (command), §3 (host layer), §4 (REAPER layer).
+#
+# Usage:
+#   tools/reaper-oracle [--layer host|reaper|all] [--scenario NAME]
+#                       [--platform linux|windows] [--report-only]
+#
+# Prints one final line: ORACLE PASS <layer>[/<scenario>] or
+# ORACLE FAIL <layer>[/<scenario>]: <reason>; exit 0 on PASS.
+# --report-only: exit 0 whenever the harness itself worked (artifacts written).
+#
+# Artifacts (always, in build/oracle/): result.json, trace.txt,
+# reaper.stderr, probe.json (reaper layer).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+LAYER=all
+SCENARIO=load
+PLATFORM=linux
+REPORT_ONLY=0
+ORIG_ARGS=("$@")
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --layer)       [[ $# -ge 2 ]] || { echo "missing value for --layer" >&2; exit 2; }
+                   LAYER="$2"; shift 2 ;;
+    --scenario)    [[ $# -ge 2 ]] || { echo "missing value for --scenario" >&2; exit 2; }
+                   SCENARIO="$2"; shift 2 ;;
+    --platform)    [[ $# -ge 2 ]] || { echo "missing value for --platform" >&2; exit 2; }
+                   PLATFORM="$2"; shift 2 ;;
+    --report-only) REPORT_ONLY=1; shift ;;
+    *) echo "tools/reaper-oracle: unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+case "$LAYER" in host|reaper|all) ;; *)
+  echo "tools/reaper-oracle: --layer must be host|reaper|all (got $LAYER)" >&2; exit 2 ;;
+esac
+case "$PLATFORM" in linux|windows) ;; *)
+  echo "tools/reaper-oracle: --platform must be linux|windows (got $PLATFORM)" >&2; exit 2 ;;
+esac
+if [[ "$PLATFORM" == windows ]]; then
+  echo "tools/reaper-oracle: --platform windows is not implemented yet (see vibes/19-oracle-device-windows.md)" >&2
+  exit 2
+fi
+# Re-exec in the dev shell (has cmake + reaper + xvfb-run), like tools/check.
+if ! command -v reaper >/dev/null 2>&1; then
+  exec nix develop --command "$0" "${ORIG_ARGS[@]}"
+fi
+
+OUT=build/oracle
+mkdir -p "$OUT"
+
+# --- host layer -------------------------------------------------------------
+run_host() {
+  # tools/check's cmake flags.
+  cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror >/dev/null
+  cmake --build build/plugin
+  rm -f "$OUT/plugin_host.out" "$OUT/trace.txt"
+  SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+    ./build/plugin/plugin_host build/plugin/reaper_speed_reaper.so \
+      --expect-entry 1 \
+      --expect-actions speed_reaper_jogdemo,speed_reaper_scrub_fwd,speed_reaper_scrub_back \
+      > "$OUT/plugin_host.out" 2>&1
+  HOST_RC=$?
+  # Store plugin_host's output in trace.txt alongside the plugin trace.
+  cat "$OUT/plugin_host.out" >> "$OUT/trace.txt"
+}
+
+# --- reaper layer -----------------------------------------------------------
+run_reaper() {
+  local env_file="oracle/scenarios/$SCENARIO.env"
+  if [[ -f "$env_file" ]]; then
+    # shellcheck disable=SC1090
+    . "$env_file"
+  fi
+  # Isolated HOME, wiped each run.
+  rm -rf "$OUT/home"
+  mkdir -p "$OUT/home/.config/REAPER/UserPlugins"
+  cp build/plugin/reaper_speed_reaper.so "$OUT/home/.config/REAPER/UserPlugins/"
+  rm -f "$OUT/probe.json" "$OUT/reaper.stderr"
+  if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt"; fi
+  HOME="$OUT/home" \
+  ORACLE_LIB="$PWD/oracle/lib.lua" \
+  ORACLE_OUT="$PWD/$OUT" \
+  SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+    timeout 60 xvfb-run -a reaper -newinst -nosplash "oracle/scenarios/$SCENARIO.lua" \
+      2> "$OUT/reaper.stderr"
+  REAPER_RC=$?
+}
+
+HOST_RC=0
+REAPER_RC=0
+if [[ "$LAYER" == host || "$LAYER" == all ]]; then
+  run_host || true
+fi
+if [[ "$LAYER" == reaper || "$LAYER" == all ]]; then
+  run_reaper || true
+fi
+
+# --- result.json (derived from probe.json / plugin_host.out + exit codes) ---
+python3 - "$OUT" "$LAYER" "$SCENARIO" "$HOST_RC" "$REAPER_RC" <<'PYEOF'
+import json, os, sys
+
+out, layer, scenario, host_rc, reaper_rc = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+checks, info, reasons = [], {}, []
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+if layer in ("host", "all"):
+    host_out = read(os.path.join(out, "plugin_host.out"))
+    entry_line = next((l for l in reversed(host_out.splitlines()) if l.startswith("entry=")), "")
+    if not entry_line:
+        entry_line = "plugin_host did not complete: " + "\n".join(host_out.splitlines()[-3:])
+    host_ok = host_rc == 0
+    checks.append({"name": "host", "pass": host_ok,
+                   "detail": entry_line + ("" if host_ok else f" [plugin_host exit {host_rc}]")})
+    if not host_ok:
+        reasons.append(f"host: entry/actions expectations not met (plugin_host exit {host_rc})")
+
+if layer in ("reaper", "all"):
+    probe = {}
+    try:
+        probe = json.load(open(os.path.join(out, "probe.json")))
+    except (OSError, ValueError):
+        pass
+    if not probe.get("checks"):
+        if reaper_rc == 124:
+            reason = "scenario timeout (no probe.json within 60 s)"
+        elif reaper_rc >= 128:
+            reason = f"crash (reaper exit {reaper_rc}, no probe.json)"
+        else:
+            reason = f"reaper run failed (exit {reaper_rc}, no probe.json)"
+        checks.append({"name": "reaper", "pass": False, "detail": reason})
+        reasons.append("reaper: " + reason)
+    else:
+        info.update(probe.get("info", {}))
+        for c in probe["checks"]:
+            checks.append({"name": c.get("name", ""), "pass": bool(c.get("pass")),
+                           "detail": c.get("detail", "")})
+        failed = [c["name"] for c in probe["checks"] if not c.get("pass")]
+        if failed:
+            reasons.append("reaper: check(s) failed: " + ", ".join(failed))
+
+if layer == "all":
+    # A scenario that never called finish() is a FAIL (reason: scenario timeout)
+    # — already covered above via "no probe.json".
+    pass
+p = not reasons
+result = {"layer": layer, "scenario": scenario, "pass": p,
+          "reason": "; ".join(reasons), "checks": checks}
+if info:
+    result["info"] = info
+with open(os.path.join(out, "result.json"), "w") as f:
+    json.dump(result, f, indent=2)
+    f.write("\n")
+print(f"PASS={p} REASONS={json.dumps(reasons)}")
+PYEOF
+
+# --- final line -------------------------------------------------------------
+if [[ "$LAYER" == host ]]; then LABEL=host; else LABEL="$LAYER/$SCENARIO"; fi
+RESULT_PASS=$(python3 -c "import json,sys; print('1' if json.load(open(sys.argv[1]))['pass'] else '0')" "$OUT/result.json")
+REASON=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['reason'])" "$OUT/result.json")
+if [[ "$RESULT_PASS" == 1 ]]; then
+  echo "ORACLE PASS $LABEL"
+  exit 0
+fi
+echo "ORACLE FAIL $LABEL: $REASON"
+if [[ "$REPORT_ONLY" == 1 ]]; then exit 0; fi
+exit 1

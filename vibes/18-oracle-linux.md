@@ -75,7 +75,7 @@ nix develop --command bash -c 'command -v xvfb-run && command -v Xvfb && command
 tools/reaper-oracle --report-only >/dev/null; test -s build/oracle/result.json && grep -q '"layer"' build/oracle/result.json && test -s build/oracle/trace.txt
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Crash capture
 
