@@ -198,3 +198,23 @@ M oracle/probe_missing.c
 ?? docs/notes/oracle-missing-names.md
 ?? oracle/sdk_api_names.txt
 ```
+
+## Task: Write docs/notes/oracle-load-diagnosis.md
+
+### Attempt 1 — 2026-10-11T23:30:36Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: `build/oracle/` artifacts were fresh and complete (trace.txt, result.json, reaper.stderr, bt.txt); no re-run of `tools/reaper-oracle --report-only` needed.
+- Facts: host trace `0 entry rec=non-null` / `0 loadapi missing=145` / `0 entry result=0`, zero `register` lines; reaper layer `0 loadapi missing=1` / `0 entry result=0`.
+- Facts: `docs/notes/oracle-missing-names.md` already names the single reaper-layer missing name: `EnumThemeColors`.
+- Facts: wrote `docs/notes/oracle-load-diagnosis.md` with quoted evidence, `Root cause:` and `Fix:` lines; verify command passes.
+- Next: none — line 114 ticked; task 8 applies the `REAPERAPI_MINIMAL` fix in `plugin/src/main.cpp`.
+
+Result: exit 0; done; 2 files changed, 11 insertions(+), 1 deletion(-); log: logs/18-oracle-linux-L114-a1-1791761436238.log
+
+### Done — 2026-10-11 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+ M vibes/18-oracle-linux.md
+?? docs/notes/oracle-load-diagnosis.md
+```

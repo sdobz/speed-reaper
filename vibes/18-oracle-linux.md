@@ -101,7 +101,7 @@ SPEED_REAPER_TEST_CRASH=entry tools/reaper-oracle --layer reaper --scenario noop
 grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' docs/notes/oracle-load-diagnosis.md
 ```
 
-- [ ] Done
+- [x] Done
   <!-- ralph: replanned=1 op=AND -->
   - [x] Probe REAPER 7.81 for the one missing SDK name
     Attempt 7 left a built probe: `oracle/probe_missing.c` (source), `build/oracle/probe_missing.so` (built), `build/oracle/sdk_api_names.txt` (877 SDK names). Use these; do not rewrite the probe.
@@ -111,7 +111,7 @@ grep -q '^Root cause:' docs/notes/oracle-load-diagnosis.md && grep -q '^Fix:' do
     Write `docs/notes/oracle-missing-names.md`: the PROBE line + missing name(s), method in one line, and note that the host layer's 145 missing names are exactly the list in `docs/notes/sdk-vs-reaper-api.md`. If the probe cannot be made to run, say so explicitly and list the 145 as the candidate set — do not invent a name.
     Do not touch plugin code, `tools/reaper-oracle`, or the real plugin .so.
     Verify: `test -s docs/notes/oracle-missing-names.md && grep -q '^PROBE total=' docs/notes/oracle-missing-names.md`
-  - [ ] Write docs/notes/oracle-load-diagnosis.md
+  - [x] Write docs/notes/oracle-load-diagnosis.md
     Write `docs/notes/oracle-load-diagnosis.md` from the fresh `build/oracle/` artifacts (load scenario; re-run `tools/reaper-oracle --report-only` only if they are missing): `trace.txt`, `result.json`, `reaper.stderr`, `bt.txt`.
     Quote the evidence: host `0 loadapi missing=145` then `0 entry result=0` (no `register` lines at all), reaper layer `0 loadapi missing=1` then `0 entry result=0`, the `result.json` reason, and the `SWELL_dllMain` symbol-lookup line from `reaper.stderr` (red herring — the trace still shows `0 entry rec=non-null`).
     Line `Root cause:` — `REAPERAPI_LoadAPI` under `REAPERAPI_IMPLEMENT` (full header include in `plugin/src/main.cpp`) probes all 877 SDK names; REAPER 7.81's GetFunc lacks the name(s) in `docs/notes/oracle-missing-names.md` (host layer: 145, per `docs/notes/sdk-vs-reaper-api.md`), so `ReaperPluginEntry` returns 0 and registers nothing.
