@@ -38,3 +38,11 @@ Result: exit 1; no-progress; 2 files changed, 4 insertions(+), 2 deletions(-); l
 - Facts: `tools/check gesture` running in background job `gesture-check` (log vibes/.ralph/logs/gesture-check.log).
 - Dead ends: first `tools/check gesture` run (job `gesture-check`) failed with rc=1 and no visible error: `tools/windows-oracle` hides its `nix build .#reaper-plugin-windows` stderr (`2>/dev/null`) and the nix source pack (git-based) lacked untracked gesture.cpp → CMake "Cannot find source file". Also: `cmd | tail; echo rc=$?` reports tail's status, not the command's — earlier "pass" reading of windows-oracle was bogus (reaper-oracle host really had passed).
 - Next: DONE — `tools/check gesture` green (job `gesture-check2`: gesture_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host) after `git add`-ing the new files. Box ticked.
+
+Result: exit 0; done; log: logs/22-m3-edit-verbs-L20-a1-1791819026491.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/22-m3-edit-verbs.md
+```
