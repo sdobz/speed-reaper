@@ -70,3 +70,12 @@ Files:
 ```
 M vibes/.ralph/22-m3-edit-verbs.md
 ```
+
+## Task: 3. Wire gestures + verbs into the plugin
+
+### Attempt 3 — 2026-10-12T15:41:18Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: tree was clean; tasks 1–2 already landed (gesture.h/.cpp, verbs.h/.cpp in PLUGIN_PURE_SOURCES). main.cpp already had ReaperActionSink tracing `cmd %d` in RunCommand, so verb commands get the cmd trace for free.
+- Facts: wiring added to plugin/src/main.cpp: globals `g_verb_router(g_action_sink)` + `g_gestures`; `SetDoubleTapKeys(VerbDoubleTapKeys())` in entry; onTimer() splits PopButton() by key (KEY_JOG/SCRL/SHTL/STOP_PLAY → Router only, else GestureEngine::OnKey with steady_clock now_ms); `Poll(now_ms)` every tick + `Pop` loop tracing `gesture %04x <kind>` (kind names tap/double_tap/hold_start/hold_rotate/hold_end) into VerbRouter::OnGesture. Poll/Pop placed before the `if (!g_engine) return` so gestures work regardless of the demo engine. OnWheel intentionally NOT wired (task says hold+rotate deltas are not routed yet). No new files, no CMake changes.
+- Facts: `tools/check` (full) PASSED rc=0 on first run (job `m3wire`): 8/8 ctest, WINDOWS ORACLE PASS static, ORACLE PASS host.
+- Next: DONE — line 45 ticked; commit pending.

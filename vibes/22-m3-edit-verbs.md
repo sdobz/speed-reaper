@@ -42,7 +42,7 @@ tools/check verbs
 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. SNAP LED follows REAPER's snap state
 

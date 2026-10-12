@@ -54,7 +54,10 @@
 #include "action_sink.h"
 #include "router.h" // Router, ModeGatedSource, kScrollUnitsPerStep (design §6)
 #include "wheel_mode.h"
+#include "gesture.h" // GestureEngine, Gesture, GestureKind (design §7)
+#include "verbs.h" // VerbRouter, VerbDoubleTapKeys (design §7)
 #include "trace.h"
+#include "speed_editor/key_map.h" // KEY_* codes for the router-key split
 
 #include <cstdlib>
 #include <cstring>
@@ -135,9 +138,22 @@ DemoWheelSource g_demo_source; // synthetic wheel; demos the pipeline with no de
 HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
 ReaperActionSink g_action_sink;
 Router g_router(g_action_sink); // owns the wheel mode (Jog/Scrl) from HID buttons
+VerbRouter g_verb_router(g_action_sink); // recognized gestures → REAPER commands (design §7)
+GestureEngine g_gestures; // tap / double-tap / hold recognition (design §7)
 ModeGatedSource g_gated_source(g_hid, g_router); // HID delta: pass-through in Jog, scroll in Scrl
 SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
 bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
+
+const char *GestureKindName(GestureKind k) {
+  switch (k) {
+    case GestureKind::Tap: return "tap";
+    case GestureKind::DoubleTap: return "double_tap";
+    case GestureKind::HoldStart: return "hold_start";
+    case GestureKind::HoldRotate: return "hold_rotate";
+    case GestureKind::HoldEnd: return "hold_end";
+  }
+  return "?";
+}
 
 const char *WheelModeName(WheelMode m) {
   switch (m) {
@@ -169,11 +185,34 @@ void onTimer() {
   std::string line;
   while (g_hid.PopLog(&line))
     ShowConsoleMsg(("Speed Reaper: " + line + "\n").c_str());
-  // Buttons (design §6): every edge goes to the Router; press semantics
-  // (JOG/SCRL/SHTL/STOP-PLAY) live there. A consumed mode change is
-  // forwarded to the device + LEDs; a (re)connect re-sends current state.
+  // Buttons (design §6/§7): router keys (JOG/SCRL/SHTL/STOP-PLAY) go only
+  // to the Router (press semantics live there); every other key goes only
+  // to the gesture engine. A consumed mode change is forwarded to the
+  // device + LEDs; a (re)connect re-sends current state.
+  const std::int64_t now_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count();
   ButtonChange btn;
-  while (g_hid.PopButton(&btn)) g_router.OnButton(btn);
+  while (g_hid.PopButton(&btn)) {
+    switch (btn.key) {
+      case KEY_JOG:
+      case KEY_SCRL:
+      case KEY_SHTL:
+      case KEY_STOP_PLAY:
+        g_router.OnButton(btn);
+        break;
+      default:
+        g_gestures.OnKey(btn.key, btn.down, now_ms);
+        break;
+    }
+  }
+  g_gestures.Poll(now_ms); // every tick: advance tap-defer/hold timers
+  Gesture gest;
+  while (g_gestures.Pop(&gest)) {
+    Trace("gesture %04x %s", gest.key, GestureKindName(gest.kind));
+    g_verb_router.OnGesture(gest); // mapped → RunCommand (traces `cmd <id>`)
+  }
   WheelMode changed;
   if (g_router.TakeModeChange(&changed)) ApplyModeToHid(changed);
   const bool connected = g_hid.Connected();
@@ -270,6 +309,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
 
   g_engine = new JogEngine(g_wheel_source, g_reaper_sink);
   g_sink = &g_reaper_sink;
+  g_gestures.SetDoubleTapKeys(VerbDoubleTapKeys()); // IN, OUT, ESC (design §7)
 
   // SDK header: "for actions, the related callback should be registered
   // with hookcommand2".
