@@ -135,3 +135,23 @@ A  oracle/scenarios/verbs.env
  M vibes/.ralph/22-m3-edit-verbs.md
  M vibes/22-m3-edit-verbs.md
 ```
+
+## Task: Scenario `oracle/scenarios/verbs.lua` (validates the command ids)
+
+### Attempt 1 — 2026-10-12T16:02:38Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+- Facts: `Undo_CanUndo2` exists in the oracle REAPER (docs/reaper-api-subset.md:598, C: `const char* Undo_CanUndo2(ReaProject*)`) → Lua `reaper.Undo_CanUndo2()` returns a string.
+- Facts: trace line formats confirmed from plugin/src/main.cpp: `gesture %04x %s`, `cmd %d`, `led main=%x` (plain, no jog=), `led jog=%x main=%x` (mode lines — the `led main=` match must not catch jog lines; a leading-space ` led main=` anchor does that).
+- Facts: verb keys (0x2F/0x07/0x08/0x09/0x2B/0x2E/0x31) are all non-router keys (router: 0x1C/0x1D/0x1E/STOP-PLAY), so all go to the gesture engine.
+- Next: run `tools/reaper-oracle --layer reaper --scenario verbs` DONE — line 83 ticked; `tools/reaper-oracle --layer reaper --scenario verbs` green (ORACLE PASS reaper/verbs, 16/16 checks). Facts: oracle REAPER (7.81) Lua bindings need explicit args: `InsertTrackAtIndex(0, true)` returns a bool (track = `GetTrack(nil, 0)`); `CountMediaItems(nil, track)`; `GetTrackMediaItem(track, i)` (no project arg); no `SetMediaItemInfo` (use `SetMediaItemInfo_Value`/`SetMediaItemSelected`); `GetSet_LoopTimeRange(false, false, 0.0, 0.0, false)` returns (start, end); `Undo_CanUndo2(nil)` returns the undo label string. REAPER 7.81 SPLIT (40012) DESELECTS both halves and 40511 (trim left) only trims *selected* items, so verbs.lua re-selects the items in the 1200-1580 ms script window before the TRIM step; the zero-length [0,5] half is dropped after trim (count 2→1, min pos 5). All 8 command ids in `plugin/src/verbs.cpp` validated correct — no id fixes, so no `docs/notes/m3-observations.md` entry needed. Verified effects: SPLIT count 1→2; IN start=5 / OUT end=5; IN x2 clears to (0,0); RIPL DEL count drops (1→0); SNAP flips GetToggleCommandState(1157) 1→0 and `led main=` ends at 0; ESC x2 changes Undo_CanUndo2 (“Delete items” → “Remove time selection”) with no cmd 40635 after the undo; trace gesture + cmd lines in exact script order. Next checkbox: add `verbs` to the default oracle suite in `tools/reaper-oracle`.
+
+Result: exit 0; done; 3 files changed, 274 insertions(+), 1 deletion(-); log: logs/22-m3-edit-verbs-L83-a1-1791820958615.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+A  oracle/scenarios/verbs.lua
+ M vibes/.ralph/22-m3-edit-verbs.md
+ M vibes/22-m3-edit-verbs.md
+```

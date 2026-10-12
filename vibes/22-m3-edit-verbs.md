@@ -80,7 +80,7 @@ tools/reaper-oracle --layer reaper --scenario verbs
     - Double-tap: press 2 starts ~100 ms after press 1's release (window is 300 ms: `double_tap_ms` in `plugin/src/gesture.h`).
     - Do not create `verbs.lua`, do not touch `tools/reaper-oracle` or any plugin source.
     Verify: `test -s oracle/fake/verbs.txt && test -s oracle/scenarios/verbs.env && grep -q 'SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt' oracle/scenarios/verbs.env && for k in 0x2F 0x07 0x08 0x09 0x2B 0x2E 0x31; do grep -q "key $k down" oracle/fake/verbs.txt; done && test "$(grep -c 'key 0x07 down' oracle/fake/verbs.txt)" -ge 2 && test "$(grep -c 'key 0x31 down' oracle/fake/verbs.txt)" -ge 2`
-  - [ ] Scenario `oracle/scenarios/verbs.lua` (validates the command ids)
+  - [x] Scenario `oracle/scenarios/verbs.lua` (validates the command ids)
     - Create `oracle/scenarios/verbs.lua` per the parent's 2nd bullet; model on `oracle/scenarios/buttons.lua` + `oracle/lib.lua`. Setup: new project, one empty item (`AddMediaItemToTrack`, pos 0, len 10 s, selected), edit cursor at 5 s.
     - Read `oracle/fake/verbs.txt` for exact event times. Verified facts: the fake device clock leads the script clock ~40 ms (buttons.lua header); IN/OUT taps are deferred as double-tap keys and promoted to Tap after 300 ms.
     - Assert per step by sampling every defer cycle for ~4.5 s (track item count, min `D_POSITION`, `GetSet_LoopTimeRange`, `GetToggleCommandState(1157)`, `Undo_CanUndo2`) and checking each parent-bullet effect at a mid-window sample; every effect stays true until the next step that changes that state, so all windows are >=300 ms.
