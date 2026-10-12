@@ -169,7 +169,8 @@ int main() {
     CHECK(sink.scroll_count == 2);  // 45 units → two steps right
     CHECK(sink.scroll_sum == 2);
 
-    hid.sample_ = {-40};
+    // (Remainder 5 from the previous turn carries over: 5 − 45 = −40.)
+    hid.sample_ = {-45};
     out = {};
     gated.Tick(&out);
     CHECK(out.delta == 0);

@@ -29,3 +29,11 @@ Files:
 ```
 ?? vibes/.ralph/21-m2-buttons-modes.md
 ```
+
+## Task: 2. `Router` and `ModeGatedSource` (pure)
+
+### Attempt 2 — 2026-10-12T07:19:06Z — budget 1800s
+
+- Facts: no partial work from attempt 1 (tree clean except this record). Design §6 (docs/plugin-design-m1-m3.md:92-103) gives all signatures. Keycodes in `src/speed_editor/key_map.h` (JOG 0x1D, SCRL 0x1E, SHTL 0x1C, STOP/PLAY 0x3C). `IWheelSource`/`WheelSample` in `jog_engine.h` (already in PLUGIN_PURE_SOURCES). Test files glob `*_test.cpp` and include `${REPO_ROOT}/src`, so `#include "speed_editor/key_map.h"` works in tests.
+- Facts: created `plugin/src/wheel_mode.h` (ProtocolMode Jog=0/Scrl=2/Shtl=3), `plugin/src/action_sink.h` (IActionSink: RunCommand/ScrollView), `plugin/src/router.h` (Router + ModeGatedSource, kScrollUnitsPerStep=20, initial mode Jog, press rules, SHTL no-op, STOP/PLAY→40044, TakeModeChange once per real change), `plugin/src/router.cpp`, `plugin/test/router_test.cpp`; added `router.cpp` to PLUGIN_PURE_SOURCES. main.cpp untouched (router.h only pulls <cstdint>/<vector>, already pre-SDK-included).
+- Next: commit, then `tools/check router` via bgrun (windows-oracle builds from committed sources).
