@@ -56,3 +56,11 @@ M vibes/.ralph/21-m2-buttons-modes.md
 - Facts: main.cpp edits done: `ReaperActionSink` (RunCommand→`Trace("cmd %d")`+`Main_OnCommand(cmd,0)`, ScrollView→`CSurf_OnScroll(steps,0)`), `g_router`/`g_gated_source`/`SummedWheelSource(g_gated_source, g_demo_source)`, helper `ApplyModeToHid` (traces mode + led, RequestWheelMode + RequestJogLeds matching LED only), onTimer: PopButton→`g_router.OnButton`, `TakeModeChange`→`ApplyModeToHid`, `Connected()` false→true edge→`ApplyModeToHid(current)` via `g_was_connected`. Added `REAPERAPI_WANT_Main_OnCommand`/`_CSurf_OnScroll`. No new std includes needed (router.h's <vector> already pre-SDK-included).
 - Facts: plugin_host smoke with `SPEED_REAPER_FAKE_DEVICE` (script /tmp/smoke_buttons.txt): on connect trace shows `mode Jog` + `led jog=1 main=0` (reconnect edge works); SCRL down → `mode Scrl` + `led jog=4 main=0`; STOP/PLAY down → `cmd 40044` exactly once. Host ticks are ~µs-apart, so fake-device script events >~1 ms don't get delivered in a host run — use all-`at 0` events for host-level button tests; timed button flows need the reaper layer (task 4). Note: buttons queued between two timer callbacks collapse to the final mode in one `TakeModeChange` (mode_ read at pop time) — correct by design.
 - Done: build3 (build+6 unit tests) rc=0; committed main.cpp (7a05739); checkfull (`ORACLE_FULL=1 tools/check`) rc=0 — WINDOWS ORACLE PASS static, ORACLE PASS all/load,jog_demo,hid_wheel. Line 47 ticked.
+
+Result: exit 0; done; log: logs/21-m2-buttons-modes-L47-a3-1791789828702.log
+
+### Done — 2026-10-12 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/21-m2-buttons-modes.md
+```
