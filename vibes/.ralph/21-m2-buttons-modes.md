@@ -39,3 +39,11 @@ Files:
 - Dead ends: first `tools/check router` (job check21) failed only in `router_test`: ModeGatedSource negative-turn expectation ignored the scroll remainder 5 left by the previous 45-unit turn (5−40=−35 → 1 step, not 2). Fixed the test to use −45 (5−45=−40 → exactly 2 steps). Router logic itself was correct.
 - Dead ends: real Router bug found by the test: negative accumulation used `while (remainder < -k)` which understeps exact multiples (remainder −40 gave 1 step, not 2). Fixed to `<=` in `router.cpp` OnWheel.
 - Done: check23 (`tools/check router`) rc=0 — build clean under -Werror, `router_test` 1/1 pass, Windows oracle static PASS, host oracle PASS. Line 33 of vibes/21-m2-buttons-modes.md ticked. main.cpp untouched, per task.
+
+Result: exit 0; done; log: logs/21-m2-buttons-modes-L33-a2-1791789546710.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/21-m2-buttons-modes.md
+```
