@@ -46,3 +46,19 @@ Files:
 ```
 M vibes/.ralph/22-m3-edit-verbs.md
 ```
+
+## Task: 2. `VerbRouter` and the command-id table (pure)
+
+### Attempt 2 — 2026-10-12T15:38:05Z — budget 1800s
+
+- Facts:
+  - Design §7 table has 11 rows (IN/OUT each get Tap and DoubleTap rows → 40635); Hold* kinds are unmapped → no-op.
+  - Wrote plugin/src/verbs.h/.cpp (table `kVerbTable` at top of verbs.cpp, `VerbDoubleTapKeys()` = {KEY_IN, KEY_OUT, KEY_ESC}), plugin/test/verbs_test.cpp (FakeSink), added verbs.cpp to PLUGIN_PURE_SOURCES in plugin/CMakeLists.txt. All new files `git add`ed.
+  - cmake is not on the default PATH; `tools/check` re-execs under `nix develop` automatically.
+  - `tools/check verbs` running in background job `verbscheck` (log: vibes/.ralph/logs/verbscheck.log).
+  - First run (job `verbscheck`) failed rc=1 with no visible error after ctest: new files were `git add`ed concurrently with the check; the git-packing Windows cross-build raced the staging → silent CMake configure failure (same class as task 1).
+  - Second run (job `verbscheck2`) passed rc=0: verbs_test, WINDOWS ORACLE PASS static, ORACLE PASS host.
+- Dead ends:
+  - Starting `tools/check` before `git add`ing new sources → silent rc=1 at the cross-build stage. Stage first, then check.
+- Next:
+  - DONE: line 33 ticked; commit pending.

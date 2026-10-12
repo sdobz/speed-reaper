@@ -30,7 +30,7 @@ tools/check gesture
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Wire gestures + verbs into the plugin
 
