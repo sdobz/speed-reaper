@@ -48,3 +48,11 @@ M plugin/src/jog_engine.cpp
   - Settle check right after the turn: the low-pass velocity (tau=50 ms) keeps drifting for ~800 ms, so the sink moves >1e-9 within a short window. Fix: coast 260 ticks (turn 1.25 s + 800 ms ≈ 16 tau) before measuring `settled2`, then CHECK_NEAR over 10 ticks — same pattern as the pre-existing test.
 - Next:
   - Task complete; checkbox ticked.
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L44-a2-1791773197941.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
