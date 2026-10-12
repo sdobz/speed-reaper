@@ -1,0 +1,10 @@
+-- debug: SetEditCurPos + scrub_fwd action, no defer
+dofile(os.getenv("ORACLE_LIB"))
+reaper.SetEditCurPos(10, false, false)
+reaper.GetSetTransportInfo(0, "RATE", 0)
+local cmd = reaper.NamedCommandLookup("_speed_reaper_scrub_fwd")
+record("cmd", cmd)
+record("before", reaper.GetCursorPosition())
+reaper.Main_OnCommand(cmd, 0)
+record("after", reaper.GetCursorPosition())
+finish()

@@ -6,8 +6,11 @@
 #   tools/reaper-oracle [--layer host|reaper|all] [--scenario NAME]
 #                       [--platform linux|windows] [--report-only]
 #
-# Prints one final line: ORACLE PASS <layer>[/<scenario>] or
-# ORACLE FAIL <layer>[/<scenario>]: <reason>; exit 0 on PASS.
+# Without --scenario, the reaper layer runs the full scenario suite
+# (load, then jog_demo); --scenario NAME runs only that scenario.
+#
+# Prints one final line: ORACLE PASS <layer>[/<scenario(,scenario)>] or
+# ORACLE FAIL <layer>[/<scenario(,scenario)>]: <reason>; exit 0 on PASS.
 # --report-only: exit 0 whenever the harness itself worked (artifacts written).
 #
 # Artifacts (always, in build/oracle/): result.json, trace.txt,
@@ -20,6 +23,7 @@ cd "$(dirname "$0")/.."
 
 LAYER=all
 SCENARIO=load
+SCENARIO_EXPLICIT=0
 PLATFORM=linux
 REPORT_ONLY=0
 ORIG_ARGS=("$@")
@@ -28,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     --layer)       [[ $# -ge 2 ]] || { echo "missing value for --layer" >&2; exit 2; }
                    LAYER="$2"; shift 2 ;;
     --scenario)    [[ $# -ge 2 ]] || { echo "missing value for --scenario" >&2; exit 2; }
-                   SCENARIO="$2"; shift 2 ;;
+                   SCENARIO="$2"; SCENARIO_EXPLICIT=1; shift 2 ;;
     --platform)    [[ $# -ge 2 ]] || { echo "missing value for --platform" >&2; exit 2; }
                    PLATFORM="$2"; shift 2 ;;
     --report-only) REPORT_ONLY=1; shift ;;
@@ -81,11 +85,11 @@ run_reaper() {
   mkdir -p "$OUT/home/.config/REAPER/UserPlugins"
   cp build/plugin/reaper_speed_reaper.so "$OUT/home/.config/REAPER/UserPlugins/"
   rm -f "$OUT/probe.json" "$OUT/reaper.stderr"
-  if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt"; fi
+  if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt" "$OUT/trace_$SCENARIO.txt"; fi
   HOME="$OUT/home" \
   ORACLE_LIB="$PWD/oracle/lib.lua" \
   ORACLE_OUT="$PWD/$OUT" \
-  SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+  SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
     timeout 60 xvfb-run -a reaper -newinst -nosplash "oracle/scenarios/$SCENARIO.lua" \
       2> "$OUT/reaper.stderr"
   REAPER_RC=$?
@@ -109,33 +113,55 @@ run_crash_capture() {
   fi
   rm -f "$OUT/bt.txt"
   HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
-  SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+  SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
     timeout 60 xvfb-run -a gdb -batch -ex "set exec-wrapper $launcher" \
       -ex run -ex bt --args "$elf" "${reaper_args[@]}" \
       > "$OUT/bt.txt" 2>&1 || true
   ( HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
-    SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
+    SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
       LD_DEBUG=libs timeout 60 xvfb-run -a reaper "${reaper_args[@]}" \
       2>&1 ) | grep -i speed_reaper > "$OUT/reaper.stderr" || true
 }
+
+# Reaper-layer scenario suite: explicit --scenario wins; otherwise the bare
+# run (layer all) runs load, then jog_demo (vibes/18-oracle-linux.md task 9).
+REAPER_SCENARIOS=("$SCENARIO")
+if [[ $SCENARIO_EXPLICIT -eq 0 && "$LAYER" == all ]]; then
+  REAPER_SCENARIOS=(load jog_demo)
+fi
 
 HOST_RC=0
 REAPER_RC=0
 if [[ "$LAYER" == host || "$LAYER" == all ]]; then
   run_host || true
 fi
+SCENARIO_RCS=()
 if [[ "$LAYER" == reaper || "$LAYER" == all ]]; then
-  run_reaper || true
-  if [[ $REAPER_RC -ge 128 || $REAPER_RC -eq 124 ]]; then
-    run_crash_capture || true
-  fi
+  for s in "${REAPER_SCENARIOS[@]}"; do
+    SCENARIO="$s"
+    rm -f "$OUT/probe_$s.json"
+    run_reaper || true
+    if [[ -f "$OUT/probe.json" ]]; then mv "$OUT/probe.json" "$OUT/probe_$s.json"; fi
+    if [[ $REAPER_RC -ge 128 || $REAPER_RC -eq 124 ]]; then
+      run_crash_capture || true
+    fi
+    SCENARIO_RCS+=("$s|$OUT/probe_$s.json|$REAPER_RC")
+  done
+fi
+# trace.txt: per-scenario plugin traces, concatenated in run order.
+if [[ ${#SCENARIO_RCS[@]} -gt 0 ]]; then
+  { for s in "${REAPER_SCENARIOS[@]}"; do [[ -f "$OUT/trace_$s.txt" ]] && cat "$OUT/trace_$s.txt"; done; } \
+    > "$OUT/trace.txt" 2>/dev/null || true
 fi
 
 # --- result.json (derived from probe.json / plugin_host.out + exit codes) ---
-python3 - "$OUT" "$LAYER" "$SCENARIO" "$HOST_RC" "$REAPER_RC" <<'PYEOF'
+python3 - "$OUT" "$LAYER" "$HOST_RC" ${SCENARIO_RCS[@]+"${SCENARIO_RCS[@]}"} <<'PYEOF'
 import json, os, sys
 
-out, layer, scenario, host_rc, reaper_rc = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+out, layer, host_rc = sys.argv[1], sys.argv[2], int(sys.argv[3])
+# entries: (scenario, probe_path, reaper_rc) per reaper-layer scenario run
+entries = [e.split("|") for e in sys.argv[4:]]
+scenario = ",".join(e[0] for e in entries) if entries else ""
 checks, info, reasons = [], {}, []
 
 def read(path):
@@ -157,28 +183,31 @@ if layer in ("host", "all"):
         reasons.append(f"host: entry/actions expectations not met (plugin_host exit {host_rc})")
 
 if layer in ("reaper", "all"):
-    probe = {}
-    try:
-        probe = json.load(open(os.path.join(out, "probe.json")))
-    except (OSError, ValueError):
-        pass
-    if not probe.get("checks"):
-        if reaper_rc == 124:
-            reason = "scenario timeout (no probe.json within 60 s)"
-        elif reaper_rc >= 128:
-            reason = f"crash (reaper exit {reaper_rc}, no probe.json)"
+    for name, probe_path, rc_s in entries:
+        reaper_rc = int(rc_s)
+        probe = {}
+        try:
+            probe = json.load(open(probe_path))
+        except (OSError, ValueError):
+            pass
+        if not probe.get("checks"):
+            if reaper_rc == 124:
+                reason = "scenario timeout (no probe.json within 60 s)"
+            elif reaper_rc >= 128:
+                reason = f"crash (reaper exit {reaper_rc}, no probe.json)"
+            else:
+                reason = f"reaper run failed (exit {reaper_rc}, no probe.json)"
+            checks.append({"name": f"{name}: reaper", "pass": False, "detail": reason})
+            reasons.append(f"{name}: " + reason)
         else:
-            reason = f"reaper run failed (exit {reaper_rc}, no probe.json)"
-        checks.append({"name": "reaper", "pass": False, "detail": reason})
-        reasons.append("reaper: " + reason)
-    else:
-        info.update(probe.get("info", {}))
-        for c in probe["checks"]:
-            checks.append({"name": c.get("name", ""), "pass": bool(c.get("pass")),
-                           "detail": c.get("detail", "")})
-        failed = [c["name"] for c in probe["checks"] if not c.get("pass")]
-        if failed:
-            reasons.append("reaper: check(s) failed: " + ", ".join(failed))
+            info.update(probe.get("info", {}))
+            for c in probe["checks"]:
+                checks.append({"name": f"{name}: {c.get('name', '')}",
+                               "pass": bool(c.get("pass")),
+                               "detail": c.get("detail", "")})
+            failed = [c["name"] for c in probe["checks"] if not c.get("pass")]
+            if failed:
+                reasons.append(f"{name}: check(s) failed: " + ", ".join(failed))
 
 if layer == "all":
     # A scenario that never called finish() is a FAIL (reason: scenario timeout)
@@ -196,7 +225,10 @@ print(f"PASS={p} REASONS={json.dumps(reasons)}")
 PYEOF
 
 # --- final line -------------------------------------------------------------
-if [[ "$LAYER" == host ]]; then LABEL=host; else LABEL="$LAYER/$SCENARIO"; fi
+if [[ "$LAYER" == host ]]; then LABEL=host; else
+  SCENARIOS_CSV=$(IFS=,; echo "${REAPER_SCENARIOS[*]}")
+  LABEL="$LAYER/$SCENARIOS_CSV"
+fi
 RESULT_PASS=$(python3 -c "import json,sys; print('1' if json.load(open(sys.argv[1]))['pass'] else '0')" "$OUT/result.json")
 REASON=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['reason'])" "$OUT/result.json")
 if [[ "$RESULT_PASS" == 1 ]]; then

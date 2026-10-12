@@ -250,3 +250,20 @@ M docs/notes/oracle-load-diagnosis.md
  M vibes/.ralph/18-oracle-linux.md
  M vibes/18-oracle-linux.md
 ```
+
+## Task: 9. Behavior scenario: `jog_demo`
+
+### Attempt 3 — 2026-10-11T23:45:11Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: tree clean (only record modified). Design §5: setup `SetEditCurPos(10,false,false)` + transport stopped; run `_speed_reaper_jogdemo`; sample `GetCursorPosition()` each defer cycle 3 s; 4 checks: final−start ∈ [0.3, 0.8] s (design ≈ 0.5 s), never decreases, max step < 0.05 s, last 0.5 s constant.
+- Facts: engine math — DemoWheelSource emits ~2812 wheel units per demo turn (ramp 0.25 + hold 0.5 + ramp 0.5 s, max 30 units/tick @ 125 Hz); low-pass has unit DC gain so total displacement ≈ 2812 × 0.0001 ≈ **0.281 s**, i.e. below the 0.3 lower bound. main.cpp comment and design both say ≈ 0.5 s. Likely plugin-bug fix: raise `kMaxDeltaPerTick` 30 → 53 (≈0.50 s). Max-step check at that speed: peak 0.662 s/s → needs defer sampling faster than ~75 ms.
+- Facts: `wait_ms(ms, fn, on_done)` exists in lib.lua; the 4 checks must run in `on_done` (code after `wait_ms` runs before sampling completes).
+- Facts: wrote `oracle/scenarios/jog_demo.lua` (4 checks per §5, measured values in detail) and rewired `tools/reaper-oracle`: bare/`--layer all` reaper layer now runs `load` then `jog_demo` (explicit `--scenario` = single); per-scenario `probe_<name>.json` + `trace_<name>.txt`, concatenated into trace.txt; result.json/labels carry all scenario names; host layer unchanged.
+- Facts: verify run 1 FAILed: `jog_demo: crash (reaper exit 139, no probe.json)` — REAPER SIGSEGV **before** finish() wrote probe.json (task-8's load wrote its probe.json, so this is NOT the benign quit-time 139). bt.txt: `#0 0x1 in ??` (jump to address 1), frames #1-#4 inside .reaper-wrapped (stripped REAPER), #5/#14 libSwell, rest REAPER main/Swell loop — no plugin frames, no Lua frames visible. trace: plugin loaded fine (entry result=1, 3× for main+gdb+LD_DEBUG runs).
+- Next: bisect crash with dbg1 (jogdemo action + 1 defer + finish) and dbg2 (scrub_fwd + 1 defer + finish), log `vibes/.ralph/logs/dbg-runs.log`, probes at `build/oracle/probe_dbg{1,2}.json`. If both crash → CSurf_ScrubAmt sink crashes REAPER in headless/empty project → docs/notes/oracle-limits.md + adjust check to what's observable. If only dbg1 → DemoWheelSource/engine bug.
+
+Result: timeout after 600s; progress; 2 files changed, 78 insertions(+), 35 deletions(-); log: logs/18-oracle-linux-L146-a3-1791762311774.log
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 3 attempt(s), last: timeout after 600s, progress
+Log: logs/18-oracle-linux-L146-replan-1791762955893.log

@@ -1,0 +1,13 @@
+-- debug: trigger jog demo, one defer, then finish (no 3 s sampling)
+dofile(os.getenv("ORACLE_LIB"))
+reaper.SetEditCurPos(10, false, false)
+reaper.GetSetTransportInfo(0, "RATE", 0)
+local cmd = reaper.NamedCommandLookup("_speed_reaper_jogdemo")
+record("cmd", cmd)
+record("before", reaper.GetCursorPosition())
+reaper.Main_OnCommand(cmd, 0)
+local function once()
+  record("after1", reaper.GetCursorPosition())
+  finish()
+end
+reaper.defer(once)

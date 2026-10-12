@@ -143,7 +143,8 @@ tools/check && tools/reaper-oracle --layer all --scenario load
 tools/reaper-oracle --layer reaper --scenario jog_demo
 ```
 
-- [ ] Done
+- [!] Done
+  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/18-oracle-linux.md
 
 ### 10. Make the oracle part of `tools/check`
 
