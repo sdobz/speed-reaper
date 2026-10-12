@@ -47,6 +47,7 @@ endif()
 # plugin-only list below.
 set(PLUGIN_PURE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/button_diff.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/gesture.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jog_engine.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/router.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.cpp

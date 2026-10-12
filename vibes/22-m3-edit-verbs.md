@@ -17,8 +17,7 @@ Design: `docs/plugin-design-m1-m3.md` §7. Verified by the oracle (`docs/plugin-
 tools/check gesture
 ```
 
-- [!] Done
-  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/22-m3-edit-verbs.md
+- [x] Done
 
 ### 2. `VerbRouter` and the command-id table (pure)
 
