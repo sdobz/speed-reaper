@@ -277,3 +277,11 @@ Facts:
 - Verified: `ORACLE_FULL=1 tools/check` exits 0 → "ORACLE PASS all/load,jog_demo"; plain `tools/check` → "ORACLE PASS host". Unused -D var only emits `CMake Warning (unused-cli)`, build succeeds.
 - "error creating client" lines in verify log are reaper audio noise, harmless (oracle still PASS).
 - Task done, line 160 ticked.
+
+Result: exit 0; done; log: logs/18-oracle-linux-L160-a1-1791772920737.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/18-oracle-linux.md
+```
