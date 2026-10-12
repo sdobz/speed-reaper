@@ -96,3 +96,11 @@ Learnings-worthy (also under ## Learnings):
 - Headless REAPER: `Main_OnCommand(40045)` (transport stop) blocks the entire script/defer queue forever; use `OnStopButton()` / `OnPlayButtonEx(0)` instead (works headless). 40044/1007 for start-play are fine.
 - REAPER master playrate clamps to [0.25, 4.0]; `Master_GetPlayRate` is the truthful read-back.
 - `GetCursorPosition` (edit cursor) does not follow the playhead during playback; use `GetPlayPositionEx(0)` for motion checks.
+
+Result: exit 0; done; log: logs/23-m4-shuttle-L51-a3-1791839468547.log
+
+### Done — 2026-10-12 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/23-m4-shuttle.md
+```
