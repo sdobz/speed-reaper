@@ -95,3 +95,11 @@ M vibes/.ralph/22-m3-edit-verbs.md
 - Facts: prior attempt left no code (clean slate). LED_SNAP = bit 5 in src/speed_editor/key_map.h (byte0 bit5); key_map.h reached via `${REPO_ROOT}/src` include dir (already on path for plugin, hid_probe, Linux tests, and the WIN32 block). HidWheelSource::RequestLeds just marks pending_ dirty — safe to call pre-connect.
 - Facts: wrote plugin/src/led_state.h/.cpp (`MainLedMask(bool)` = `snapOn ? 1u<<LED_SNAP : 0u`), plugin/test/led_state_test.cpp (3 checks), added led_state.cpp to PLUGIN_PURE_SOURCES (test CMakeLists globs *_test.cpp). main.cpp: REAPERAPI_WANT_GetToggleCommandState; global `int g_snap_mask = -1` (−1 = unsent); reconnect edge resets it; onTimer polls `GetToggleCommandState(1157)` every 31 ticks (~250 ms @30 Hz) or whenever g_snap_mask<0, traces `led main=%x` and calls RequestLeds only on change. No other LEDs, no ripple read.
 - Next: DONE — `tools/check led_state` passed rc=0 on first run (job `ledcheck`): led_state_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host. Line 60 ticked.
+
+Result: exit 0; done; log: logs/22-m3-edit-verbs-L60-a4-1791819846445.log
+
+### Done — 2026-10-12 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/22-m3-edit-verbs.md
+```
