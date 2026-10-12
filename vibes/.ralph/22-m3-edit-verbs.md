@@ -172,3 +172,27 @@ M tools/reaper-oracle
  M vibes/.ralph/22-m3-edit-verbs.md
  M vibes/22-m3-edit-verbs.md
 ```
+
+## Task: 6. SMOKE-TEST.md: "M3 — edit verbs"
+
+### Attempt 1 — 2026-10-12T16:25:45Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- SMOKE-TEST.md had sections through `## M2 — buttons and wheel modes` (ended line 287); appended `## M3 — edit verbs` at EOF following the M1/M2 style (Automated-equivalent line, setup, numbered steps with **Expected**, pass bar). No other sections touched.
+- Command ids cross-checked against `plugin/src/verbs.cpp` table (40012 SPLIT, 40006 RIPL DEL, 40625/40626 IN/OUT, 40511/40512 TRIM, 1157 SNAP, 40635 clear time sel, 40029 Undo). Gesture trace format is `gesture %04x <kind>` (main.cpp:216), so SPLIT traces as `2f00 tap`.
+- Double-tap 300 ms / hold 350 ms confirmed in `plugin/src/gesture.h` (GestureParams defaults); LED_SNAP is bit 5; snap polled every 250 ms.
+- `docs/notes/m3-observations.md` does not exist yet — smoke-test step 7 tells the user to create it with feel notes.
+
+Next:
+- None; box ticked, verify greps clean.
+
+Result: exit 0; done; 3 files changed, 49 insertions(+), 1 deletion(-); log: logs/22-m3-edit-verbs-L114-a1-1791822345981.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M vibes/.ralph/22-m3-edit-verbs.md
+ M vibes/22-m3-edit-verbs.md
+```

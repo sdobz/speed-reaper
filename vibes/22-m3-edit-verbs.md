@@ -111,7 +111,7 @@ tools/reaper-oracle --layer reaper --scenario verbs
 grep -q '^## M3 — edit verbs' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. (human) Run the M3 hand test
 

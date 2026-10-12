@@ -299,3 +299,37 @@ Start from the M1 state: Speed Editor plugged in, plugin installed (M1 step 3), 
 6. **Tuning note — scroll speed**: SCRL deliberately shares the jog scale (`JogEngine::kSecondsPerWheelUnit` in `plugin/src/jog_engine.h`), so it matches the cursor's on-screen speed at any zoom by construction. If you want SCRL to travel faster/slower *than the cursor*, that is a deliberate divergence — record the desired ratio and the feel in `docs/notes/m2-observations.md` (a `scroll.speed_factor` parameter is its likely home, `docs/plugin-configuration.md` §2.4).
 
 Pass bar: the jog LEDs are always truthful (exactly one of JOG/SCRL lit, SHTL never lit), SCRL scrolling never moves the edit cursor, STOP/PLAY toggles transport in both modes, and the active mode survives an unplug/replug.
+
+## M3 — edit verbs
+
+Automated equivalent: `tools/reaper-oracle --layer reaper --scenario verbs` (also the check that settled the command ids — see `docs/notes/m3-observations.md`); this hand test only adds real hardware.
+
+Setup: Speed Editor plugged in, plugin installed and connected (M1 step 3 / M2 start state). In REAPER, load or save a project with **two audio items on one track** (any two audio files dropped onto a track work). Select one item (single click). Put the **edit cursor inside that item**, not on an edge.
+
+1. **SPLIT**: with the item selected and the edit cursor inside it, tap **SPLIT**.
+
+   **Expected:** the item is split into two at the edit cursor — exactly what REAPER's own `S` does (console trace: `gesture 2f00 tap`, `cmd 40012`). No split when the cursor is off any item.
+
+2. **IN / OUT / clear**: tap **IN**, move the edit cursor somewhere else (wheel in JOG), tap **OUT**.
+
+   **Expected:** IN sets the **start** of the time selection at the cursor's position at press time; OUT (with the cursor moved) sets the **end** — the arrange view shows the matching blue time selection spanning both points. **IN or OUT taps are deferred ~300 ms** (double-tap window) before the command fires — a visible but tolerable delay; do not double-tap while checking a single tap. Double-tap **IN** (or **OUT**): the time selection is **cleared**. A single **ESC** tap also clears it (`cmd 40635`).
+
+3. **TRIM IN / TRIM OUT**: re-select an item (or use one of the split halves), put the edit cursor inside it, tap **TRIM IN**, then with a cursor again inside the same (now shortened) item tap **TRIM OUT**.
+
+   **Expected:** TRIM IN deletes everything **left** of the cursor — the item's start jumps to the cursor, length shortens from the left (`cmd 40511`); TRIM OUT does the mirror image, the item's end jumps to the cursor (`cmd 40512`). Undo (`Ctrl+Z`) restores the item; it is destructive, so test on a copy of the project or be ready to undo.
+
+4. **RIPL DEL with and without ripple**: with an item selected, tap **RIPL DEL** with REAPER's ripple editing **off** — undo; re-select the item. Now switch ripple editing on (REAPER: `Alt+P` cycles the ripple/loop modes until the toolbar's ripple icon is active, or Options → Ripple mode), put the cursor between the two items and select one, tap **RIPL DEL** again.
+
+   **Expected:** either way the selected item is deleted (`cmd 40006`, item count drops). With ripple **off** the gap where the item was remains — the neighboring item does not move. With ripple **on** the gap closes — the later item(s) shift left to close it. Turn ripple off again afterwards.
+
+5. **SNAP + LED**: note REAPER's snap state (toolbar). Tap **SNAP** on the device; tap it again; then toggle snap from **REAPER's own toolbar**.
+
+   **Expected:** each device tap toggles REAPER's snap (`cmd 1157`) and the device's **SNAP LED** matches the resulting state (on lit / off unlit) immediately. Toggling snap from REAPER's toolbar updates the LED **within ~1 s** (the plugin polls REAPER's snap state every 250 ms — `led main=<hex>` trace lines, bit 5). The LED is the source of truth to check: it must never disagree with REAPER for longer than a second.
+
+6. **ESC double-tap = one Undo**: set up an undoable change (e.g. split an item, or set a time selection), then **double-tap ESC**.
+
+   **Expected:** exactly one Undo fires (`cmd 40029`, once — not twice) and the change is reverted. Crucially the double-tap does **not** also fire the ESC tap: if a time selection was active before the double-tap, it **survives** the undo (no `cmd 40635` between the two presses) — the undo gesture must not clear the time selection.
+
+7. **Feel of the gesture windows** (record the answers in `docs/notes/m3-observations.md`): the double-tap window is **300 ms** and the hold threshold **350 ms** (`plugin/src/gesture.h`, `GestureParams`). On the real device: can you double-tap IN/OUT/ESC reliably within 300 ms, or do your natural taps land outside it? Does a deliberate press-and-hold (no rotate needed in M3 — hold+rotate is backlog) feel like a hold at 350 ms, or does it fire as a tap? Note whether 300/350 ms feel right as-is or need tuning.
+
+Pass bar: every verb does exactly what the same REAPER action does (split at cursor, time selection set/cleared, trims at cursor, item delete with correct ripple behavior, snap toggled), the SNAP LED tracks REAPER's snap both ways within ~1 s, and ESC double-tap undoes once without clearing the time selection.
