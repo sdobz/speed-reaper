@@ -92,3 +92,11 @@ M vibes/.ralph/20-m1-wheel-playhead.md
   - `tools/check` running in background, log: `vibes/.ralph/logs/task4-check.log`.
 - Dead ends: (none yet)
 - Verified: `tools/check` green (2/2 ctest, oracle host PASS); `./build/plugin/hid_probe --seconds 2` prints only `wheel: sum=0` (twice, one per second) and exits 0; full Verify command exits 0. Box ticked.
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L71-a4-1791773770714.log
+
+### Done — 2026-10-12 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
