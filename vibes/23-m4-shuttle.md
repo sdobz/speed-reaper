@@ -35,7 +35,7 @@ Goal: find out how REAPER behaves, not to build the feature.
 tools/check && strings build/plugin/reaper_speed_reaper.so | grep -q speed_reaper_spike_reverse
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Run the spike under the oracle and write the findings
 

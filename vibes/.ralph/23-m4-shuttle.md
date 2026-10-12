@@ -46,3 +46,16 @@ M SMOKE-TEST.md
 ?? vibes/35-m9-crossfade-spike.md
 ?? vibes/36-m10-bindings.md
 ```
+
+## Task: 2. Spike actions: probe the playrate API
+
+### Attempt 2 — 2026-10-12T21:07:38Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- API subset: `Master_GetPlayRate(ReaProject*)` (L108, pass nullptr), `Master_NormalizePlayRate(double, bool)` (L112, not needed), `CSurf_OnPlayRateChange(double)` (L268, projectless — sets current project's rate).
+- main.cpp: added 4 spike actions (rate2=2.0, rate8=8.0, reverse=-1.0, reset=1.0+stop 40045), `REAPERAPI_WANT_CSurf_OnPlayRateChange` + `REAPERAPI_WANT_Master_GetPlayRate`, `SpikeState` global, timer prints `spike rate=%f read=%f state=%d pos=%f` (ShowConsoleMsg + Trace) ~300 ms after; reverse also prints pos0/pos1.
+- Spike handling in onHookCommand2 placed before the `!g_engine` guard so probes work standalone; stop via Main_OnCommand(40045) (transport stop), play-start via 1007 per task.
+
+Next:
+- DONE: `tools/check` exit 0 (10/10 tests, WINDOWS ORACLE PASS static, ORACLE PASS host); verify command incl. `strings ... | grep -q speed_reaper_spike_reverse` passed; line 38 ticked; commit 426c46b (+ tick amend).
