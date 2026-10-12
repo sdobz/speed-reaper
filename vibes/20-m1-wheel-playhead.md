@@ -55,7 +55,7 @@ tools/check jog_engine
 tools/check && readelf -d build/plugin/reaper_speed_reaper.so | grep -q hidapi
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Probe tool `hid_probe`
 
