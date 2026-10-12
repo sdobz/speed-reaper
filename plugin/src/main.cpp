@@ -87,14 +87,13 @@ class ReaperPlayheadSink : public IPlayheadSink {
   // transport is stopped (docs/notes/oracle-limits.md). While playing,
   // seek the playhead instead so playback follows the wheel.
   void ScrubBySeconds(double dt) override {
-    if (dt > 0.005) Trace("scrub dt=%.4f", dt);  // normal tick ~0.002
-    if (GetPlayState() & 1) {
-      double p = GetPlayPosition() + dt;
-      SetEditCurPos(p < 0 ? 0 : p, false, true);
-    } else {
-      double p = GetCursorPosition() + dt;
-      SetEditCurPos(p < 0 ? 0 : p, false, false);
-    }
+    // Diagnostic (M1 task 9): every scrub, with transport state and the
+    // from→to position. Ground truth for what actually hit REAPER.
+    const int playing = GetPlayState() & 1;
+    const double pos = playing ? GetPlayPosition() : GetCursorPosition();
+    const double p = (pos + dt) < 0.0 ? 0.0 : pos + dt;
+    Trace("scrub dt=%.5f playing=%d pos=%.3f->%.3f", dt, playing, pos, p);
+    SetEditCurPos(p, false, playing != 0);
   }
   double PlayPosition() const override { return GetPlayPosition(); }
 };

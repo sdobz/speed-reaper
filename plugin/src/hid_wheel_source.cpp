@@ -78,8 +78,10 @@ void HidWheelSource::WorkerLoop() {
     }
 
     // Step 3: init and announce.
-    dev_->setWheelMode(0);
-    dev_->setJogLeds(true, false, false);
+    // Diagnostic: an output write that silently fails here would leave the
+    // wheel in its firmware-default mode (Windows hand test, M1 task 9).
+    Trace("setWheelMode(0) ok=%d", (int)dev_->setWheelMode(0));
+    Trace("setJogLeds ok=%d", (int)dev_->setJogLeds(true, false, false));
     connected_.store(true);
     PushLog("connected (serial " + dev_->getSerial() + ")");
 
@@ -99,12 +101,27 @@ void HidWheelSource::WorkerLoop() {
         continue;  // timeout
       }
       switch (ev.type) {
-        case EventType::Wheel:
+        case EventType::Wheel: {
+          // Diagnostic (M1 task 9, real-device drift): every wheel report,
+          // with its mode byte, the parsed delta, and the raw report bytes.
+          // Constant non-zero deltas here while the wheel sits still mean
+          // the device itself is emitting them (or the layout is misparsed);
+          // absence here while the cursor still moves means the drift is
+          // downstream of the worker.
+          char raw[64];
+          const size_t n = ev.raw.size() < 16 ? ev.raw.size() : 16;
+          size_t off = 0;
+          for (size_t i = 0; i < n; i++)
+            off += (size_t)std::snprintf(raw + off, sizeof(raw) - off,
+                                          "%02x ", ev.raw[i]);
+          Trace("wheel in mode=%d delta=%d len=%d raw=%s",
+                (int)ev.wheel.mode, ev.wheel.delta, (int)ev.raw.size(), raw);
           if (ev.wheel.mode == 0 || ev.wheel.mode == 2)
             delta_.fetch_add(ev.wheel.delta);
           else  // modes 1/3: absolute position
             abs_.store(ev.wheel.delta);
           break;
+        }
         case EventType::Button: {
           std::vector<ButtonChange> changes;
           DiffHeldKeys(held, ev.button.keycodes, &changes);
@@ -179,6 +196,8 @@ void HidWheelSource::Tick(WheelSample *out) {
     out->delta = pending;
     delta_carry_ = 0;
   }
+  if (out->delta != 0 || delta_carry_ != 0)
+    Trace("wheel tick out=%d carry=%d", out->delta, delta_carry_);
 }
 
 bool HidWheelSource::PopButton(ButtonChange *out) {

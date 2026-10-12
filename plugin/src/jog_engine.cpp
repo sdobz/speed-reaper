@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "trace.h"
+
 void DemoWheelSource::Trigger() { t_ = 0.001; }
 void DemoWheelSource::Stop() { t_ = 0.0; }
 
@@ -43,5 +45,11 @@ void JogEngine::Tick(double dt_ms) {
   if (std::fabs(vel_) < 1e-9) vel_ = 0.0;
 
   const double dt_s = vel_ * dt_ms * kSecondsPerWheelUnit;
-  if (dt_s != 0.0) sink_.ScrubBySeconds(dt_s);
+  if (dt_s != 0.0) {
+    // Diagnostic (M1 task 9): every engine step that moves the playhead,
+    // with the raw input delta and the smoothed velocity. Continuous lines
+    // while the wheel sits still = drift entering the engine.
+    Trace("jog in=%d dt=%.5f vel=%.4f", ev.delta, dt_s, vel_);
+    sink_.ScrubBySeconds(dt_s);
+  }
 }
