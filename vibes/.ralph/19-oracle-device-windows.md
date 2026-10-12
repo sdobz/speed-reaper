@@ -58,3 +58,11 @@ Log: logs/19-oracle-device-windows-L35-replan-1791777517928.log
 <!-- worker: add Facts / Dead ends / Next bullets below while you work -->
 - Facts: fixed `plugin/test/fake_transport_test.cpp:33` (and the fprintf guard) 8 → 7; confirmed `ParseFakeScript` in `src/speed_editor/fake_transport.cpp` fills `*err` for all 13 bad-script cases (unknown verb, wheel arg count/delta, bad/negative time, bad key state/keycode/range/missing state, unplug/plug extra arg, missing 'at', empty-line/comment skipping).
 - Done: `tools/check fake_transport` exits 0 (`fake_transport_test` passed, `ORACLE PASS host`); log at `vibes/.ralph/logs/task2-verify-b.log`. Ticked line 35.
+
+Result: exit 0; done; log: logs/19-oracle-device-windows-L35-a1-1791777887215.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/19-oracle-device-windows.md
+```
