@@ -44,9 +44,14 @@
 #define REAPERAPI_WANT_SetEditCurPos // ReaperPlayheadSink::ScrubBySeconds
 #define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
 #define REAPERAPI_WANT_ShowConsoleMsg // onTimer: HID worker log lines
+#define REAPERAPI_WANT_Main_OnCommand // ReaperActionSink::RunCommand (Router STOP/PLAY)
+#define REAPERAPI_WANT_CSurf_OnScroll // ReaperActionSink::ScrollView (Router Scrl mode)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
+#include "action_sink.h"
+#include "router.h" // Router, ModeGatedSource, kScrollUnitsPerStep (design §6)
+#include "wheel_mode.h"
 #include "trace.h"
 
 #include <cstdlib>
@@ -96,10 +101,48 @@ class ReaperPlayheadSink : public IPlayheadSink {
   double PlayPosition() const override { return GetPlayPosition(); }
 };
 
+// --- IActionSink over the REAPER API (design §6) ---------------------
+
+class ReaperActionSink : public IActionSink {
+ public:
+  // STOP/PLAY (40044) and friends: run a REAPER command.
+  void RunCommand(int cmd) override {
+    Trace("cmd %d", cmd); // oracle greps (docs/plugin-oracle-design.md §2)
+    Main_OnCommand(cmd, 0);
+  }
+  // Scroll the arrange view: +steps = right/later, −steps = left/earlier.
+  void ScrollView(int steps) override { CSurf_OnScroll(steps, 0); }
+};
+
 ReaperPlayheadSink g_reaper_sink;
 DemoWheelSource g_demo_source; // synthetic wheel; demos the pipeline with no device
 HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
-SummedWheelSource g_wheel_source(g_hid, g_demo_source);
+ReaperActionSink g_action_sink;
+Router g_router(g_action_sink); // owns the wheel mode (Jog/Scrl) from HID buttons
+ModeGatedSource g_gated_source(g_hid, g_router); // HID delta: pass-through in Jog, scroll in Scrl
+SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
+bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
+
+const char *WheelModeName(WheelMode m) {
+  switch (m) {
+    case WheelMode::Jog: return "Jog";
+    case WheelMode::Scrl: return "Scrl";
+    case WheelMode::Shtl: return "Shtl";
+  }
+  return "?";
+}
+
+// Forward the router's current mode to the device and light exactly the
+// matching jog-mode LED (report 0x04: bit 0 JOG, 1 SHTL, 2 SCRL).
+void ApplyModeToHid(WheelMode m) {
+  Trace("mode %s", WheelModeName(m));
+  g_hid.RequestWheelMode(ProtocolMode(m));
+  const std::uint8_t jog_bits =
+      (m == WheelMode::Jog ? 1u : m == WheelMode::Scrl ? 4u : 2u);
+  Trace("led jog=%x main=%x", jog_bits, 0u); // no main-panel LEDs until M3
+  g_hid.RequestJogLeds(m == WheelMode::Jog, m == WheelMode::Shtl,
+                       m == WheelMode::Scrl);
+}
 
 // --- callbacks driven by REAPER ---------------------------------------
 
@@ -110,9 +153,16 @@ void onTimer() {
   std::string line;
   while (g_hid.PopLog(&line))
     ShowConsoleMsg(("Speed Reaper: " + line + "\n").c_str());
-  // Button events land here too; milestone 2 is what consumes them.
+  // Buttons (design §6): every edge goes to the Router; press semantics
+  // (JOG/SCRL/SHTL/STOP-PLAY) live there. A consumed mode change is
+  // forwarded to the device + LEDs; a (re)connect re-sends current state.
   ButtonChange btn;
-  while (g_hid.PopButton(&btn)) {}
+  while (g_hid.PopButton(&btn)) g_router.OnButton(btn);
+  WheelMode changed;
+  if (g_router.TakeModeChange(&changed)) ApplyModeToHid(changed);
+  const bool connected = g_hid.Connected();
+  if (connected && !g_was_connected) ApplyModeToHid(g_router.Mode());
+  g_was_connected = connected;
   static auto last = std::chrono::steady_clock::now();
   static double acc_ms = 0.0;
   auto now = std::chrono::steady_clock::now();
