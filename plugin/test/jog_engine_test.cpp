@@ -1,4 +1,4 @@
-// Characterizes today's JogEngine smoothing (no REAPER needed).
+// Characterizes JogEngine's 1:1 delta mapping (no REAPER needed).
 #include "check.h"
 #include "jog_engine.h"
 
@@ -15,18 +15,21 @@ struct SumSink : IPlayheadSink {
 } // namespace
 
 int main() {
-  FixedSource src; SumSink sink;
-  JogEngine eng(src, sink);
-  src.d = 10;
-  for (int i = 0; i < 100; ++i) eng.Tick(8.0);
-  CHECK(sink.total > 0.0);
-  src.d = 0;
-  double before = sink.total;
-  for (int i = 0; i < 100; ++i) eng.Tick(8.0); // coasts, then stops
-  CHECK(sink.total > before);
-  double settled = sink.total;
-  for (int i = 0; i < 10; ++i) eng.Tick(8.0);
-  CHECK_NEAR(sink.total, settled, 1e-9);
+  // 1:1 mapping: one revolution (measured units) = kSecondsPerRev, in either
+  // direction; motion stops the instant the wheel does (no coast, no backlog).
+  {
+    FixedSource src; SumSink sink;
+    JogEngine eng(src, sink);
+    src.d = (int)JogEngine::kUnitsPerRev;
+    eng.Tick();
+    CHECK_NEAR(sink.total, JogEngine::kSecondsPerRev, 1e-9);
+    src.d = -(int)JogEngine::kUnitsPerRev;
+    eng.Tick();
+    CHECK_NEAR(sink.total, 0.0, 1e-9);
+    src.d = 0;
+    for (int i = 0; i < 10; ++i) eng.Tick();
+    CHECK_NEAR(sink.total, 0.0, 1e-9);
+  }
 
   // SummedWheelSource adds the deltas of both sources every tick.
   {
@@ -47,10 +50,10 @@ int main() {
     JogEngine eng2(src2, sink2);
     CHECK(sink2.total == 0.0);
     demo.Trigger();
-    for (int i = 0; i < 260; ++i) eng2.Tick(8.0); // turn (1.25 s) + 800 ms coast
+    for (int i = 0; i < 260; ++i) eng2.Tick(); // turn (1.25 s) + settle
     CHECK(sink2.total > 0.0);
     double settled2 = sink2.total;
-    for (int i = 0; i < 10; ++i) eng2.Tick(8.0);
+    for (int i = 0; i < 10; ++i) eng2.Tick();
     CHECK_NEAR(sink2.total, settled2, 1e-9);
   }
 

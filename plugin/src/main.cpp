@@ -7,7 +7,7 @@
 //   src/speed_editor/ behind the same interface)
 //        │  relative wheel deltas
 //        ▼
-//   JogEngine (exponential-velocity smoothing)
+//   JogEngine (1:1 delta → seconds)
 //        │  seconds of timeline
 //        ▼
 //   IPlayheadSink → CSurf_ScrubAmt (REAPER scrub primitive)
@@ -87,12 +87,9 @@ class ReaperPlayheadSink : public IPlayheadSink {
   // transport is stopped (docs/notes/oracle-limits.md). While playing,
   // seek the playhead instead so playback follows the wheel.
   void ScrubBySeconds(double dt) override {
-    // Diagnostic (M1 task 9): every scrub, with transport state and the
-    // from→to position. Ground truth for what actually hit REAPER.
     const int playing = GetPlayState() & 1;
     const double pos = playing ? GetPlayPosition() : GetCursorPosition();
     const double p = (pos + dt) < 0.0 ? 0.0 : pos + dt;
-    Trace("scrub dt=%.5f playing=%d pos=%.3f->%.3f", dt, playing, pos, p);
     SetEditCurPos(p, false, playing != 0);
   }
   double PlayPosition() const override { return GetPlayPosition(); }
@@ -128,7 +125,7 @@ void onTimer() {
   if (!g_engine) { acc_ms = 0.0; return; }
   double consumed_ms = 0.0;
   while (acc_ms >= kTimerMs && consumed_ms < kMaxCatchUpMs) {
-    g_engine->Tick(kTimerMs);
+    g_engine->Tick();
     acc_ms -= kTimerMs;
     consumed_ms += kTimerMs;
   }

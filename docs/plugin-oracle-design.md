@@ -40,6 +40,23 @@ tools/reaper-oracle [--layer host|reaper|all] [--scenario NAME] [--platform linu
 to that file and `fflush` (so a crash loses nothing); otherwise no-op. Safe from any thread.
 Line format: `<ms since first trace> <message>`.
 
+Each call opens, appends, flushes and **closes** the file (never leak the
+`FILE*`: the Windows CRT allows only 512 open streams, which once truncated a
+hand-test trace at 509 lines). An empty `SPEED_REAPER_TRACE` is the same as unset.
+
+**Tracing a hand test on Windows** (real REAPER, plugin built for Windows):
+
+- Enable (persistent, per user): `setx SPEED_REAPER_TRACE C:\sr_trace.txt`, then fully quit and restart
+  REAPER (only processes started afterwards see it). The file is appended to across runs; delete it
+  first for a clean capture, and quit REAPER before copying it. From WSL it is `/mnt/c/sr_trace.txt`.
+- **Disable / undo `setx`**: `setx` cannot delete a variable (`setx SPEED_REAPER_TRACE ""` only makes it
+  empty, which `Trace` treats as off but leaves it defined). To remove it:
+  `reg delete HKCU\Environment /v SPEED_REAPER_TRACE /f` (cmd), or in PowerShell
+  `[Environment]::SetEnvironmentVariable("SPEED_REAPER_TRACE", $null, "User")`.
+  Then restart REAPER. The current shell keeps its old copy until reopened (`set SPEED_REAPER_TRACE=` clears it there).
+- Only lifecycle/registration, timer-gap and `log …` lines are traced; per-report wheel diagnostics
+  were removed after M1 (findings: `docs/notes/m1-wheel-scale.md`).
+
 Required messages from `ReaperPluginEntry` (exact prefixes; oracle greps them):
 `entry rec=<null|non-null>`, `loadapi missing=<n> [names...]`, `register <what> ok|FAIL`,
 `action <id_str> cmd=<n>`, `entry result=<0|1>`, `unload`. Later milestones add:

@@ -48,4 +48,5 @@ void Trace(const char *fmt, ...) {
   if (f == nullptr) return;
   std::fprintf(f, "%ld %s\n", ms, msg);
   std::fflush(f);
+  std::fclose(f); // leaking this capped the trace at ~509 lines (CRT 512-stream limit)
 }

@@ -2,7 +2,7 @@
 
 Replace the synthetic demo wheel with the real Speed Editor wheel, through
 the existing `IWheelSource → JogEngine → IPlayheadSink` pipeline. First
-usable plugin: plug in, turn the wheel, the playhead glides.
+usable plugin: plug in, turn the wheel, the playhead follows 1:1.
 **Prerequisite:** `18-oracle-linux.md` and `19-oracle-device-windows.md` are done (`ORACLE_FULL=1 tools/check` is green; the fake device exists). Runtime behavior is verified by the oracle, not by hand; the human only does the final real-device test.
 Design (names, signatures, threading) is settled in
 `docs/plugin-design-m1-m3.md` — read the section each task names, don't redesign.
@@ -118,7 +118,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel
   1. Prereqs: Resolve and `speedcli` closed; udev rule from Prerequisite 3.
   2. `hid_probe --seconds 10` with the device: expect `log: connected (serial …)`; turn the wheel → `wheel: sum` changes sign with direction; run with device unplugged → `log: device not found`.
   3. Build + install `.so` (reuse the hello-world Install steps by reference); start REAPER with device plugged in: REAPER console shows `Speed Reaper: connected (serial …)`.
-  4. Turn the wheel (stopped transport): edit cursor glides as smoothly as the "jog demo" action; release → coasts to a stop in ~0.2 s.
+  4. Turn the wheel (stopped transport): edit cursor follows the wheel 1:1 (~20 s per revolution) and stops the instant the wheel stops; slow CW then fast CCW returns to the start.
   5. Unplug mid-session: console shows `disconnected`, REAPER stays responsive; replug → `connected` again **without restarting REAPER**.
   6. Restart REAPER with device attached: reconnects.
   7. **Observation (record answers in `docs/notes/m1-hid-observations.md`):** while REAPER holds the device, does pressing any Speed Editor button type characters or trigger REAPER shortcuts (OS-level HID keyboard leak)? Does `speedcli listen` still work while REAPER holds it?
@@ -134,5 +134,5 @@ grep -q '^## M1 — wheel drives the playhead' SMOKE-TEST.md && grep -q 'hid_pro
 
 ### 9. (human) Run the M1 hand test
 
-- [!] Done
-  BLOCKED: precondition — `ORACLE_FULL=1 tools/check` is green (do not hand-test a red oracle). Human then runs SMOKE-TEST.md "M1" top to bottom with the device and records the step-7 observations in `docs/notes/m1-hid-observations.md`. Pass bar: playhead moves with the real wheel with no stutter; unplug/replug is clean with no REAPER restart; keyboard-leak question answered. Then write `vibes/21-m2-buttons-modes.md` tasks as needed and tick this box.
+- [x] Done
+  Verified plug/unplug, verified jog wheel controls playback position

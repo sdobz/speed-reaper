@@ -4,7 +4,7 @@
 -- The harness sources oracle/scenarios/hid_wheel.env, which points
 -- SPEED_REAPER_FAKE_DEVICE at oracle/fake/wheel_unplug.txt. The plugin's
 -- HID worker opens the scripted device at plugin load and plays:
---   100–1200 ms    first wheel turn (137 x `wheel 20` ~ 0.27 s of cursor)
+--   100–1200 ms    first wheel turn (137 x `wheel 600` ~ 1.1 s of cursor)
 --   1471 ms        last decaying delta of turn 1
 --   1500 ms        unplug   -> worker logs `disconnected`
 --   3000 ms        plug     -> worker reconnects on its 1 s open retry

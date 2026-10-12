@@ -1,4 +1,4 @@
-// jog_engine.h — wheel input → smooth playhead motion.
+// jog_engine.h — wheel input → playhead motion.
 //
 // This layer is the seam for the Speed Editor: IWheelSource is the only
 // thing the engine cares about. Today main.cpp feeds it a
@@ -49,7 +49,7 @@ class SummedWheelSource : public IWheelSource {
   IWheelSource &b_;
 };
 
-// Destination for smoothed motion. REAPER implements this (main.cpp) with
+// Destination for wheel motion. REAPER implements this (main.cpp) with
 // CSurf_ScrubAmt — the same primitive the real editor will use.
 class IPlayheadSink {
  public:
@@ -71,42 +71,44 @@ class DemoWheelSource : public IWheelSource {
 
   void Tick(WheelSample *out) override;
 
-  // Tuning (a real editor's absolute mode spans ±4096 per half turn).
+  // Tuning (units per tick at 125 Hz).
   static constexpr double kRampUpS = 0.25;
   static constexpr double kHoldS = 0.50;
   static constexpr double kRampDownS = 0.50;
-  static constexpr double kMaxDeltaPerTick = 53.0;
+  static constexpr double kMaxDeltaPerTick = 390.0; // ≈0.66 s of timeline per s at the hold; demo total ≈0.58 s
   static constexpr double kTickMs = 8.0; // must match the timer interval
 
  private:
   double t_ = 0.0; // seconds into the current turn; <= 0 = idle
 };
 
-// Converts raw wheel deltas into smooth relative playhead motion.
+// Converts raw wheel deltas into playhead motion, 1:1: the playhead moves by
+// exactly delta * kSecondsPerWheelUnit each tick, so it stops the moment the
+// wheel does (no smoothing, no coasting, no queued backlog).
 //
-// Smoothing model: the engine tracks a velocity (wheel units per ms) and
-// relaxes it toward the instantaneous wheel rate with an exponential
-// low-pass (tau ≈ 50 ms). That is what makes the playhead glide instead of
-// stepping — the same treatment the real editor's jittery relative report
-// will need.
+// Scale (measured on a real Speed Editor, docs/notes/m1-wheel-scale.md):
+// one wheel revolution = ~1,474,560 units (4096 detents x 360). Mapping is
+// "seconds of timeline per revolution"; candidate user parameter
+// `jog.seconds_per_rev` (docs/plugin-configuration.md §2.2).
 class JogEngine {
  public:
   JogEngine(IWheelSource &source, IPlayheadSink &sink) : source_(source), sink_(sink) {}
 
-  // Advance one tick; dt_ms must match the REAPER timer interval.
-  void Tick(double dt_ms);
+  void Tick() {
+    WheelSample ev;
+    source_.Tick(&ev);
+    if (ev.delta != 0) sink_.ScrubBySeconds(ev.delta * kSecondsPerWheelUnit);
+  }
 
   void NudgeSeconds(double dt) { sink_.ScrubBySeconds(dt); }
-  double Velocity() const { return vel_; } // wheel units per ms (debug)
 
-  // Wheel unit → time mapping: 1 relative wheel tick = 0.1 ms of project
-  // time (≈ one full turn at max speed moves ~0.5 s of timeline).
-  static constexpr double kSecondsPerWheelUnit = 0.0001;
+  static constexpr double kUnitsPerRev = 1474560.0; // 4096 * 360, measured
+  static constexpr double kSecondsPerRev = 20.0;    // tunable: feel
+  static constexpr double kSecondsPerWheelUnit = kSecondsPerRev / kUnitsPerRev;
 
  private:
   IWheelSource &source_;
   IPlayheadSink &sink_;
-  double vel_ = 0.0;
 };
 
 #endif // SPEED_REAPER_JOG_ENGINE_H

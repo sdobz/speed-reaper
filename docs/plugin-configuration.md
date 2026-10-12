@@ -114,6 +114,7 @@ deliberately **not** a parameter (fixed by design, see note).
 | Parameter | Default | Range | Layer | Notes |
 |---|---|---|---|---|
 | `jog.step_mode` | snap-quantized 1 frame | frame / sample / free | L2 | Small deltas = 1-frame (or snap-quantized) nudges (workflow §3). |
+| `jog.seconds_per_rev` | 20 | 5–60 | L2 | Timeline seconds per full wheel revolution (1,474,560 units, measured). Position-style 1:1 mapping, no smoothing. Basis: `docs/notes/m1-wheel-scale.md`. |
 | `jog.respond_to_reaper_scrub_prefs` | on | on/off | L2 (toggle only) | Reuse **REAPER's** Preferences → Playback scrub tuning (reaper-plugin.md §2) instead of re-implementing speed. Off = our own fixed scale. |
 
 ### 2.3 Wheel: SHTL shuttle law (workflow §3 — all values named as config parameters there)

@@ -254,7 +254,7 @@ Automated equivalent: `tools/reaper-oracle --layer reaper --scenario hid_wheel`;
 
 4. **Jog the playhead**: with the edit cursor on the timeline and transport **stopped**, turn the wheel — first slowly, then faster, then reverse — and release it.
 
-   **Expected:** the edit cursor glides as smoothly as the "jog demo" action from Test 6 (accelerates, cruises, no jumping); on release it coasts to a stop in ~0.2 s. Reversing direction while moving also glides (no jump or stall).
+   **Expected:** the edit cursor follows the wheel 1:1 — about 20 s of timeline per full revolution (`JogEngine::kSecondsPerRev`, `docs/notes/m1-wheel-scale.md`), so a small fraction of a turn is a small, precise move. It **stops the instant the wheel stops** (no coast, no drift), reversing direction reverses immediately, and a slow turn followed by an equal fast turn the other way returns to the start position.
 
 5. **Hot-unplug**: while REAPER is running and connected, unplug the USB cable; then replug.
 

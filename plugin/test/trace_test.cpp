@@ -64,6 +64,18 @@ int main() {
     std::remove(path);
   }
 
+  // Regression: a leaked FILE* per call capped the trace at ~509 lines
+  // (Windows CRT 512-stream limit). Far more lines than that must all land.
+  if (fd >= 0) {
+    setenv("SPEED_REAPER_TRACE", path, 1);
+    for (int i = 0; i < 2000; i++) Trace("line %d", i);
+    std::string content = FileContent(path);
+    int nlines = 0;
+    for (char c : content) nlines += (c == '\n');
+    CHECK(nlines == 2000);
+    std::remove(path);
+  }
+
   // Env unset → no file is created.
   unsetenv("SPEED_REAPER_TRACE");
   Trace("should not be written");
