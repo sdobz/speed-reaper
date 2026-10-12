@@ -48,7 +48,7 @@ tools/check && strings build/plugin/reaper_speed_reaper.so | grep -q speed_reape
 tools/reaper-oracle --layer reaper --scenario spike_rate --report-only >/dev/null; test -s docs/notes/m4-shuttle-api.md && grep -q '^| ' docs/notes/m4-shuttle-api.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Decide the shuttle approach by rule (no human)
 

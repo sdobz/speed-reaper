@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - The Windows cross build inside `tools/check` snapshots the repo from git: new plugin files must be `git commit`ted before `tools/check` can see them (modified tracked files are seen, untracked files are not).
+- Headless REAPER oracle: `Main_OnCommand(40045)` (transport stop command) blocks the script/defer queue forever — scenarios hang with no probe.json. Use `reaper.OnStopButton()` / `reaper.OnPlayButtonEx(0)` for transport control (verified working headless, M4 task 3).
 
 
 ## Task: 1. `ShuttleRate` (pure)
@@ -80,6 +81,18 @@ Facts:
 
 Dead ends:
 - For-loop over the 4 actions with `wait_ms(600, ...)` between them: wait_ms is NON-blocking (reaper.defer), so all 4 Main_OnCommands fired in ~1 ms, the pending slot got overwritten 3×, only reverse produced a result line, and REAPER never quit (no probe.json → timeout). Fix: chain actions through the wait's on_done (sequential state machine) — done in oracle/scenarios/spike_rate.lua.
+- **`Main_OnCommand(40045)` (transport stop) blocks forever in headless REAPER under the oracle** — the whole Lua VM freezes (defer dies), only the plugin timer thread keeps running, and the scenario times out with no probe.json (repro: oracle/scenarios/dbg8.lua; found via progress-file logging in dbg7.lua). The play command (1007) is fine. Fix: plugin RunSpikeReset now calls `OnStopButton()` (REAPER API subset §2, works headless — verified in dbg9.lua: state 1→0). `REAPERAPI_WANT_OnStopButton` added to main.cpp.
+
+Facts (measurements, REAPER 7.81 linux headless, empty project, cursor 10 s):
+- REAPER clamps master playrate to [0.25, 4.0]: requested 2.0 → read back 2.0; 8.0 → **4.0**; −1.0 → **0.25** (not 1.0, not negative). `CSurf_OnPlayRateChange` + `Master_GetPlayRate` are the APIs used.
+- Playhead (play_a/play_b 300 ms apart) shows motion: rate2 ~2×, rate8 ~4× (clamped), "reverse" ~4× forward (still the clamped 8× era rate; NO reversal), reset → state 0.
+- `reaper.GetCursorPosition()` (edit cursor) does NOT follow the playhead during playback — scenario now also samples `reaper.GetPlayPositionEx(0)`; motion/reversal is judged on the playhead.
+- dbg6–dbg9 scenarios are throwaway repros kept in oracle/scenarios/ (delete if you like).
 
 Next:
-- Re-run `tools/reaper-oracle --layer reaper --scenario spike_rate --report-only`, then write docs/notes/m4-shuttle-api.md from build/oracle/ artifacts.
+- DONE: final spike_rate run ORACLE PASS (all 4 trace lines present; table data in the doc); docs/notes/m4-shuttle-api.md written (measurements table + answers + Limits + 3 candidate approaches, nothing implemented); bg job `check-spike` (tools/check) exit 0 — 10/10 tests, WINDOWS ORACLE PASS static, ORACLE PASS host; Verify command passes; line 51 ticked. Plugin change (OnStopButton) is committed; scenario + doc committed with the tick.
+
+Learnings-worthy (also under ## Learnings):
+- Headless REAPER: `Main_OnCommand(40045)` (transport stop) blocks the entire script/defer queue forever; use `OnStopButton()` / `OnPlayButtonEx(0)` instead (works headless). 40044/1007 for start-play are fine.
+- REAPER master playrate clamps to [0.25, 4.0]; `Master_GetPlayRate` is the truthful read-back.
+- `GetCursorPosition` (edit cursor) does not follow the playhead during playback; use `GetPlayPositionEx(0)` for motion checks.

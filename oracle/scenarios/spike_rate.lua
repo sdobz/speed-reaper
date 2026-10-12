@@ -4,8 +4,11 @@
 -- Main_OnCommand(NamedCommandLookup(...), 0), wait 600 ms, then record in
 -- the check details: the plugin's `spike ...` trace values,
 -- reaper.Master_GetPlayRate(0), reaper.GetPlayState(), and two cursor
--- samples 300 ms apart. The checks only assert that each action ran
--- (its trace line is present); the measurements are the output.
+-- samples 300 ms apart (edit cursor via GetCursorPosition, plus the
+-- playhead via GetPlayPositionEx — the edit cursor does NOT follow the
+-- playhead during playback, so the playhead samples are the ones that
+-- show motion). The checks only assert that each action ran (its trace
+-- line is present); the measurements are the output.
 --
 -- Sequential by construction: wait_ms is non-blocking (it defers), so the
 -- actions are chained through the 600 ms wait's on_done callback — one
@@ -60,22 +63,26 @@ local function next_action()
   -- Known start point so "cursor moved?" is meaningful.
   reaper.SetEditCurPos(10, false, false)
 
-  local samples = {} -- {t = s since trigger, pos = cursor position}
+  local samples = {} -- {t, pos = edit cursor, play = playhead}
   local t0 = reaper.time_precise()
   reaper.Main_OnCommand(cmds[a.name], 0)
 
   wait_ms(600, function()
     table.insert(samples, { t = reaper.time_precise() - t0,
-                            pos = reaper.GetCursorPosition() })
+                            pos = reaper.GetCursorPosition(),
+                            play = reaper.GetPlayPositionEx(0) })
   end, function()
-    -- Cursor samples 300 ms apart: first sample at/after t=0.3 s and the
-    -- last (t~0.6 s).
-    local pa, pb = nil, nil
+    -- Samples 300 ms apart: first sample at/after t=0.3 s and the last
+    -- (t~0.6 s). Motion is judged on the playhead (the edit cursor is
+    -- stationary during playback).
+    local pa, pb, qa, qb = nil, nil, nil, nil
     for j = 1, #samples do
-      if pa == nil and samples[j].t >= 0.28 then pa = samples[j].pos end
-      pb = samples[j].pos
+      if pa == nil and samples[j].t >= 0.28 then
+        pa, qa = samples[j].pos, samples[j].play
+      end
+      pb, qb = samples[j].pos, samples[j].play
     end
-    if pa == nil and #samples > 0 then pa = samples[1].pos end
+    if pa == nil and #samples > 0 then pa, qa = samples[1].pos, samples[1].play end
 
     -- The plugin's own ~300 ms measurement (spike set/rate/reverse lines).
     local lines = read_trace()
@@ -89,20 +96,22 @@ local function next_action()
 
     local read_rate = reaper.Master_GetPlayRate(0)
     local state = reaper.GetPlayState()
-    local moved = pa ~= nil and pb ~= nil and (pb - pa) > 1e-3
-    local reversed = pa ~= nil and pb ~= nil and (pb - pa) < -1e-3
+    local moved = qa ~= nil and qb ~= nil and (qb - qa) > 1e-3
+    local reversed = qa ~= nil and qb ~= nil and (qb - qa) < -1e-3
 
     check(a.name .. " ran (trace line present)", rateline ~= nil,
           string.format("requested=%s | trace: %s | set: %s | reverse: %s | "
-                        .. "readback=%.4f playstate=%d pos_a(%.0fms)=%.4f "
-                        .. "pos_b(%.0fms)=%.4f moved=%s reversed=%s (n=%d)",
+                        .. "readback=%.4f playstate=%d cursor_a=%.4f "
+                        .. "cursor_b=%.4f playhead_a(%.0fms)=%.4f "
+                        .. "playhead_b(%.0fms)=%.4f moved=%s reversed=%s (n=%d)",
                         a.rate,
                         rateline or "<none>",
                         setline or "<none>",
                         revline or "<n/a>",
                         read_rate, state,
-                        pa ~= nil and 300 or 0, pa or 0,
-                        pb ~= nil and 600 or 0, pb or 0,
+                        pa or 0, pb or 0,
+                        qa ~= nil and 300 or 0, qa or 0,
+                        qb ~= nil and 600 or 0, qb or 0,
                         tostring(moved), tostring(reversed), #samples))
     next_action()
   end)
