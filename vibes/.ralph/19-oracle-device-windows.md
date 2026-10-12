@@ -86,3 +86,11 @@ Result: timeout after 600s; progress; 2 files changed, 22 insertions(+); log: lo
   - Attempt 1's work was complete and consistent: `plugin/src/transport_factory.{h,cpp}`, `plugin/test/transport_factory_test.cpp` (auto-globbed by `plugin/test/CMakeLists.txt`), CMake option + `add_compile_definitions($<$<BOOL:..>:SPEED_REAPER_FAKE_DEVICE>)` at directory scope, factory added to the Linux `PLUGIN_PURE_SOURCES` block, `oracle/fake/gen_wheel_turn.py` + `wheel_turn.txt` (82 lines: 62× `wheel 20` @8 ms from t=300, then deltas 20→1 @25 ms).
   - `tools/check` exit 0: all 4 plugin tests pass (incl. `transport_factory_test`), `ORACLE PASS host`; `test -s oracle/fake/wheel_turn.txt` ok. Build was incremental — attempt 1 had already built before timing out.
 - Next: task done, box ticked.
+
+Result: exit 0; done; log: logs/19-oracle-device-windows-L55-a2-1791778734068.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/19-oracle-device-windows.md
+```
