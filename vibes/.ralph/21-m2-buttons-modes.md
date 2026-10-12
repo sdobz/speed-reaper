@@ -82,3 +82,20 @@ Files:
 ```
 M vibes/.ralph/21-m2-buttons-modes.md
 ```
+
+## Task: 5. SMOKE-TEST.md: "M2 — buttons and wheel modes"
+
+### Attempt 5 — 2026-10-12T07:40:55Z — budget 1800s
+- Facts: `kScrollUnitsPerStep = 20` in `plugin/src/router.h` (larger = slower scroll). Reconnect edge in `main.cpp` (`g_was_connected` false→true) re-sends mode + LEDs via `ApplyModeToHid`; console line is `Speed Reaper: connected (serial …)`. SHTL press → no mode/LED change (router ignores it, M4). `docs/notes/m2-observations.md` does not exist yet (step 6 says create if missing). Oracle scenario for M2 is `buttons` (`tools/reaper-oracle --layer reaper --scenario buttons`).
+- Facts: Appended `## M2 — buttons and wheel modes` to end of `SMOKE-TEST.md` (6 numbered steps, **Expected** each, M1 style, pass bar); verify grep passes; no other section touched. Ticked line 78.
+- Next: none — task complete (human hand test is task 6).
+
+Result: exit 0; done; 3 files changed, 38 insertions(+), 1 deletion(-); log: logs/21-m2-buttons-modes-L78-a5-1791790855769.log
+
+### Done — 2026-10-12 — 5 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M vibes/.ralph/21-m2-buttons-modes.md
+ M vibes/21-m2-buttons-modes.md
+```

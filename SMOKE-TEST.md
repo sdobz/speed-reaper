@@ -269,3 +269,33 @@ Automated equivalent: `tools/reaper-oracle --layer reaper --scenario hid_wheel`;
    - run `./build/speedcli listen`: does it still open the device, or fail with "could not open" (exclusivity)?
 
    **Expected (hypothesis to confirm):** no visible keystrokes/shortcuts anywhere; `speedcli listen` fails to open while REAPER holds the device (exclusivity), and succeeds again after REAPER is closed.
+
+## M2 — buttons and wheel modes
+
+Automated equivalent: `tools/reaper-oracle --layer reaper --scenario buttons`; this hand test only adds real hardware.
+
+Start from the M1 state: Speed Editor plugged in, plugin installed (M1 step 3), REAPER running with `Speed Reaper: connected (serial …)` in the console, edit cursor on the timeline.
+
+1. **Startup / JOG (default mode)**: transport **stopped**; turn the wheel — slowly, faster, then reverse — and release.
+
+   **Expected:** the **JOG** LED is lit on the device right after startup (the plugin set it — you did not press anything); the edit cursor follows the wheel exactly as in M1 (~20 s of timeline per revolution), stops the instant the wheel stops. The arrange view does **not** scroll.
+
+2. **SCRL: horizontal scroll, cursor frozen**: press **SCRL** once. Turn the wheel in one direction, then the other. Then press **JOG** and turn again.
+
+   **Expected:** the LED switches JOG off / **SCRL** on. While SCRL is lit, turning the wheel scrolls the arrange view **horizontally** (direction follows the wheel) and the edit cursor does **not** move. JOG brings the cursor motion back. Mode-switch while the wheel is still spinning (keep it turning, tap SCRL, then JOG): the LED and the behavior flip together — the motion changes from cursor to scroll and back immediately, mid-turn.
+
+3. **STOP/PLAY**: press **STOP/PLAY**.
+
+   **Expected:** playback starts. Press again: it stops. Repeat with SCRL active (SCRL LED lit) — it starts/stops transport there too, and the wheel still only scrolls while in SCRL.
+
+4. **SHTL: deliberately inert**: press **SHTL** in JOG, then in SCRL.
+
+   **Expected:** nothing happens — no shuttle motion, no mode change, **no LED change** (the SHTL LED stays off, the current mode's LED stays lit). Documented as expected; shuttle handling lands in M4.
+
+5. **Unplug/replug in SCRL**: with the SCRL LED lit, unplug the USB cable, wait a few seconds, replug.
+
+   **Expected:** console shows `Speed Reaper: disconnected`, then `Speed Reaper: connected (serial …)`; after reconnect **SCRL is still the active mode** and its LED is lit (mode + LEDs are re-sent automatically on the reconnect edge — no button press needed). Wheel still scrolls, cursor still frozen.
+
+6. **Tuning note — scroll speed**: if step 2 feels too fast/slow, edit `kScrollUnitsPerStep` in `plugin/src/router.h` (wheel units per one scroll step — larger = slower), rebuild + reinstall the plugin (M1 step 3), restart REAPER, and re-run step 2. Record the final value and the feel in `docs/notes/m2-observations.md` (create it if missing).
+
+Pass bar: the jog LEDs are always truthful (exactly one of JOG/SCRL lit, SHTL never lit), SCRL scrolling never moves the edit cursor, STOP/PLAY toggles transport in both modes, and the active mode survives an unplug/replug.

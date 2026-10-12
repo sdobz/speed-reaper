@@ -75,7 +75,7 @@ tools/reaper-oracle --layer reaper --scenario buttons
 grep -q '^## M2 — buttons and wheel modes' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. (human) Run the M2 hand test
 
