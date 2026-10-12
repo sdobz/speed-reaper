@@ -1,0 +1,28 @@
+# verbs scenario (vibes/22-m3-edit-verbs.md task 5).
+# 400 ms between steps; a key tap = down + up 50 ms apart.
+# Order: SPLIT 0x2F, IN 0x07, OUT 0x08, TRIM IN 0x09, IN double-tap,
+# RIPL DEL 0x2B, SNAP 0x2E, ESC 0x31 double-tap. The IN double-tap comes
+# after TRIM IN because it only touches the time selection, keeping the
+# trim-check window clean (reordering allowed by the task).
+# Double-tap: press 2 starts 100 ms after press 1's release
+# (window 300 ms: double_tap_ms in plugin/src/gesture.h).
+at 400 key 0x2F down   # SPLIT tap -> item split at cursor
+at 450 key 0x2F up
+at 800 key 0x07 down   # IN tap -> loop/time sel start to cursor
+at 850 key 0x07 up
+at 1200 key 0x08 down  # OUT tap -> loop/time sel end to cursor
+at 1250 key 0x08 up
+at 1600 key 0x09 down  # TRIM IN tap -> trim item start to cursor
+at 1650 key 0x09 up
+at 2000 key 0x07 down  # IN double-tap, press 1 -> clears time selection
+at 2050 key 0x07 up
+at 2150 key 0x07 down  # IN double-tap, press 2 (100 ms after release)
+at 2200 key 0x07 up
+at 2400 key 0x2B down  # RIPL DEL tap -> delete item under cursor
+at 2450 key 0x2B up
+at 2800 key 0x2E down  # SNAP tap -> toggle snap state
+at 2850 key 0x2E up
+at 3200 key 0x31 down  # ESC double-tap, press 1 (promoted to undo after window)
+at 3250 key 0x31 up
+at 3350 key 0x31 down  # ESC double-tap, press 2 (100 ms after release)
+at 3400 key 0x31 up

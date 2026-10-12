@@ -116,3 +116,22 @@ Trigger: 5 attempt(s), last: timeout after 180s without tool use (monologuing/st
 Why: Five attempts, zero scenario code: attempt 5's worker understood the whole oracle mechanism but stalled 180s in a design monologue (step windows, REAPER semantics) before writing anything. The task bundles 4+ artifacts and open design decisions, far beyond one 27B sitting; the log shows it needs the design decisions pre-settled and the work sliced per file.
 Rejected: BUDGET: the record shows no real progress (no source files ever written) and the stall was monologue, not a long build, so the rules bar it and more time on the same-sized task would stall again. SPIKE: the only open questions (does time selection drive GetSet_LoopTimeRange, what SPLIT selects, snap/undo interplay) are exactly what one real oracle run settles — the spike would be verbs.lua itself, and the 'finish the parent' follow-up would still be the oversized task. REWRITE: the task text is clear and its Verify is correct; the problem is size, not clarity. BLOCK: nothing needs a human decision.
 Log: logs/22-m3-edit-verbs-L74-replan-1791820482588.log
+
+## Task: Fake device script: `oracle/fake/verbs.txt` + `verbs.env`
+
+### Attempt 1 — 2026-10-12T16:01:13Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: wrote `oracle/fake/verbs.txt` (8 steps at 400, 800, 1200, 1600, 2000, 2400, 2800, 3200 ms; taps = down+up 50 ms; double-taps have press 2 down 100 ms after press 1 up, well inside the 300 ms window; order SPLIT 0x2F, IN 0x07, OUT 0x08, TRIM IN 0x09, IN double-tap, RIPL DEL 0x2B, SNAP 0x2E, ESC 0x31 double-tap, documented in header comment) and `oracle/scenarios/verbs.env` (`export SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt`, same shape as buttons.env).
+- Facts: `key 0x07 down` count = 3 (IN tap + double-tap pair), `key 0x31 down` count = 2; task Verify command passes.
+- Next: DONE — line 76 of vibes/22-m3-edit-verbs.md ticked. Note for the verbs.lua task: fake-device event times are 400–3400 ms (script clock; fake device clock leads script clock ~40 ms per buttons.lua header); last event at 3400 ms, so the scenario needs >3.4 s of sampling plus double-tap promotion slack.
+
+Result: exit 0; done; 4 files changed, 38 insertions(+), 1 deletion(-); log: logs/22-m3-edit-verbs-L76-a1-1791820873219.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+A  oracle/fake/verbs.txt
+A  oracle/scenarios/verbs.env
+ M vibes/.ralph/22-m3-edit-verbs.md
+ M vibes/22-m3-edit-verbs.md
+```

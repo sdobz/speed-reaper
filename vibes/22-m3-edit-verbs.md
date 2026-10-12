@@ -73,7 +73,7 @@ tools/reaper-oracle --layer reaper --scenario verbs
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Fake device script: `oracle/fake/verbs.txt` + `verbs.env`
+  - [x] Fake device script: `oracle/fake/verbs.txt` + `verbs.env`
     - Create `oracle/fake/verbs.txt` (parent bullet 1) and `oracle/scenarios/verbs.env` (`export SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt`, same shape as `buttons.env`).
     - Grammar `at <ms> key 0xNN down|up` (see `oracle/fake/buttons.txt`); 8 steps 400 ms apart, a tap = down + up 50 ms apart.
     - Order: SPLIT 0x2F, IN 0x07, OUT 0x08, TRIM IN 0x09, IN double-tap, RIPL DEL 0x2B, SNAP 0x2E, ESC 0x31 double-tap. Document the order in a header comment: the IN double-tap comes after TRIM IN because it only touches the time selection, keeping the trim-check window clean (reordering is allowed by the task).
