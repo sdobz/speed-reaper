@@ -168,3 +168,11 @@ Result: exit 0; verify-failed; 2 files changed, 52 insertions(+), 2 deletions(-)
   - `std::min(left, std::chrono::milliseconds(100))` with `left` in steady_clock nanosecond duration doesn't compile (deduction failure) — cast `left` to `milliseconds` first.
 - Next:
   - Task complete; checkbox ticked, full Verify (tools/check + fake-device probe greps) exits 0 (`VERIFY_OK` in vibes/.ralph/logs/task5-verify.log).
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L85-a1-1791778921838.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
