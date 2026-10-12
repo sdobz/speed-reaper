@@ -18,7 +18,7 @@
 CXX      ?= g++
 CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra
 BUILD_DIR := ../build
-SRCS      := cli/speedcli.cpp speed_editor/hid_device.cpp
+SRCS      := cli/speedcli.cpp speed_editor/hid_device.cpp speed_editor/hidapi_transport.cpp
 
 ifeq ($(CROSS),1)
 # Windows cross-build: HIDAPI_PREFIX is the (cross-compiled) hidapi output
@@ -47,7 +47,8 @@ endif
 .PHONY: all clean
 all: $(CLI)
 
-$(CLI): $(SRCS) speed_editor/hid_device.h speed_editor/key_map.h speed_editor/event_types.h
+$(CLI): $(SRCS) speed_editor/hid_device.h speed_editor/hid_transport.h \
+	       speed_editor/hidapi_transport.h speed_editor/key_map.h speed_editor/event_types.h
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -I. $(HIDAPI_CFLAGS) $(SRCS) -o $@ $(HIDAPI_LIBS) $(EXTRA_LDFLAGS)
 	@echo "built $@"

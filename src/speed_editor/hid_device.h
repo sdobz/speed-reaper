@@ -7,9 +7,10 @@
 //     (the CLI initialises via setWheelMode(0); the named LED chase lives in the CLI)
 //   - LED/mode writers return bool so the caller can report write failures
 #include <cstdint>
+#include <memory>
 #include <string>
-#include <hidapi/hidapi.h>
 #include "event_types.h"
+#include "hid_transport.h"
 
 class SpeedEditorHID {
 public:
@@ -19,7 +20,8 @@ public:
         Connected,
     };
 
-    SpeedEditorHID();
+    // transport: pluggable device backend (default: real hidapi device).
+    SpeedEditorHID(std::unique_ptr<IHidTransport> transport = nullptr);
     ~SpeedEditorHID();
 
     // Open device by VID/PID (optionally filter by serial number).
@@ -44,7 +46,7 @@ public:
     void allLedsOff();
 
     State getState() const { return state; }
-    std::string getSerial() const { return serial; }
+    std::string getSerial() const { return transport->Serial(); }
 
 private:
     // Authentication helpers
@@ -56,7 +58,7 @@ private:
     int recvFeatureReport(uint8_t reportId, uint8_t* buf, size_t len);
     bool writeOutputReport(const uint8_t* data, size_t len);
 
-    hid_device* dev = nullptr;
+    std::unique_ptr<IHidTransport> transport;
+    bool opened = false;  // transport->Open() succeeded, not yet Close()d
     State state = State::Disconnected;
-    std::string serial;
 };

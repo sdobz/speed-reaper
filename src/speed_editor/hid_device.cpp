@@ -8,7 +8,7 @@
 // The auth handshake, tables, and report layouts are unchanged from the
 // vendored driver and match docs/speed-editor-capabilities.md.
 #include "hid_device.h"
-#include "key_map.h"
+#include "hidapi_transport.h"
 
 #include <cstdio>
 #include <cstring>
@@ -62,7 +62,12 @@ uint64_t SpeedEditorHID::calculateResponse(uint64_t challenge) {
 
 // ── Constructor / Destructor ───────────────────────────────────────
 
-SpeedEditorHID::SpeedEditorHID() {}
+SpeedEditorHID::SpeedEditorHID(std::unique_ptr<IHidTransport> transportIn)
+    : transport(std::move(transportIn)) {
+    if (!transport) {
+        transport = std::make_unique<HidapiTransport>();
+    }
+}
 
 SpeedEditorHID::~SpeedEditorHID() {
     close();
@@ -71,16 +76,15 @@ SpeedEditorHID::~SpeedEditorHID() {
 // ── Low-level HID I/O ─────────────────────────────────────────────
 
 void SpeedEditorHID::sendFeatureReport(const uint8_t* data, size_t len) {
-    if (!dev) { return; }
-    if (hid_send_feature_report(dev, data, len) < 0) {
+    if (!opened) { return; }
+    if (transport->SendFeature(data, len) < 0) {
         std::fprintf(stderr, "speed_editor: send_feature_report failed\n");
     }
 }
 
 int SpeedEditorHID::recvFeatureReport(uint8_t reportId, uint8_t* buf, size_t len) {
-    if (!dev) { return -1; }
-    buf[0] = reportId;
-    int res = hid_get_feature_report(dev, buf, len);
+    if (!opened) { return -1; }
+    int res = transport->GetFeature(reportId, buf, len);
     if (res < 0) {
         std::fprintf(stderr, "speed_editor: get_feature_report failed\n");
     }
@@ -88,8 +92,8 @@ int SpeedEditorHID::recvFeatureReport(uint8_t reportId, uint8_t* buf, size_t len
 }
 
 bool SpeedEditorHID::writeOutputReport(const uint8_t* data, size_t len) {
-    if (!dev) { return false; }
-    if (hid_write(dev, data, len) < 0) {
+    if (!opened) { return false; }
+    if (transport->Write(data, len) < 0) {
         std::fprintf(stderr, "speed_editor: write failed\n");
         return false;
     }
@@ -103,71 +107,27 @@ bool SpeedEditorHID::open(const std::string& serialFilter) {
 
     state = State::Disconnected;
 
-    // Enumerate to find the device
-    struct hid_device_info* devs = hid_enumerate(SPEED_EDITOR_VID, SPEED_EDITOR_PID);
-    if (!devs) {
+    if (!transport->Open(serialFilter)) {
         return false;
     }
 
-    struct hid_device_info* target = nullptr;
-    struct hid_device_info* cur = devs;
-    while (cur) {
-        if (!serialFilter.empty() && cur->serial_number) {
-            // Convert wide string serial to std::string for comparison
-            std::string devSerial;
-            for (const wchar_t* p = cur->serial_number; *p; p++) {
-                devSerial += (char)*p;
-            }
-            if (devSerial == serialFilter) {
-                target = cur;
-                break;
-            }
-        }
-        else {
-            // Take the first one found
-            target = cur;
-            break;
-        }
-        cur = cur->next;
-    }
-
-    if (!target) {
-        hid_free_enumeration(devs);
-        return false;
-    }
-
-    dev = hid_open_path(target->path);
-    if (!dev) {
-        hid_free_enumeration(devs);
-        return false;
-    }
-
-    // Store serial number
-    if (target->serial_number) {
-        serial.clear();
-        for (const wchar_t* p = target->serial_number; *p; p++) {
-            serial += (char)*p;
-        }
-    }
-
-    hid_free_enumeration(devs);
+    opened = true;
     return true;
 }
 
 void SpeedEditorHID::close() {
-    if (dev) {
+    if (opened) {
         allLedsOff();
-        hid_close(dev);
-        dev = nullptr;
+        transport->Close();
+        opened = false;
     }
     state = State::Disconnected;
-    serial.clear();
 }
 
 // ── Authentication ─────────────────────────────────────────────────
 
 bool SpeedEditorHID::authenticate() {
-    if (!dev) { return false; }
+    if (!opened) { return false; }
 
     state = State::Authenticating;
 
@@ -217,7 +177,7 @@ bool SpeedEditorHID::authenticate() {
 // ── Wheel mode ─────────────────────────────────────────────────────
 
 bool SpeedEditorHID::setWheelMode(uint8_t mode) {
-    if (!dev) { return false; }
+    if (!opened) { return false; }
     // Output report 0x03: [id, mode, u32 0, u8 0xFF].
     // The 0xFF tail is the form used by python-bmd/bmd.py set_jog_mode()
     // ("unknown byte that works"); the vendored driver used 0x00 — both work.
@@ -228,10 +188,10 @@ bool SpeedEditorHID::setWheelMode(uint8_t mode) {
 // ── Event reading ──────────────────────────────────────────────────
 
 bool SpeedEditorHID::readEvent(SpeedEditorEvent& event, int timeoutMs) {
-    if (!dev) { return false; }
+    if (!opened) { return false; }
 
     uint8_t buf[64] = {};
-    int res = hid_read_timeout(dev, buf, sizeof(buf), timeoutMs);
+    int res = transport->Read(buf, sizeof(buf), timeoutMs);
     if (res == 0) { return false; }  // timeout — no data
     if (res < 0) {
         // Read error — device likely disconnected
@@ -297,9 +257,9 @@ bool SpeedEditorHID::setJogLeds(bool jog, bool shtl, bool scrl) {
 
 void SpeedEditorHID::allLedsOff() {
     // Best-effort: ignore failures (e.g. the device was just unplugged).
-    if (!dev) { return; }
+    if (!opened) { return; }
     uint8_t leds[] = {0x02, 0x00, 0x00, 0x00, 0x00};
-    hid_write(dev, leds, sizeof(leds));
+    transport->Write(leds, sizeof(leds));
     uint8_t jog[] = {0x04, 0x00};
-    hid_write(dev, jog, sizeof(jog));
+    transport->Write(jog, sizeof(jog));
 }

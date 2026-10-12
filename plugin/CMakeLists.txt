@@ -49,6 +49,7 @@ if(UNIX AND NOT APPLE)
   # the pre-HID source list.
   list(APPEND PLUGIN_PURE_SOURCES
     ${REPO_ROOT}/src/speed_editor/hid_device.cpp
+    ${REPO_ROOT}/src/speed_editor/hidapi_transport.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hid_wheel_source.cpp
   )
 endif()

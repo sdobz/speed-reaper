@@ -22,6 +22,7 @@
 // port of the vendored C++ reference (docs/speed-editor-examples/cpp-driver).
 
 #include "speed_editor/hid_device.h"
+#include <hidapi/hidapi.h>  // cmdScan lists devices directly (not opened)
 #include "speed_editor/key_map.h"
 
 #include <csignal>
