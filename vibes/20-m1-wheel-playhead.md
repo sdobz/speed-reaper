@@ -23,7 +23,7 @@ Every Verify starts with `tools/check` (build -Werror, `nm` export check, unit t
 tools/check jog_engine && ! grep -rn "WheelEvent" plugin/src plugin/test
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. Fix the demo wiring: `SummedWheelSource`
 

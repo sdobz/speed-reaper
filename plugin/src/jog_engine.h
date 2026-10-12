@@ -13,7 +13,7 @@
 
 // One relative wheel reading (signed ticks; the Speed Editor's jog report
 // carries a signed 32-bit value, see docs/speed-editor-capabilities.md).
-struct WheelEvent {
+struct WheelSample {
   std::int32_t delta = 0; // relative delta since the last event; 0 = no motion
 };
 
@@ -22,7 +22,7 @@ struct WheelEvent {
 class IWheelSource {
  public:
   virtual ~IWheelSource() = default;
-  virtual void Tick(WheelEvent *out) = 0;
+  virtual void Tick(WheelSample *out) = 0;
 };
 
 // Destination for smoothed motion. REAPER implements this (main.cpp) with
@@ -45,7 +45,7 @@ class DemoWheelSource : public IWheelSource {
   void Stop();
   bool Active() const { return t_ > 0.0; }
 
-  void Tick(WheelEvent *out) override;
+  void Tick(WheelSample *out) override;
 
   // Tuning (a real editor's absolute mode spans ±4096 per half turn).
   static constexpr double kRampUpS = 0.25;

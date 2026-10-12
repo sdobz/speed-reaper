@@ -5,7 +5,7 @@
 namespace {
 struct FixedSource : IWheelSource {
   int d = 0;
-  void Tick(WheelEvent *o) override { o->delta = d; }
+  void Tick(WheelSample *o) override { o->delta = d; }
 };
 struct SumSink : IPlayheadSink {
   double total = 0;

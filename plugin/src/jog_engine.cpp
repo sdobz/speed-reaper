@@ -5,7 +5,7 @@
 void DemoWheelSource::Trigger() { t_ = 0.001; }
 void DemoWheelSource::Stop() { t_ = 0.0; }
 
-void DemoWheelSource::Tick(WheelEvent *out) {
+void DemoWheelSource::Tick(WheelSample *out) {
   if (t_ <= 0.0) {
     out->delta = 0;
     return;
@@ -29,7 +29,7 @@ void DemoWheelSource::Tick(WheelEvent *out) {
 }
 
 void JogEngine::Tick(double dt_ms) {
-  WheelEvent ev;
+  WheelSample ev;
   source_.Tick(&ev);
 
   // Instantaneous wheel rate (units per ms) from this tick's delta.
