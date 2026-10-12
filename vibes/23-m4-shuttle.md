@@ -82,7 +82,8 @@ tools/check router
 tools/reaper-oracle --layer reaper --scenario shuttle
 ```
 
-- [ ] Done
+- [!] Done
+  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/23-m4-shuttle.md
 
 ### 7. Test instructions: SMOKE-TEST.md "M4 — shuttle"
 

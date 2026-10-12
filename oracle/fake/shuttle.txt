@@ -1,0 +1,23 @@
+# shuttle scenario (vibes/23-m4-shuttle.md task 6).
+# Keys: SHTL 0x1C, JOG 0x1D, STOP/PLAY 0x3C. A tap = down + up 50 ms apart.
+# In Shtl mode (protocol wheel mode 3, set by the plugin after the SHTL
+# press) wheel events carry the ABSOLUTE deflection: the fake device
+# echoes its current wheel mode in every report.
+#
+#   300/350      SHTL tap -> mode Shtl (plugin writes protocol mode 3)
+#   700          wheel +4096 -> ShuttleRate 8.0; REAPER clamps the master
+#                playrate to 0.25..4.0, so read-back is 4.0 (M4 spike)
+#   1700         wheel 0     -> dead band -> HardStop (paused)
+#   2300         wheel -2068 -> ShuttleRate -4.5 -> stepped-seek reverse
+#                (shuttle.lua resumes playback at ~1900 ms, just in time)
+#   3400/3450    JOG tap while in Shtl -> hand-off: rate 1.0, mode Jog
+#   3900/3950    STOP/PLAY (Jog now) -> cmd 40044 -> stopped
+at 300 key 0x1C down
+at 350 key 0x1C up
+at 700 wheel 4096
+at 1700 wheel 0
+at 2300 wheel -2068
+at 3400 key 0x1D down
+at 3450 key 0x1D up
+at 3900 key 0x3C down
+at 3950 key 0x3C up

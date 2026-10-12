@@ -144,3 +144,26 @@ Files:
 ```
 M vibes/.ralph/23-m4-shuttle.md
 ```
+
+## Task: 6. Oracle scenario: `shuttle`
+
+### Attempt 6 — 2026-10-12T21:48:00Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Fake device wheel reports ECHO the device-side wheel mode (`FakeTransport::Write` 0x03 sets `wheelMode_`, wheel report byte 2 = mode; src/speed_editor/fake_transport.cpp L196, L235). The worker treats mode 1/3 as ABSOLUTE (`abs_.store`), 0/2 as relative. The plugin writes protocol mode 3 after the SHTL press (ApplyModeToHid → RequestWheelMode, protocol: Shtl=3), so plain `at <ms> wheel <value>` lines after the SHTL tap carry absolute deflection directly — no accumulation needed in the script.
+- Key codes: SHTL=0x1C, JOG=0x1D, SCRL=0x1E, STOP/PLAY=0x3C (src/speed_editor/key_map.h).
+- `ShuttleRate(4096)=8.0`, `ShuttleRate(-2068)=-4.5` (s=0.5 exact).
+- Task text "Master_GetPlayRate ≈ 8" is NOT literally achievable: the chosen approach (rule 2) clamps the request to 4.0 at the API boundary and REAPER itself clamps read-back to [0.25,4.0] (spike: 8.0 requested → 4.0 read). The scenario asserts the documented 4.0 read-back + >2×-realtime playhead motion and records the request via the `shuttle rate=` trace line.
+- Reverse after the dead-band pause needs a playing transport (main.cpp parks forward/reverse while stopped, per the decision doc: "reverse while stopped is scrub, JOG/SCRL's job"). shuttle.lua resumes play with `reaper.OnPlayButtonEx(0)` at ~lua 1900 ms (script ~1860), before the script's `wheel -2068` at 2300. Net reverse motion ≈ −4.5× seek + 1.0× transport = ~−3.5×.
+- Clocks: script t=0 at plugin load (fake Open); lua t=0 ~40 ms later → lua t ≈ script t − 40 ms; all check windows carry ≥100 ms margin. 1500 ms warm-up (buttons/spike pattern) before the timeline.
+- JOG-tap "rate 1.0" after the reverse phase is trivially true (master rate was already 1.0 during stepped reverse); the substantive assertion is the trace `mode Shtl` → later `mode Jog` + `led jog=1`.
+- STOP/PLAY while back in Jog runs cmd 40044 (toggle) — headless-safe (buttons scenario precedent); 40045 never used.
+- Files: oracle/fake/shuttle.txt, oracle/scenarios/shuttle.env, oracle/scenarios/shuttle.lua; `shuttle` appended to the default suite in tools/reaper-oracle (LAYER==all list + header comment).
+- No plugin changes needed for task 6 (task 5 wiring already traces `shuttle rate=`, `shuttle reverse=`). Scenario-only → no rebuild, no git-snapshot concern; reaper-oracle reaper layer uses the existing build/plugin/reaper_speed_reaper.so (verify it contains the M4 sink before trusting a PASS).
+
+Result: exit 0; progress; 2 files changed, 22 insertions(+), 4 deletions(-); log: logs/23-m4-shuttle-L85-a6-1791841680150.log
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 6 attempt(s), last: exit 0, progress
+Log: logs/23-m4-shuttle-L85-replan-1791842803633.log
