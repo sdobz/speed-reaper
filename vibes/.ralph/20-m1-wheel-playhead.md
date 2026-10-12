@@ -73,3 +73,11 @@ Facts:
 - Result: full Verify green on first build (`tools/check` + readelf → VERIFY_OK; log `vibes/.ralph/logs/task3-attempt3.log`). `.so` has `NEEDED libhidapi-hidraw.so.0`; both unit tests pass; oracle host layer passes. hidapi pkg module in nix env is `hidapi-0.15.0`.
 Next:
 - Task 4 (`hid_probe`) — links the same PLUGIN_PURE_SOURCES + PkgConfig::HIDAPI; the stub already prints nothing, so the probe just needs its 8 ms Tick/PopLog loop and the `wheel: sum=` line.
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L58-a3-1791773368224.log
+
+### Done — 2026-10-12 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
