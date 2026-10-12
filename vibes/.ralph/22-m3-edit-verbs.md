@@ -62,3 +62,11 @@ M vibes/.ralph/22-m3-edit-verbs.md
   - Starting `tools/check` before `git add`ing new sources → silent rc=1 at the cross-build stage. Stage first, then check.
 - Next:
   - DONE: line 33 ticked; commit pending.
+
+Result: exit 0; done; log: logs/22-m3-edit-verbs-L33-a2-1791819485510.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/22-m3-edit-verbs.md
+```
