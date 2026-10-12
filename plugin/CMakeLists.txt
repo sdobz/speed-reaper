@@ -25,6 +25,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra)
 
+# Transport selection (docs/plugin-oracle-design.md §6, vibes/19 task 3):
+# test builds only. When ON, the plugin, hid_probe and the unit tests get the
+# SPEED_REAPER_FAKE_DEVICE macro, so MakeTransport()
+# (src/transport_factory.cpp) returns a FakeTransport when the env var of the
+# same name names a script. Default OFF: production builds always use
+# HidapiTransport and no env lookup is compiled in.
+option(SPEED_REAPER_FAKE_DEVICE "Select the Speed Editor transport from the SPEED_REAPER_FAKE_DEVICE env var (test builds only)" OFF)
+add_compile_definitions($<$<BOOL:${SPEED_REAPER_FAKE_DEVICE}>:SPEED_REAPER_FAKE_DEVICE>)
+
 if(WIN32 AND NOT MSVC)
   # MinGW path (see CROSS-PLATFORM.md): fine as long as this extension
   # implements none of REAPER's C++ interface classes. If that changes,
@@ -52,6 +61,7 @@ if(UNIX AND NOT APPLE)
     ${REPO_ROOT}/src/speed_editor/hidapi_transport.cpp
     ${REPO_ROOT}/src/speed_editor/fake_transport.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hid_wheel_source.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/transport_factory.cpp
   )
 endif()
 

@@ -52,4 +52,4 @@ tools/check fake_transport
 tools/check && test -s oracle/fake/wheel_turn.txt
 ```
 
-- [ ] Done
+- [x] Done

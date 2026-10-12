@@ -66,3 +66,23 @@ Files:
 ```
 M vibes/.ralph/19-oracle-device-windows.md
 ```
+
+## Task: 3. Select the fake by env (test builds only)
+
+### Attempt 1 — 2026-10-12T04:08:16Z — budget 600s
+
+- Facts:
+  - `hid_wheel_source.cpp` already exists as a stub (milestone 1); it does not construct a transport yet — not my job per the task text.
+  - `tools/check` passes `-DSPEED_REAPER_FAKE_DEVICE=ON` inside `-DCMAKE_CXX_FLAGS` (compiler flag, not a CMake cache var) — so the macro comes from CXX_FLAGS in check builds; the new CMake option (default OFF) stays OFF there, no define clash.
+  - `FakeTransport::Read` emits no input reports until the 0x06 auth handshake passes, so the factory test uses a `SpeedEditorHID` session (open + authenticate + readEvent), same pattern as `fake_transport_test.cpp`.
+  - Added: `plugin/src/transport_factory.{h,cpp}`, `plugin/test/transport_factory_test.cpp`, `oracle/fake/gen_wheel_turn.py` + generated `wheel_turn.txt` (62× `wheel 20` @8 ms from t=300, then 20 deltas 20→1 @25 ms). CMake option + `add_compile_definitions($<$<BOOL:..>:SPEED_REAPER_FAKE_DEVICE>)` at directory scope covers plugin, hid_probe, tests.
+  - Factory with env set always returns FakeTransport; unreadable/malformed script → stderr note + empty script.
+- Next: run `tools/check` (log: vibes/.ralph/logs/build.log), fix anything red, tick line 55.
+
+Result: timeout after 600s; progress; 2 files changed, 22 insertions(+); log: logs/19-oracle-device-windows-L55-a1-1791778096328.log
+
+### Attempt 2 — 2026-10-12T04:18:54Z — budget 600s
+- Facts:
+  - Attempt 1's work was complete and consistent: `plugin/src/transport_factory.{h,cpp}`, `plugin/test/transport_factory_test.cpp` (auto-globbed by `plugin/test/CMakeLists.txt`), CMake option + `add_compile_definitions($<$<BOOL:..>:SPEED_REAPER_FAKE_DEVICE>)` at directory scope, factory added to the Linux `PLUGIN_PURE_SOURCES` block, `oracle/fake/gen_wheel_turn.py` + `wheel_turn.txt` (82 lines: 62× `wheel 20` @8 ms from t=300, then deltas 20→1 @25 ms).
+  - `tools/check` exit 0: all 4 plugin tests pass (incl. `transport_factory_test`), `ORACLE PASS host`; `test -s oracle/fake/wheel_turn.txt` ok. Build was incremental — attempt 1 had already built before timing out.
+- Next: task done, box ticked.
