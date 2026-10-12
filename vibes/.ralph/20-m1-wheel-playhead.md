@@ -229,3 +229,11 @@ M vibes/.ralph/20-m1-wheel-playhead.md
   - No warm-up in the scenario (unlike jog_demo's 1500 ms) — turn 1 starts 100 ms after device open, i.e. ~60 ms after the script starts.
 - Next:
   - Task complete: wheel_unplug.txt + hid_wheel.env + hid_wheel.lua added, scenario in the default suite, two plugin caps, full `tools/reaper-oracle` (host+load+jog_demo+hid_wheel) PASS, scenario verify 3/3 green. Checkbox ticked.
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L113-a2-1791780637443.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
