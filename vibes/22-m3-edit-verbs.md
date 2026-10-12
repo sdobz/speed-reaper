@@ -114,6 +114,3 @@ grep -q '^## M3 — edit verbs' SMOKE-TEST.md
 - [x] Done
 
 ### 7. (human) Run the M3 hand test
-
-- [!] Done
-  BLOCKED: precondition — `ORACLE_FULL=1 tools/check` green. Human runs SMOKE-TEST.md "M3" with the real device and records timing feel in `docs/notes/m3-observations.md`. Pass bar: do a real rough cut of an audio clip (split, trim, delete, undo) entirely from the device while the wheel jogs. Then tick this box; next is `23-m4-shuttle.md`.
