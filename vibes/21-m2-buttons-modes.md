@@ -30,7 +30,7 @@ tools/check button_diff
 tools/check router
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Wire the router into the plugin
 
