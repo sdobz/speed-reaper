@@ -30,8 +30,8 @@ std::vector<ScriptEvent> goodScript() {
       "at 400 plug\n";
   std::string err;
   auto evs = ParseFakeScript(text, &err);
-  CHECK(evs.size() == 8);
-  if (evs.size() != 8) {
+  CHECK(evs.size() == 7);
+  if (evs.size() != 7) {
     std::fprintf(stderr, "parse error: %s\n", err.c_str());
   }
   CHECK(evs[0].kind == ScriptEvent::Kind::Wheel && evs[0].atMs == 10 && evs[0].delta == 30);

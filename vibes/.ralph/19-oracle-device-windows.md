@@ -51,3 +51,10 @@ Trigger: 3 attempt(s), last: timeout after 600s, progress
 Why: Both attempts burned the 600s budget on build orchestration; a3's log shows the build now compiles and the only live defect is the test's own expectation — goodScript() has 7 event lines but line 33 checks evs.size() == 8 — while the 14 bad-case failures in that log came from a stale parser revision (a3's build never recompiled fake_transport.cpp, and the on-disk parser sets *err on all 13 bad cases).
 Rejected: BUDGET: the approach is fine and the remaining work is one line; a bigger budget with the old 'create the four files' block risks another full orbit re-reading and re-doing finished work. SPLIT: nothing to split — one expectation fix plus the existing Verify. SPIKE: no open design decision; all contracts are settled and the code is written. BLOCK: nothing needs a human.
 Log: logs/19-oracle-device-windows-L35-replan-1791777517928.log
+
+## Task: Fix the fake_transport_test expectation and make `tools/check fake_transport` green
+
+### Attempt 1 — 2026-10-12T04:04:47Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: fixed `plugin/test/fake_transport_test.cpp:33` (and the fprintf guard) 8 → 7; confirmed `ParseFakeScript` in `src/speed_editor/fake_transport.cpp` fills `*err` for all 13 bad-script cases (unknown verb, wheel arg count/delta, bad/negative time, bad key state/keycode/range/missing state, unplug/plug extra arg, missing 'at', empty-line/comment skipping).
+- Done: `tools/check fake_transport` exits 0 (`fake_transport_test` passed, `ORACLE PASS host`); log at `vibes/.ralph/logs/task2-verify-b.log`. Ticked line 35.
