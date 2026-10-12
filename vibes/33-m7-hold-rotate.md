@@ -1,0 +1,75 @@
+# Milestone 7 — Hold + rotate: MOVE, edge nudge, SLIP, volume
+
+Builds on `32-m6-simple-verbs.md`. The gesture engine already emits `HoldStart` / `HoldRotate` / `HoldEnd` (M3); no verb uses them. Design (normative): `docs/plugin-design-m5-m9.md` §4. One hold = one undo block; the target set is resolved once at `HoldStart`. Every Verify starts with `tools/check`.
+
+### 1. `HoldNudge` accumulator (pure)
+
+- Create `plugin/src/hold_nudge.h/.cpp`: `class HoldNudge { explicit HoldNudge(int ticks_per_step = 4); int Add(std::int32_t delta); }` — returns the whole steps (signed) completed by the delta, keeping the remainder (negative and positive remainders symmetric toward zero). Add to `PLUGIN_PURE_SOURCES`.
+- `plugin/test/hold_nudge_test.cpp`: 3 ticks → 0, +1 more → 1; −4 → −1; 10 ticks → 2 steps remainder 2, then 2 → 1; direction reversal does not lose or invent steps.
+- Do not edit `verbs.cpp`.
+
+**Verify**
+```bash
+tools/check hold_nudge
+```
+
+- [ ] Done
+
+### 2. `IProject` item geometry
+
+- Add to `IProject` (+ fake + `ReaperProject`): `double Fps()` (project frame rate via `TimeMap_curFrameRate`, 30.0 if unknown), `ItemGeom GetGeom(int id)` / `void SetGeom(int id, const ItemGeom&)` with `struct ItemGeom { double pos, len, startoffs, playrate, vol; }` (`D_POSITION`, `D_LENGTH`, take `D_STARTOFFS`, `D_PLAYRATE`, item `D_VOL`; `UpdateItemInProject`).
+- Do not add verbs.
+
+**Verify**
+```bash
+tools/check
+```
+
+- [ ] Done
+
+### 3. Pure nudge math
+
+- Create `plugin/src/nudge.h/.cpp`: free functions per design §4 table, each `ItemGeom Apply(const ItemGeom&, int steps, double step_seconds)`: `NudgeMove`, `NudgeTrimIn`, `NudgeTrimOut`, `NudgeSlipSrc`, `NudgeSlipDest`, `NudgeVolume` (0.5 dB/step, clamp 0…+12 dB; `steps` are signed). Clamps: length ≥ one step, `startoffs` ≥ 0. Add to `PLUGIN_PURE_SOURCES`.
+- `plugin/test/nudge_test.cpp`: one assertion pair per function including the clamps and `playrate != 1`.
+
+**Verify**
+```bash
+tools/check nudge
+```
+
+- [ ] Done
+
+### 4. Hold rows in `VerbRouter`
+
+- Handle `HoldStart` (resolve targets once via `TargetItems`, snapshot selection, `Undo_Begin`), `HoldRotate` (`HoldNudge.Add(delta)` → apply the key's function to every target, step = `1/Fps()`), `HoldEnd` (restore selection, `Undo_End("Speed Reaper: <verb>")`). Keys: SPLIT, TRIM_IN, TRIM_OUT, SLIP_SRC, SLIP_DEST, AUDIO_LEVEL per design §4. Unmapped keys and no-target holds do nothing (no undo block opened).
+- Extend `verbs_test.cpp` with a fake project: SPLIT hold + 8 ticks → item `pos` +2 frames, exactly one `Undo_Begin`/`Undo_End` pair; hold with no target → none; release restores selection.
+- Check `main.cpp` already sends wheel deltas to the gesture engine while `HoldActive()` (design §7) and fix only if it does not.
+
+**Verify**
+```bash
+tools/check verbs
+```
+
+- [ ] Done
+
+### 5. Oracle scenario: `hold_nudge`
+
+- Add `oracle/fake/hold_nudge.txt` (+ `.env`, `hold_nudge.lua`). The fake grammar needs wheel events while a key is down; read `oracle/fake/wheel_turn.txt` and `oracle/fake/buttons.txt` for the syntax. Item A [0,5] on a track, nothing selected, cursor 2.5, project 30 fps. Hold SPLIT + 8 ticks → A.pos≈ 2/30; hold TRIM OUT + −8 ticks → A.len reduced by 2/30; hold SLIP SRC + 4 ticks → `D_STARTOFFS`≈ 1/30 with pos/len unchanged; hold AUDIO LEVEL + 4 ticks → `D_VOL`≈ 10^(0.5/20); ESC double-tap after any hold → that item restored in **one** undo step; selection stays empty throughout.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario hold_nudge
+```
+
+- [ ] Done
+
+### 6. SMOKE-TEST.md: "M7 — hold + rotate"
+
+- Add the section: E3 hold-SPLIT MOVE, TRIM OUT hold+wheel in E5 (tape-mode part waits for M8), SLIP SRC feel (audible content slide), AUDIO LEVEL hold+wheel dB feel, one-ESC-undo per gesture. Note "not ripple-aware" (design §4). Expected results per step.
+
+**Verify**
+```bash
+grep -q '^## M7 — hold' SMOKE-TEST.md
+```
+
+- [ ] Done

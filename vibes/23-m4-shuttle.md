@@ -18,7 +18,7 @@ The spike runs under the oracle (`docs/plugin-oracle-design.md`), not by hand. E
 tools/check shuttle
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. Spike actions: probe the playrate API
 
@@ -50,7 +50,47 @@ tools/reaper-oracle --layer reaper --scenario spike_rate --report-only >/dev/nul
 
 - [ ] Done
 
-### 4. (human) Pick the shuttle approach
+### 4. Decide the shuttle approach by rule (no human)
 
-- [!] Done
-  BLOCKED: human reads `docs/notes/m4-shuttle-api.md` (measured by the oracle), checks by ear whether the chosen rates sound acceptable on a real audio device, picks an approach, then writes the follow-up tasks here (suggested: wire `SHTL` in `Router` with `AbsolutePosition()` → `ShuttleRate` → chosen API; STOP/PLAY hard stop; JOG-tap handoff; an oracle scenario `shuttle` with a fake-device script that deflects the wheel; SMOKE "M4 — shuttle" + hand test) and replaces this box.
+- Write `docs/plugin-design-m4-shuttle-impl.md` from `docs/notes/m4-shuttle-api.md`. Rule, in order, state which won: (1) if 8× forward and −1× reverse both ran (rate read back, cursor moved in the right direction) → "playrate only"; (2) else if forward works but reverse does not → forward via playrate, reverse via stepped seek (`SetEditCurPos` back by `rate*dt` each timer tick); (3) else forward-only shuttle, reverse offsets clamp to the dead band and a one-time message says so. Fix in the doc: which function sets the rate, tick period, how STOP/PLAY and JOG-tap hand off (design §8 of `plugin-design-m1-m3.md`).
+- Do not implement.
+
+**Verify**
+```bash
+test -s docs/plugin-design-m4-shuttle-impl.md && grep -q 'Decision' docs/plugin-design-m4-shuttle-impl.md
+```
+
+- [ ] Done
+
+### 5. Wire SHTL per the decision
+
+- In `Router`/`main.cpp`: SHTL mode feeds `AbsolutePosition()` → `ShuttleRate` → the chosen API per the doc; dead band pauses (no rewind); STOP/PLAY hard stop; JOG/SCRL press hands off (rate 1.0, relative mode). Remove the four spike actions' registration only if the doc says to; otherwise keep them. Router unit tests with a fake sink: offset 0 → no rate call; ±2068 → ±4.5; STOP/PLAY while shuttling → stop; JOG press → rate 1.0.
+
+**Verify**
+```bash
+tools/check router
+```
+
+- [ ] Done
+
+### 6. Oracle scenario: `shuttle`
+
+- Add `oracle/fake/shuttle.txt` (+ `.env`, `shuttle.lua`): SHTL press, wheel absolute deflection to +4096 → `Master_GetPlayRate` ≈ 8 and cursor advances; back to 0 → paused; −2068 → reverse per the chosen approach (cursor decreases, or the documented clamp); STOP/PLAY → stopped; JOG tap while shuttling → rate 1.0. Add to the default oracle run.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario shuttle
+```
+
+- [ ] Done
+
+### 7. Test instructions: SMOKE-TEST.md "M4 — shuttle"
+
+- Write the hand-test section for what the oracle cannot judge (E2): audio quality at 2×/8×/reverse, the feel of the smoothstep curve near center, dead-band size, wheel parked at center = silent. Per step: action, expected result, pass/fail box; and name the parameters to change (`kDeadBand`, max rate, curve) if the feel is wrong, so the human reports numbers not impressions.
+
+**Verify**
+```bash
+grep -q '^## M4 — shuttle' SMOKE-TEST.md
+```
+
+- [ ] Done

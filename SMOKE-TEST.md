@@ -318,9 +318,9 @@ Setup: Speed Editor plugged in, plugin installed and connected (M1 step 3 / M2 s
 
    **Expected:** TRIM IN deletes everything **left** of the cursor — the item's start jumps to the cursor, length shortens from the left (`cmd 40511`); TRIM OUT does the mirror image, the item's end jumps to the cursor (`cmd 40512`). Undo (`Ctrl+Z`) restores the item; it is destructive, so test on a copy of the project or be ready to undo.
 
-4. **RIPL DEL with and without ripple**: with an item selected, tap **RIPL DEL** with REAPER's ripple editing **off** — undo; re-select the item. Now switch ripple editing on (REAPER: `Alt+P` cycles the ripple/loop modes until the toolbar's ripple icon is active, or Options → Ripple mode), put the cursor between the two items and select one, tap **RIPL DEL** again.
+4. **RIPL DEL with and without ripple**: with an item selected, tap **RIPL DEL** with REAPER's ripple editing **off** — undo; re-select the item. Now switch ripple editing on — **and verify it is on before tapping**: Options menu → **Ripple Editing** submenu → *Per-track* (or `Alt+P` cycles Off → Per-track → All tracks; on REAPER ≥ 7.35 the toolbar's ripple button left-click toggles and **right-click cycles**, so trust the Options menu). Put the cursor between the two items, select one, tap **RIPL DEL** again.
 
-   **Expected:** either way the selected item is deleted (`cmd 40006`, item count drops). With ripple **off** the gap where the item was remains — the neighboring item does not move. With ripple **on** the gap closes — the later item(s) shift left to close it. Turn ripple off again afterwards.
+   **Expected:** either way the selected item is deleted (`cmd 40006`, item count drops). With ripple **off** the gap where the item was remains — the neighboring item does not move. With ripple **on** the gap closes — the later item(s) shift left to close it. This state dependence is REAPER's own semantics (RIPL DEL is `Item: Remove items`; REAPER has no standalone "ripple delete" command — whether a delete ripples is driven by the project's ripple mode), pinned by the automated scenario `tools/reaper-oracle --layer reaper --scenario ripple_del`. Turn ripple off again afterwards.
 
 5. **SNAP + LED**: note REAPER's snap state (toolbar). Tap **SNAP** on the device; tap it again; then toggle snap from **REAPER's own toolbar**.
 

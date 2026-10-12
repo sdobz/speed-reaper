@@ -6,6 +6,13 @@ tasks. When M4 is done, turn the next section into its own
 per task, a Verify each, research/spike *first*, design settled in a `docs/`
 file before implementation tasks. The first box below makes ralph stop here.
 
+**Promoted to ralph files (do not redo here):** B1's verbs, hold+rotate and LED
+bar → `31-m5-targeting.md`, `32-m6-simple-verbs.md`, `33-m7-hold-rotate.md`,
+`34-m8-led-bar.md`; B2's crossfades → `35-m9-crossfade-spike.md` (takes/CAM,
+MARK, view buttons are in M6); B4's L3 remap → `36-m10-bindings.md`; the old M4 shuttle and M9 human checkpoints now decide by written rule. Design:
+`docs/plugin-design-m5-m9.md`. Still backlog below: B3 SOURCE focus, B4 L1/L2
+OPTIONS mode, B5 composites, B2's ROLL/SLIP-time-ordering leftovers (ROLL, SLIDE).
+
 Already moved into M1–M4 (do not redo): HID integration, wheel modes JOG/SCRL,
 STOP/PLAY, gesture engine (tap / double-tap / hold detection), tap-only verbs
 (SPLIT, TRIM, RIPL DEL, IN/OUT, SNAP + LED, ESC/UNDO), shuttle law.
@@ -17,9 +24,6 @@ Oracle rule for every promoted section: each feature gets a `tools/reaper-oracle
 Priority order for turning into files: **B1** (old M3 remainder) → **B2**
 (old M4 crossfades/takes — takes+CAM LEDs first) → **B3** SOURCE focus →
 **B4** configuration → **B5** composites. Windows builds stay out of scope.
-
-- [!] Done
-  BLOCKED: backlog only; a human (or planning model) promotes the next section to its own vibes file.
 
 ---
 

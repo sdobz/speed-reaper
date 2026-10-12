@@ -7,7 +7,7 @@
 #                       [--platform linux|windows] [--report-only]
 #
 # Without --scenario, the reaper layer runs the full scenario suite
-# (load, then jog_demo, then hid_wheel, then buttons); --scenario NAME
+# (load, jog_demo, hid_wheel, buttons, verbs, ripple_del); --scenario NAME
 # runs only that scenario.
 # A scenario may ship an oracle/scenarios/<NAME>.env file that is sourced
 # before reaper starts (e.g. hid_wheel.env sets SPEED_REAPER_FAKE_DEVICE).
@@ -204,10 +204,11 @@ run_crash_capture() {
 # run (layer all) runs load, then jog_demo (vibes/18-oracle-linux.md task 9),
 # then hid_wheel (vibes/20-m1-wheel-playhead.md task 7), then buttons
 # (vibes/21-m2-buttons-modes.md task 4), then verbs (vibes/22-m3-edit-verbs.md
-# task 5).
+# task 5), then ripple_del (M3: cmd 40006 delete + gap behavior under each
+# ripple mode; SMOKE-TEST.md "M3" step 4).
 REAPER_SCENARIOS=("$SCENARIO")
 if [[ $SCENARIO_EXPLICIT -eq 0 && "$LAYER" == all ]]; then
-  REAPER_SCENARIOS=(load jog_demo hid_wheel buttons verbs)
+  REAPER_SCENARIOS=(load jog_demo hid_wheel buttons verbs ripple_del)
 fi
 
 HOST_RC=0

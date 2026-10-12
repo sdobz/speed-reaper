@@ -25,3 +25,24 @@ Dead ends:
 
 Next:
 - DONE: bgrun `check-shuttle2` exit 0 (shuttle_test passed, WINDOWS ORACLE PASS static, ORACLE PASS host). Line 21 ticked. Plugin files in commit 9f9b726.
+
+Result: exit 0; done; 4 files changed, 57 insertions(+), 12 deletions(-); log: logs/23-m4-shuttle-L21-a1-1791838989818.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M tools/reaper-oracle
+ M vibes/.ralph/23-m4-shuttle.md
+ M vibes/23-m4-shuttle.md
+ M vibes/30-backlog.md
+?? docs/ReaperUserGuide781c/
+?? docs/plugin-design-m5-m9.md
+?? oracle/scenarios/ripple_del.lua
+?? vibes/31-m5-targeting.md
+?? vibes/32-m6-simple-verbs.md
+?? vibes/33-m7-hold-rotate.md
+?? vibes/34-m8-led-bar.md
+?? vibes/35-m9-crossfade-spike.md
+?? vibes/36-m10-bindings.md
+```
