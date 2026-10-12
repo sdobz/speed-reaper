@@ -51,7 +51,7 @@ set(PLUGIN_PURE_SOURCES
 )
 
 get_filename_component(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE OR WIN32)
   # Speed Editor driver + HID wheel source (docs/plugin-design-m1-m3.md §1, §4):
   # REAPER-free, so they belong in PLUGIN_PURE_SOURCES (linked into the plugin
   # and every unit test). M1–M4 are Linux-only; the Windows cross build keeps
@@ -81,9 +81,20 @@ target_include_directories(speed_reaper SYSTEM PRIVATE
   ${REPO_ROOT}/vendor/WDL/WDL
 )
 
+if(WIN32)
+  # Static hidapi winapi backend (HIDAPI_PREFIX = its install dir, passed by
+  # flake.nix; same layout src/Makefile CROSS=1 uses). It LoadLibrary()s the
+  # system hid.dll at runtime, and needs setupapi for enumeration.
+  set(HIDAPI_PREFIX "" CACHE PATH "Windows hidapi install prefix")
+  target_include_directories(speed_reaper PRIVATE ${REPO_ROOT}/src)
+  target_include_directories(speed_reaper SYSTEM PRIVATE ${HIDAPI_PREFIX}/include)
+  target_link_directories(speed_reaper PRIVATE ${HIDAPI_PREFIX}/lib)
+  target_link_libraries(speed_reaper PRIVATE hidapi setupapi)
+endif()
+
 if(MINGW)
   # Self-contained .dll: no libstdc++/libgcc dependency on the target.
-  target_link_options(speed_reaper PRIVATE -static-libstdc++ -static-libgcc)
+  target_link_options(speed_reaper PRIVATE -static -static-libstdc++ -static-libgcc)
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -115,7 +126,9 @@ endif()
 
 # Guarded: cross builds (flake) may pack a tree that predates test/. After the
 # UNIX block above so the tests can see REPO_ROOT and PkgConfig::HIDAPI.
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/CMakeLists.txt)
+# Skipped when cross-compiling: the tests need the Linux-only HID sources and
+# POSIX APIs (setenv), and a Windows binary can't run in the build sandbox.
+if(NOT CMAKE_CROSSCOMPILING AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test/CMakeLists.txt)
   enable_testing()
   add_subdirectory(test)
 endif()
@@ -123,7 +136,7 @@ endif()
 # Oracle host (docs/plugin-oracle-design.md §3): stand-in for REAPER with no
 # GUI; loads the built plugin and fakes reaper_plugin_info_t. Guarded like
 # test/ above (cross builds may pack an older tree).
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/plugin_host.cpp)
+if(NOT WIN32 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/plugin_host.cpp)
   add_executable(plugin_host tools/plugin_host.cpp)
   if(UNIX AND NOT APPLE)
     target_link_libraries(plugin_host PRIVATE dl)

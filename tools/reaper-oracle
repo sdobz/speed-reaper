@@ -142,11 +142,20 @@ run_reaper() {
   # Licensed copy (kept outside the repo) avoids the nag screen / browser launch.
   [[ -f "${REAPER_LICENSE:-$HOME/.config/REAPER/reaper-license.rk}" ]] \
     && cp "${REAPER_LICENSE:-$HOME/.config/REAPER/reaper-license.rk}" "$OUT/home/.config/REAPER/reaper-license.rk"
+  # Pre-seed a profile so REAPER starts with no modal dialogs and no browser:
+  #   verchk=0            no update check -> no "New Version Notification"/download page
+  #   linux_audio_mode=3  audio mode that opens without hardware -> no "Error opening devices"
+  # (found empirically with REAPER 7.81 under Xvfb; mode 0,1,2,4,6 all fail to open)
+  printf '[REAPER]\nverchk=0\nlinux_audio_mode=3\n' > "$OUT/home/.config/REAPER/reaper.ini"
+  # Never let REAPER (or anything it spawns) reach the host's browser/D-Bus session.
+  mkdir -p "$OUT/home/bin"
+  printf '#!/bin/sh\necho "$0 $*" >> "%s/blocked_open.log"\n' "$PWD/$OUT" > "$OUT/home/bin/xdg-open"
+  chmod +x "$OUT/home/bin/xdg-open"
   rm -f "$OUT/probe.json" "$OUT/reaper.stderr"
   REAPER_RC=0
   if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt" "$OUT/trace_$SCENARIO.txt"; fi
   start_dismisser
-  HOME="$OUT/home" \
+  HOME="$OUT/home" PATH="$PWD/$OUT/home/bin:$PATH" BROWSER="$PWD/$OUT/home/bin/xdg-open" DBUS_SESSION_BUS_ADDRESS= \
   ORACLE_LIB="$PWD/oracle/lib.lua" \
   ORACLE_OUT="$PWD/$OUT" \
   SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \

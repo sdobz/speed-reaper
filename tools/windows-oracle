@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# tools/windows-oracle — "the Windows plugin works" oracle.
+# Design: docs/windows-oracle-design.md
+# Usage: tools/windows-oracle [--layer static|wine] [dll]   (default: static)
+#   static: PE checks that predict REAPER's "failed load" (no Windows needed)
+#   wine:   load + exercise the DLL under wine (needs wine; see design doc)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if ! command -v x86_64-w64-mingw32-objdump >/dev/null && ! command -v objdump >/dev/null; then
+  exec nix develop --command "$0" "$@"; fi
+layer=static; [[ "${1:-}" == --layer ]] && { layer=$2; shift 2; }
+dll=${1:-$(nix build .#reaper-plugin-windows --no-link --print-out-paths 2>/dev/null)/reaper/reaper_speed_reaper.dll}
+
+fail=0
+bad() { echo "FAIL: $*" >&2; fail=1; }
+
+static_layer() {
+  local hdr imports exports
+  hdr=$(objdump -p "$dll")
+  # S1: 64-bit PE DLL (REAPER x64 refuses anything else)
+  grep -q 'Magic.*PE32+' <<<"$hdr" || bad "S1 not PE32+ (x86-64)"
+  file -L "$dll" | grep -q 'x86-64' || bad "S1 machine is not x86-64"
+  # S2: import allowlist — only DLLs present on every Windows install.
+  # Anything else (libmcfgthread-2.dll, libstdc++-6.dll, libwinpthread-1.dll,
+  # libgcc_s_seh-1.dll, libhidapi*.dll) = REAPER "error failed load".
+  local allow='^(kernel32|user32|gdi32|advapi32|shell32|ole32|oleaut32|ntdll|msvcrt|setupapi|hid|cfgmgr32|bcrypt|ws2_32|comdlg32|winspool|api-ms-win-.*)\.dll$'
+  while read -r name; do
+    [[ "${name,,}" =~ $allow ]] || bad "S2 non-system import: $name"
+  done < <(sed -n 's/^\s*DLL Name: //p' <<<"$hdr")
+  # S3: REAPER entry point exported (REAPER looks it up by name)
+  exports=$(objdump -p "$dll" | sed -n '/Export Table/,/^$/p;/\[Ordinal\/Name Pointer\]/,/^$/p')
+  grep -q 'ReaperPluginEntry' <<<"$exports" || bad "S3 ReaperPluginEntry not exported"
+  # S4: file name REAPER scans for
+  [[ "$(basename "$dll")" == reaper_*.dll ]] || bad "S4 name must match reaper_*.dll"
+}
+
+wine_layer() {
+  command -v wine64 >/dev/null || command -v wine >/dev/null \
+    || { echo "wine layer: wine not installed (nix shell nixpkgs#wine64)" >&2; exit 2; }
+  echo "wine layer: not implemented yet (docs/windows-oracle-design.md §W)" >&2; exit 2
+}
+
+case $layer in static) static_layer ;; wine) wine_layer ;; *) echo "bad layer" >&2; exit 2 ;; esac
+((fail)) && exit 1
+echo "WINDOWS ORACLE PASS $layer ($dll)"

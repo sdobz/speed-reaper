@@ -84,7 +84,7 @@
       # → self-contained reaper_speed_reaper.dll (static C++ runtime).
       # MinGW works because the extension's REAPER surface is C-ABI only
       # (see CROSS-PLATFORM.md at the repo root).
-      makeSpeedReaperPlugin = { spkgs, targetSystem, cross, artifactSuffix }:
+      makeSpeedReaperPlugin = { spkgs, targetSystem, cross, artifactSuffix, hidapi ? null }:
         spkgs.stdenv.mkDerivation {
           pname = "reaper-speed-reaper";
           version = "0.1.0";
@@ -105,7 +105,7 @@
             # -DCMAKE_SYSTEM_NAME=Windows settings; without them CMake
             # misdetects the platform as Unix (host) and the pkg-config/
             # gdk branch fires.
-            cmake $cmakeFlags -S plugin -B build -G Ninja
+            cmake $cmakeFlags ${if hidapi != null then "-DHIDAPI_PREFIX=${hidapi}" else ""} -S plugin -B build -G Ninja
           '';
 
           buildPhase = ''
@@ -197,6 +197,12 @@
         reaper-plugin-windows = self.packages.${winSystem}.reaper-plugin;
       };
 
+      # `nix flake check` builds the Windows cross builds so they can't rot.
+      checks.${linuxSystem} = {
+        reaper-plugin-windows = self.packages.${winSystem}.reaper-plugin;
+        speedcli-windows = self.packages.${winSystem}.speedcli;
+      };
+
       packages.${winSystem} = {
         speedcli = makeSpeedcli {
           spkgs = pkgsWin;
@@ -210,6 +216,7 @@
           targetSystem = winSystem;
           cross = true;
           artifactSuffix = ".dll";
+          hidapi = hidapiWin;
         };
       };
 
