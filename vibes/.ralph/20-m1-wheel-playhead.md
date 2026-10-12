@@ -197,3 +197,11 @@ M vibes/.ralph/20-m1-wheel-playhead.md
 
 ### Attempt 1 — 2026-10-12T04:48:37Z — budget 1800s
 <!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L99-a1-1791780517568.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
