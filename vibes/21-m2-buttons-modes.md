@@ -57,7 +57,7 @@ ORACLE_FULL=1 tools/check
 tools/reaper-oracle --layer reaper --scenario buttons
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. SMOKE-TEST.md: "M2 — buttons and wheel modes"
 

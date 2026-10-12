@@ -10,6 +10,7 @@ Durable facts every task should know (keep short).
 - `tools/check` includes `tools/windows-oracle --layer static`, whose DLL comes from `nix build .#reaper-plugin-windows` — that builds from **committed** git sources. Commit new files before running it (untracked files → "Cannot find source file").
 - SWELL (`swell-types.h`) defines `min`/`max` as function-like macros. Any NEW `<vector>`/`<string>`/etc. std include needed by a plugin header must be added to the pre-SDK std-include block at the top of `plugin/src/main.cpp` (existing pattern + comment), or the libstdc++ header's `std::max` breaks under -Werror.
 - `tools/check` needs `nix develop` (cmake/g++ not on plain PATH); bgrun jobs: check1/2/3, win, winbuild2, hostorc.
+- Plugin `Trace` **appends** to `SPEED_REAPER_TRACE`. tools/reaper-oracle now wipes `trace_<scenario>.txt` before every scenario run (all layers); if you add a scenario, count-based trace checks (e.g. `cmd 40044` once) break on the 2nd run if the file is stale.
 
 
 ## Task: 1. `DiffHeldKeys` (pure) and use it in the worker
@@ -64,3 +65,12 @@ Files:
 ```
 M vibes/.ralph/21-m2-buttons-modes.md
 ```
+
+## Task: 4. Oracle scenario: `buttons`
+
+### Attempt 4 — 2026-10-12T07:30:25Z — budget 1800s
+- Facts: tree clean. Fake script grammar (fake_transport.cpp): `at <ms> key <hex> down|up` (emits full held set as report 0x04), `wheel <delta>`, `unplug`, `plug`; clock = steady time since first successful Open; script plays once. Worker reconnect = 1 s open retry after unplug (hid_wheel_source.cpp step 1). Trace lines are `<ms> <msg>`: `mode Jog|Scrl|Shtl`, `led jog=<hex> main=<hex>` (Jog bit 1, Shtl 2, Scrl 4), `cmd 40044`, `log connected (serial FAKE0001)`, `log disconnected`. Scenario trace file = `build/oracle/trace_<scenario>.txt`; env file sourced by harness; Lua starts ~40 ms after plugin load (offset vs script clock). Default reaper suite = `REAPER_SCENARIOS=(load jog_demo hid_wheel)` in tools/reaper-oracle (line ~206) — adding `buttons` there = "default oracle run".
+- Facts: created `oracle/fake/buttons.txt` (JOG tap 300/350; JOG turn 600–912 (40×600 @8 ms); SCRL tap 1200/1250; SCRL turn 1500–1812; SHTL tap 2100/2150; STOP/PLAY tap 2400/2450; unplug 2700; plug 3600; turn 3 4800–5112), `oracle/scenarios/buttons.env`, `buttons.lua` (8 s sampling; windows 1100/1450–1950/≥4700; trace state machine).
+- Facts: `tools/reaper-oracle --layer reaper --scenario buttons` PASS first try, all 12 checks non-vacuous: rise1=0.326 s (JOG turn), dev2=0.0000 (SCRL turn), dev3=0.0000 (after replug, still Scrl), GetPlayState 0→1, trace = `mode Jog`@190 → `mode Scrl`@1217 (led jog=1/jog=4, no Shtl), `cmd 40044` once, `led jog=4` re-traced @3717 after the `log disconnected`@2700/reconnect@3700. No plugin bug found (button semantics were verified host-level in attempt 3). Added `buttons` to `REAPER_SCENARIOS` default suite in tools/reaper-oracle (+ comments).
+- Dead ends: first full default run (`buttonsfull`) FAILED `buttons: trace: cmd 40044 exactly once` (count=2) — not a plugin bug: in `--layer all` mode `run_reaper` never wiped `trace_$SCENARIO.txt` (only `--layer reaper` did), so Trace (append) piled stale lines from the earlier standalone run; every 2nd default run would fail. Fixed in tools/reaper-oracle: `rm -f trace_$SCENARIO.txt` unconditionally at scenario start (minimal change; no timing edits).
+- Done: `buttonsfull2` full default run `ORACLE PASS all/load,jog_demo,hid_wheel,buttons`; verify command re-run again = PASS (deterministic with the trace-wipe fix). Line 60 ticked; commit.
