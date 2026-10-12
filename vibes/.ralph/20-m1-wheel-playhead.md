@@ -249,3 +249,11 @@ M vibes/.ralph/20-m1-wheel-playhead.md
   - `docs/notes/m1-hid-observations.md` does not exist yet — the smoke-test section just points human testers at it (the file is created at test time, task 9 is human).
 - Dead ends: none (attempt 3 was a clean docs-only pass).
 - Next: done — section appended to SMOKE-TEST.md, checkbox ticked. Verify passes.
+
+Result: exit 0; done; log: logs/20-m1-wheel-playhead-L133-a3-1791782209778.log
+
+### Done — 2026-10-12 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/20-m1-wheel-playhead.md
+```
