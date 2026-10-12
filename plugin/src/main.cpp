@@ -51,6 +51,7 @@
 #define REAPERAPI_WANT_GetToggleCommandState // onTimer: SNAP LED (command 1157)
 #define REAPERAPI_WANT_CSurf_OnPlayRateChange // spike actions (M4 playrate probe)
 #define REAPERAPI_WANT_Master_GetPlayRate // spike actions: read back the rate
+#define REAPERAPI_WANT_OnStopButton // spike reset: stop (40045 blocks headless, M4 task 3)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -313,8 +314,11 @@ void RunSpike(int cmd, double rate, bool reverse) {
 
 void RunSpikeReset() {
   // Restore 1.0 and stop the transport (no play-start here).
+  // OnStopButton, not Main_OnCommand(40045): the stop *command* blocks
+  // forever in headless REAPER under the oracle (verified in
+  // oracle/scenarios/dbg8.lua; OnStopButton returns, see dbg9.lua).
   CSurf_OnPlayRateChange(1.0);
-  Main_OnCommand(40045, 0); // transport stop
+  OnStopButton(); // transport stop
   g_spike.pending = g_cmd_spike_reset;
   g_spike.requested = 1.0;
   g_spike.reverse = false;

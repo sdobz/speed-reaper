@@ -67,3 +67,19 @@ Files:
 ```
 M vibes/.ralph/23-m4-shuttle.md
 ```
+
+## Task: 3. Run the spike under the oracle and write the findings
+
+### Attempt 3 — 2026-10-12T21:11:08Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Spike actions fire from REAPER via `Main_OnCommand(NamedCommandLookup("_speed_reaper_spike_*"), 0)`; cmds are 53003-53006 in the oracle home. Plugin prints `spike rate=%f read=%f state=%d pos=%f` ~300 ms later into `build/oracle/trace_spike_rate.txt`; scenario can read that file with `io.open(os.getenv("ORACLE_OUT") .. "/trace_spike_rate.txt")` (pattern from buttons.lua).
+- First measured data point (broken run): reverse's `spike rate=-1.000000 read=1.000000 state=1` — CSurf_OnPlayRateChange(-1.0) is NOT reflected by Master_GetPlayRate (reads back 1.0). rate2/rate8 readings lost because all 4 actions fired within 1 ms and the plugin has a single `g_spike.pending` slot (last one wins).
+- RunSpike starts transport (1007) when stopped; RunSpikeReset stops (40045) instead.
+
+Dead ends:
+- For-loop over the 4 actions with `wait_ms(600, ...)` between them: wait_ms is NON-blocking (reaper.defer), so all 4 Main_OnCommands fired in ~1 ms, the pending slot got overwritten 3×, only reverse produced a result line, and REAPER never quit (no probe.json → timeout). Fix: chain actions through the wait's on_done (sequential state machine) — done in oracle/scenarios/spike_rate.lua.
+
+Next:
+- Re-run `tools/reaper-oracle --layer reaper --scenario spike_rate --report-only`, then write docs/notes/m4-shuttle-api.md from build/oracle/ artifacts.
