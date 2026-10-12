@@ -176,3 +176,24 @@ Files:
 ```
 M vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+## Task: 6. Use `HidWheelSource` in the plugin
+
+### Attempt 2 — 2026-10-12T04:28:55Z — budget 600s
+- Facts:
+  - `main.cpp` already had `SummedWheelSource g_wheel_source(g_demo_source, g_null)`; swapped `g_null` → `HidWheelSource g_hid` (order: `g_hid` first, then `g_demo_source`), added `REAPERAPI_WANT_ShowConsoleMsg`, `#include "hid_wheel_source.h"`, ext_name → `"Speed Reaper"`, `g_hid.Start()` after timer registration, `g_hid.Stop()` first in the `rec == nullptr` path.
+  - `onTimer()` drains `PopLog` → `ShowConsoleMsg("Speed Reaper: <line>\n")` and discards `PopButton`, before the engine-null early return.
+  - No test/tool references the old `"Speed Reaper (hello world)"` ext_name, so the rename is safe.
+  - `ButtonChange` is defined in `hid_wheel_source.h:31`; `PopButton(ButtonChange*)` signature confirmed.
+- Next:
+  - `ORACLE_FULL=1 tools/check` (background, log at vibes/.ralph/logs/task6-verify.log); tick line 99 if exit 0.
+
+### Attempt 3 — 2026-10-12T~05:10Z — budget 1800s
+- Facts:
+  - All task-6 code was already complete in the working tree (uncommitted): diff covers g_hid, SummedWheelSource order, Start/Stop, onTimer drains, ext_name, REAPERAPI_WANT_ShowConsoleMsg. Matches the task bullet-for-bullet.
+  - Prior `vibes/.ralph/logs/task6-verify.log` ends with `ORACLE PASS all/load,jog_demo` (but that run was wrapped in bgrun whose wrapper reported exit 127 — so re-running verify directly to get a clean exit code).
+  - Re-running verify as bgrun job `t6-verify3` (log `vibes/.ralph/logs/t6-verify3.log`); appends `CHECK_EXIT=$?` at the end.
+  - `bgwait t6-verify3`: build clean, 4/4 ctest pass, `ORACLE PASS all/load,jog_demo`, `CHECK_EXIT=0`. Line 99 ticked to `- [x]`; done.
+
+### Attempt 1 — 2026-10-12T04:48:37Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->

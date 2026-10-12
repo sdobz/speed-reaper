@@ -96,7 +96,7 @@ tools/check && out=$(SPEED_REAPER_FAKE_DEVICE=oracle/fake/wheel_turn.txt ./build
 ORACLE_FULL=1 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. Oracle scenario: `hid_wheel` (fake device end-to-end)
 

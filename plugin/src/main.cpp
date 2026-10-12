@@ -18,7 +18,15 @@
 //   "Speed Reaper: scrub forward 0.5 s" / "scrub back 0.5 s" — one-shot
 //     nudge, verifies the sink path with no source involved.
 
-#include <chrono> // before SDK/Swell headers (their min/max macros break <limits>)
+// Before SDK/Swell headers: their min/max macros break <limits>/<string>
+// (hid_wheel_source.h needs <string> & friends; include them here so they
+// parse before the macros land).
+#include <chrono>
+#include <deque>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
 #include "reaper_plugin.h"
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
 // REAPERAPI_MINIMAL: REAPERAPI_LoadAPI only probes the functions below
@@ -34,8 +42,10 @@
 #define REAPERAPI_WANT_GetCursorPosition // ReaperPlayheadSink::ScrubBySeconds
 #define REAPERAPI_WANT_SetEditCurPos // ReaperPlayheadSink::ScrubBySeconds
 #define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
+#define REAPERAPI_WANT_ShowConsoleMsg // onTimer: HID worker log lines
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
+#include "hid_wheel_source.h"
 #include "trace.h"
 
 #include <cstdlib>
@@ -81,15 +91,22 @@ class ReaperPlayheadSink : public IPlayheadSink {
 };
 
 ReaperPlayheadSink g_reaper_sink;
-DemoWheelSource g_demo_source; // synthetic wheel; swapped for the HID driver later
-NullWheelSource g_null; // task 6 replaces this with the HID source
-SummedWheelSource g_wheel_source(g_demo_source, g_null);
+DemoWheelSource g_demo_source; // synthetic wheel; demos the pipeline with no device
+HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
+SummedWheelSource g_wheel_source(g_hid, g_demo_source);
 
 // --- callbacks driven by REAPER ---------------------------------------
 
 // REAPER's timer fires at ~30 Hz regardless of what we ask for, so run the
 // engine in fixed kTimerMs steps to catch up with wall-clock time.
 void onTimer() {
+  // Drain the HID worker's log lines and show them in REAPER's console.
+  std::string line;
+  while (g_hid.PopLog(&line))
+    ShowConsoleMsg(("Speed Reaper: " + line + "\n").c_str());
+  // Button events land here too; milestone 2 is what consumes them.
+  ButtonChange btn;
+  while (g_hid.PopButton(&btn)) {}
   static auto last = std::chrono::steady_clock::now();
   static double acc_ms = 0.0;
   auto now = std::chrono::steady_clock::now();
@@ -142,6 +159,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
 
   if (!rec) { // REAPER unloading us
     Trace("unload");
+    g_hid.Stop(); // join the worker before any pointers are cleared
     g_engine = nullptr;
     g_sink = nullptr;
     g_register = nullptr;
@@ -159,7 +177,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   if (missing != 0) return done(0);
   g_register = (plugin_register_variadic)rec->Register;
 
-  rec->Register("ext_name", (void *)"Speed Reaper (hello world)");
+  rec->Register("ext_name", (void *)"Speed Reaper");
   Trace("register ext_name ok");
   rec->Register("ext_url", (void *)"https://github.com/vkhougaz/speed-reaper");
   Trace("register ext_url ok");
@@ -183,5 +201,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   Trace("register hookcommand2 ok");
   g_register("timer", (void *)&onTimer); // SDK: timer takes only void(*)()
   Trace("register timer ok");
+  g_hid.Start(); // all registrations above succeeded; spawn the HID worker
+  Trace("hid source started");
   return done(1);
 }
