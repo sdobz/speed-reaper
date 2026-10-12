@@ -79,3 +79,11 @@ M vibes/.ralph/22-m3-edit-verbs.md
 - Facts: wiring added to plugin/src/main.cpp: globals `g_verb_router(g_action_sink)` + `g_gestures`; `SetDoubleTapKeys(VerbDoubleTapKeys())` in entry; onTimer() splits PopButton() by key (KEY_JOG/SCRL/SHTL/STOP_PLAY → Router only, else GestureEngine::OnKey with steady_clock now_ms); `Poll(now_ms)` every tick + `Pop` loop tracing `gesture %04x <kind>` (kind names tap/double_tap/hold_start/hold_rotate/hold_end) into VerbRouter::OnGesture. Poll/Pop placed before the `if (!g_engine) return` so gestures work regardless of the demo engine. OnWheel intentionally NOT wired (task says hold+rotate deltas are not routed yet). No new files, no CMake changes.
 - Facts: `tools/check` (full) PASSED rc=0 on first run (job `m3wire`): 8/8 ctest, WINDOWS ORACLE PASS static, ORACLE PASS host.
 - Next: DONE — line 45 ticked; commit pending.
+
+Result: exit 0; done; log: logs/22-m3-edit-verbs-L45-a3-1791819678655.log
+
+### Done — 2026-10-12 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/22-m3-edit-verbs.md
+```
