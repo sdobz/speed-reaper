@@ -36,7 +36,7 @@ void Router::OnWheel(std::int32_t delta) {
     sink_.ScrollView(1);
     scroll_remainder_ -= kScrollUnitsPerStep;
   }
-  while (scroll_remainder_ < -kScrollUnitsPerStep) {
+  while (scroll_remainder_ <= -kScrollUnitsPerStep) {
     sink_.ScrollView(-1);
     scroll_remainder_ += kScrollUnitsPerStep;
   }
