@@ -71,7 +71,7 @@ tools/check led_state
 tools/reaper-oracle --layer reaper --scenario verbs
 ```
 
-- [ ] Done
+- [x] Done
   <!-- ralph: replanned=1 op=AND -->
   - [x] Fake device script: `oracle/fake/verbs.txt` + `verbs.env`
     - Create `oracle/fake/verbs.txt` (parent bullet 1) and `oracle/scenarios/verbs.env` (`export SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt`, same shape as `buttons.env`).
@@ -88,7 +88,7 @@ tools/reaper-oracle --layer reaper --scenario verbs
     - A failing check means a wrong id (or bug) in `plugin/src/verbs.cpp`: fix the table and record each corrected id and the check that proved it in `docs/notes/m3-observations.md`. Do not loosen a check.
     - Do not edit `tools/reaper-oracle` yet (the next step adds the scenario to the suite).
     Verify: `tools/reaper-oracle --layer reaper --scenario verbs`
-  - [ ] Add `verbs` to the default oracle suite
+  - [x] Add `verbs` to the default oracle suite
     - In `tools/reaper-oracle`, append `verbs` to `REAPER_SCENARIOS=(load jog_demo hid_wheel buttons)` (near the bottom, 'Reaper-layer scenario suite') and mention it in the comment above that line.
     - Then run the full default suite and confirm all scenarios plus the host layer are green.
     - Do not edit scenario or plugin files in this step.

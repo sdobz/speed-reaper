@@ -155,3 +155,20 @@ A  oracle/scenarios/verbs.lua
  M vibes/.ralph/22-m3-edit-verbs.md
  M vibes/22-m3-edit-verbs.md
 ```
+
+## Task: Add `verbs` to the default oracle suite
+
+### Attempt 1 — 2026-10-12T16:21:37Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: prior artifacts exist (`oracle/fake/verbs.txt`, `oracle/scenarios/verbs.env`, `oracle/scenarios/verbs.lua`). Added `verbs` to `REAPER_SCENARIOS=(load jog_demo hid_wheel buttons)` at ~line 209 in `tools/reaper-oracle` + updated the suite comment. Full default suite running in bgrun job `oracle-full` (log `vibes/.ralph/logs/oracle-full.log`).
+- Facts: full default suite green: `ORACLE PASS all/load,jog_demo,hid_wheel,buttons,verbs` (rc=0); host check + all 5 reaper scenarios incl. 18 verbs checks pass in `build/oracle/result.json`. Ticked line 91.
+
+Result: exit 0; done; 3 files changed, 11 insertions(+), 3 deletions(-); log: logs/22-m3-edit-verbs-L91-a1-1791822097870.log
+
+### Done — 2026-10-12 — 1 attempt(s)
+Files:
+```
+M tools/reaper-oracle
+ M vibes/.ralph/22-m3-edit-verbs.md
+ M vibes/22-m3-edit-verbs.md
+```
