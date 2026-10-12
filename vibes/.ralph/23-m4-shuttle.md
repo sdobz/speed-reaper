@@ -9,6 +9,7 @@ Durable facts every task should know (keep short).
 
 - The Windows cross build inside `tools/check` snapshots the repo from git: new plugin files must be `git commit`ted before `tools/check` can see them (modified tracked files are seen, untracked files are not).
 - Headless REAPER oracle: `Main_OnCommand(40045)` (transport stop command) blocks the script/defer queue forever — scenarios hang with no probe.json. Use `reaper.OnStopButton()` / `reaper.OnPlayButtonEx(0)` for transport control (verified working headless, M4 task 3).
+- main.cpp: SDK/Swell `min`/`max` macros are in force after `reaper_plugin.h` — `std::min` / `#include <algorithm>` there breaks the -Werror build; use ternaries.
 
 
 ## Task: 1. `ShuttleRate` (pure)
@@ -126,3 +127,12 @@ M vibes/.ralph/23-m4-shuttle.md
  M vibes/23-m4-shuttle.md
 ?? docs/plugin-design-m4-shuttle-impl.md
 ```
+
+## Task: 5. Wire SHTL per the decision
+
+### Attempt 5 — 2026-10-12T21:39:12Z — budget 1800s
+- Facts: Decision doc (task 4) = rule 2: forward via `CSurf_OnPlayRateChange` clamped to 4.0 (REAPER clamps 0.25…4.0), reverse via stepped `SetEditCurPos(pos − |rate|·dt, false, 1)` per 8 ms engine tick, dead band → `OnStopButton` + rate 1.0 (no rewind), STOP/PLAY in SHTL = HardStop + exit to prior mode, JOG/SCRL tap = rate 1.0 + relative mode. Doc does NOT say to remove spike actions → kept.
+- Facts: `HidWheelSource::AbsolutePosition()` already exists (M4 hook, hid_wheel_source.h L41). `ShuttleRate` in plugin/src/shuttle.{h,cpp} (task 1). Doc's `GetPlayPositionEx(0)` → added `REAPERAPI_WANT_GetPlayPositionEx`.
+- Design: new `IActionSink::ApplyShuttleRate(double)` + `IActionSink::HardStop()`; Router gains `OnShuttleOffset(int32_t)` (no-op outside Shtl; 0 → one HardStop per band entry, re-armed on nonzero rate or any mode change; ±2068 → ±4.5 passed to sink). Router tracks `shuttle_prev_` for STOP/PLAY exit (initial Jog). main.cpp: ReaperActionSink implements both (stopped transport parks forward/reverse; JOG/SCRL hand-off = rate 1.0); onTimer engine-tick loop calls `g_router.OnShuttleOffset(g_hid.AbsolutePosition())` each 8 ms step. Fake sinks in router_test.cpp and verbs_test.cpp updated (new pure virtuals).
+- Dead ends: `#include <algorithm>` + `std::min` in main.cpp fails the -Werror build — the SDK/Swell min/max macros are in force after reaper_plugin.h; use a ternary (`rate < 4.0 ? rate : 4.0`).
+- Done: `tools/check router` rc=0 (job check-router2, log vibes/.ralph/logs/check-router2.log): -Werror build clean, router_test passes (dead band → no rate call + one HardStop; ±2068 → ±4.5; STOP/PLAY in SHTL → HardStop + exit to prior mode; JOG tap → rate 1.0), Windows cross build PASS, oracle host PASS. Full ctest: 10/10. Line 74 ticked.

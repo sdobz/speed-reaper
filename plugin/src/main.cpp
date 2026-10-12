@@ -49,9 +49,10 @@
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
 #define REAPERAPI_WANT_GetToggleCommandState // onTimer: SNAP LED (command 1157)
-#define REAPERAPI_WANT_CSurf_OnPlayRateChange // spike actions (M4 playrate probe)
-#define REAPERAPI_WANT_Master_GetPlayRate // spike actions: read back the rate
-#define REAPERAPI_WANT_OnStopButton // spike reset: stop (40045 blocks headless, M4 task 3)
+#define REAPERAPI_WANT_CSurf_OnPlayRateChange // spike actions + shuttle forward rate (M4)
+#define REAPERAPI_WANT_Master_GetPlayRate // spike actions + shuttle read-back (M4)
+#define REAPERAPI_WANT_OnStopButton // spike reset + shuttle HardStop (40045 blocks headless, M4 task 3)
+#define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek (M4 decision)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -155,6 +156,47 @@ class ReaperActionSink : public IActionSink {
     UpdateArrange();
     Trace("scroll dt=%.4f", dt); // oracle greps (design §2)
   }
+  // Shuttle rate (M4 decision, rule 2: docs/plugin-design-m4-shuttle-impl.md).
+  // Forward: CSurf_OnPlayRateChange, clamped to REAPER's 4.0x read-back cap
+  // (the 4…8x outer half of the ShuttleRate law is flat at 4.0x in transport
+  // terms; no std::min here — the SDK min/max macros are in force). Reverse: synthesized — the playhead steps back |rate|·dt where dt
+  // is one engine tick (kTimerMs = 8 ms; the Router calls this once per
+  // tick). The Router never passes 0; 1.0 is the JOG/SCRL tap hand-off.
+  // While the transport is stopped, forward/reverse park: the wheel still
+  // drives the law and playback starts on a STOP/PLAY press (reverse while
+  // stopped is scrub — JOG/SCRL's job).
+  void ApplyShuttleRate(double rate) override {
+    const int playing = GetPlayState() & 1;
+    if (rate > 0.0) {
+      if (playing == 0) return;
+      const double capped = rate < 4.0 ? rate : 4.0; // no std::min: SDK min macro
+      CSurf_OnPlayRateChange(capped);
+      if (capped != last_rate_) Trace("shuttle rate=%.3f read=%.3f", capped, Master_GetPlayRate(nullptr));
+      last_rate_ = capped;
+    } else if (rate < 0.0) {
+      if (playing == 0) return;
+      const double dt = 8.0 / 1000.0; // one engine tick (kTimerMs), in seconds
+      const double pos = GetPlayPositionEx(0);
+      const double p = pos + rate * dt; // rate < 0 → step back
+      SetEditCurPos(p < 0.0 ? 0.0 : p, false, 1); // seekplay: hold playback
+      if (rate != last_rate_) Trace("shuttle reverse=%.3f pos=%.4f", rate, p);
+      last_rate_ = rate;
+    } else {
+      CSurf_OnPlayRateChange(1.0); // hand-off: normal rate
+      last_rate_ = 1.0;
+    }
+  }
+  // Hard stop: SHTL dead band and STOP/PLAY-while-shuttling. OnStopButton,
+  // never Main_OnCommand(40045) (blocks the script/defer queue headless,
+  // M4 task 3); rate back to 1.0 for the next start.
+  void HardStop() override {
+    if (GetPlayState() != 0) OnStopButton();
+    CSurf_OnPlayRateChange(1.0);
+    last_rate_ = 1.0;
+  }
+
+ private:
+  double last_rate_ = 1.0; // trace dedup: the Router re-applies every tick
 };
 
 ReaperPlayheadSink g_reaper_sink;
@@ -295,6 +337,9 @@ void onTimer() {
   double consumed_ms = 0.0;
   while (acc_ms >= kTimerMs && consumed_ms < kMaxCatchUpMs) {
     g_engine->Tick();
+    // SHTL law (M4): absolute offset → ShuttleRate → sink. A no-op outside
+    // Shtl mode; the sink only acts while the transport is playing.
+    g_router.OnShuttleOffset(g_hid.AbsolutePosition());
     acc_ms -= kTimerMs;
     consumed_ms += kTimerMs;
   }

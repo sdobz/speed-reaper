@@ -71,7 +71,7 @@ test -s docs/plugin-design-m4-shuttle-impl.md && grep -q 'Decision' docs/plugin-
 tools/check router
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Oracle scenario: `shuttle`
 

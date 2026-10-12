@@ -12,6 +12,8 @@ class FakeSink : public IActionSink {
  public:
   void RunCommand(int cmd) override { commands.push_back(cmd); }
   void ScrollBySeconds(double dt) override { (void)dt; }
+  void ApplyShuttleRate(double rate) override { (void)rate; }
+  void HardStop() override {}
 
   std::vector<int> commands;
 };
