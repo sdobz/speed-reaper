@@ -68,7 +68,8 @@ tools/check && readelf -d build/plugin/reaper_speed_reaper.so | grep -q hidapi
 tools/check && ./build/plugin/hid_probe --seconds 2 | grep -q 'wheel: sum=0'
 ```
 
-- [x] Done
+- [!] Done
+  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/20-m1-wheel-playhead.md
 
 ### 5. Implement the `HidWheelSource` worker thread
 
@@ -82,7 +83,8 @@ tools/check && ./build/plugin/hid_probe --seconds 2 | grep -q 'wheel: sum=0'
 tools/check && out=$(SPEED_REAPER_FAKE_DEVICE=oracle/fake/wheel_turn.txt ./build/plugin/hid_probe --seconds 3) && echo "$out" | grep -q 'log: connected' && echo "$out" | grep -Eq 'wheel: sum=[1-9]'
 ```
 
-- [ ] Done
+- [!]
+  BLOCKED: `plugin/src/transport_factory.h` (task 3 of `19-oracle-device-windows.md`) does not exist in this repo — that checklist file is absent from `vibes/` (no 19, only 00/05/10/18/20/21/22/23/30), and none of its outputs exist either: no `src/speed_editor/{hid_transport.h,fake_transport.*}`, no `oracle/fake/wheel_turn.txt`, no `SPEED_REAPER_FAKE_DEVICE` CMake option (the `-D` in tools/check is an unused variable today). Verify can't pass without the fake device, but the task block also says "Do not touch `src/speed_editor/`", where design §6 puts the transport seam. Planner must either schedule the 19 fake-device tasks first or amend the constraint.
 
 ### 6. Use `HidWheelSource` in the plugin
 

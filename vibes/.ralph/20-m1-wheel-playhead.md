@@ -100,3 +100,58 @@ Files:
 ```
 M vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 5 attempt(s), last: exit 0, verify-failed
+Log: logs/20-m1-wheel-playhead-L71-replan-1791774177159.log
+
+## Task: 5. Implement the `HidWheelSource` worker thread
+
+### Attempt 5 — 2026-10-12T02:59:48Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Tree clean at start (only the record file dirty). No partial work from earlier attempts.
+  - `vibes/19-oracle-device-windows.md` does not exist in this repo (vibes/ = 00, 05, 10, 18, 20, 21, 22, 23, 30); no git branch/commit ever added it or the fake-transport files. Task 3 of that file is therefore unscheduled/undone.
+  - Missing artifacts the task's Verify needs: `plugin/src/transport_factory.h` (grep for `MakeTransport` matches only this checklist line), `src/speed_editor/hid_transport.h` + `fake_transport.{h,cpp}`, `oracle/fake/` directory (no `wheel_turn.txt`), and the `SPEED_REAPER_FAKE_DEVICE` CMake option (CMakeLists never `option()`s it; `-DSPEED_REAPER_FAKE_DEVICE=ON` in tools/check is silently unused — CMake tolerates unknown -D vars, which is why task 3/4 stayed green).
+  - The design for the seam IS settled: `docs/plugin-oracle-design.md` §6 specifies `IHidTransport` in `src/speed_editor/hid_transport.h`, `FakeTransport` playing `at <ms> wheel|key|unplug|plug` scripts selected by env `SPEED_REAPER_FAKE_DEVICE=<script>` only when built with `-DSPEED_REAPER_FAKE_DEVICE=ON`, scripts in `oracle/fake/*.txt`. That's a whole task of its own (auth-handshake simulation included), scoped under 19-…, and this task's block forbids touching `src/speed_editor/`.
+  - `HidWheelSource` stub is intact per task 3: header (`hid_wheel_source.h`) already declares full §2 state (thread, atomics, mutex+deque log/buttons, `PendingOutput`), so the worker-loop implementation itself is the remaining work once the transport exists. `SpeedEditorHID` API: `open/close/authenticate/setWheelMode/readEvent/setLeds/setJogLeds/allLedsOff` (src/speed_editor/hid_device.h).
+- Dead ends:
+  - `find`/`grep -rn 'MakeTransport'` across the repo: the only hit is the checklist line itself — nothing to continue, no hidden WIP.
+- Next:
+  - Planner: either (a) add a task implementing `docs/plugin-oracle-design.md` §6 (transport seam + FakeTransport + CMake option + `oracle/fake/wheel_turn.txt`, porting 19-… task 3 since the file is absent here), then re-run this task; or (b) amend this task to lift the "do not touch `src/speed_editor/`" constraint and fold §6 in. Either way the worker-loop work in `hid_wheel_source.cpp` can proceed once `MakeTransport()` exists.
+  - This attempt is BLOCKED (line 85 marked `[!]`); no code changes made.
+
+Verify failed (exit 1):
+```
+Welcome to the speed-reaper development environment!
+  g++      g++ (GCC) 16.2.0
+  cmake    cmake version 4.4.3
+  reaper   ...
+SDK include roots: -Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL (see docs/reaper-dev-env.md §2)
+Build CLI (task 3): make -C src                → build/speedcli
+Build CLI (task 5): nix build .#packages.x86_64-linux.speedcli              → .../bin/speedcli
+                   nix build .#packages.x86_64-pc-windows-gnu.speedcli → .../bin/speedcli.exe
+Build REAPER plugin (task 6): cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin
+  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, 'REAPER plugin' section)
+Build REAPER plugin for Windows (task 7): nix build .#reaper-plugin-windows → .../reaper/reaper_speed_reaper.dll
+  Cross-platform matrix + gotchas: CROSS-PLATFORM.md
+Oracle: tools/reaper-oracle (headless REAPER smoke + trace checks — vibes/18-oracle-linux.md)
+[0/2] Re-checking globbed directories...
+ninja: no work to do.
+Test project /home/vkhougaz/projects/speed-reaper/build/plugin
+    Start 1: jog_engine_test
+1/2 Test #1: jog_engine_test ..................   Passed    0.00 sec
+    Start 2: trace_test
+2/2 Test #2: trace_test .......................   Passed    0.00 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   0.01 sec
+[0/2] Re-checking globbed directories...
+ninja: no work to do.
+PASS=True REASONS=[]
+ORACLE PASS host
+warning: Git tree '/home/vkhougaz/projects/speed-reaper' is dirty
+```
+
+Result: exit 0; verify-failed; 2 files changed, 52 insertions(+), 2 deletions(-); log: logs/20-m1-wheel-playhead-L85-a5-1791773988106.log
