@@ -68,7 +68,7 @@ tools/check && readelf -d build/plugin/reaper_speed_reaper.so | grep -q hidapi
 tools/check && ./build/plugin/hid_probe --seconds 2 | grep -q 'wheel: sum=0'
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Implement the `HidWheelSource` worker thread
 

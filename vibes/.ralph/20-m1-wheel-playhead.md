@@ -81,3 +81,14 @@ Files:
 ```
 M vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+## Task: 4. Probe tool `hid_probe`
+
+### Attempt 4 — 2026-10-12T02:56:10Z — budget 600s
+- Facts:
+  - Design §5 spec: `hid_probe [--seconds N] [--buttons]`, 8 ms Tick/PopLog/(PopButton) loop, running wheel sum printed once per second, exit 0 always; prefixes `log: `, `wheel: sum=<n>`, `button: <key hex> down|up`.
+  - `plugin/CMakeLists.txt`: plugin target = `src/main.cpp` + `PLUGIN_PURE_SOURCES`; on UNIX PLUGIN_PURE_SOURCES already includes `hid_device.cpp` + `hid_wheel_source.cpp`, and `PkgConfig::HIDAPI` (hidapi-hidraw) is in scope inside the `if(UNIX AND NOT APPLE)` block.
+  - Wrote `plugin/tools/hid_probe.cpp` (no REAPER, 8 ms loop, per-second `wheel: sum=` line, arg errors exit 2) and added `add_executable(hid_probe tools/hid_probe.cpp ${PLUGIN_PURE_SOURCES})` inside the UNIX block with same includes + `PkgConfig::HIDAPI`; output lands in `build/plugin/` by default.
+  - `tools/check` running in background, log: `vibes/.ralph/logs/task4-check.log`.
+- Dead ends: (none yet)
+- Verified: `tools/check` green (2/2 ctest, oracle host PASS); `./build/plugin/hid_probe --seconds 2` prints only `wheel: sum=0` (twice, one per second) and exits 0; full Verify command exits 0. Box ticked.

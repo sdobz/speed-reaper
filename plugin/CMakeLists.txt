@@ -88,6 +88,17 @@ if(UNIX AND NOT APPLE)
   target_include_directories(speed_reaper PRIVATE ${REPO_ROOT}/src)
   target_include_directories(speed_reaper SYSTEM PRIVATE ${HIDAPI_INCLUDE_DIRS})
   target_link_libraries(speed_reaper PRIVATE PkgConfig::HIDAPI)
+
+  # Probe tool (docs/plugin-design-m1-m3.md §5): standalone HID exerciser,
+  # no REAPER. Links the same sources as the plugin minus main.cpp
+  # (= PLUGIN_PURE_SOURCES). Output: build/plugin/hid_probe.
+  add_executable(hid_probe tools/hid_probe.cpp ${PLUGIN_PURE_SOURCES})
+  target_include_directories(hid_probe PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${REPO_ROOT}/src
+  )
+  target_include_directories(hid_probe SYSTEM PRIVATE ${HIDAPI_INCLUDE_DIRS})
+  target_link_libraries(hid_probe PRIVATE PkgConfig::HIDAPI)
 endif()
 
 # Guarded: cross builds (flake) may pack a tree that predates test/. After the
