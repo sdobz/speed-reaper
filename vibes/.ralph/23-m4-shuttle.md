@@ -59,3 +59,11 @@ Facts:
 
 Next:
 - DONE: `tools/check` exit 0 (10/10 tests, WINDOWS ORACLE PASS static, ORACLE PASS host); verify command incl. `strings ... | grep -q speed_reaper_spike_reverse` passed; line 38 ticked; commit 426c46b (+ tick amend).
+
+Result: exit 0; done; log: logs/23-m4-shuttle-L38-a2-1791839258625.log
+
+### Done — 2026-10-12 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/23-m4-shuttle.md
+```
