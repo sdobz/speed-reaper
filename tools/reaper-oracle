@@ -7,7 +7,9 @@
 #                       [--platform linux|windows] [--report-only]
 #
 # Without --scenario, the reaper layer runs the full scenario suite
-# (load, then jog_demo); --scenario NAME runs only that scenario.
+# (load, then jog_demo, then hid_wheel); --scenario NAME runs only that scenario.
+# A scenario may ship an oracle/scenarios/<NAME>.env file that is sourced
+# before reaper starts (e.g. hid_wheel.env sets SPEED_REAPER_FAKE_DEVICE).
 #
 # Prints one final line: ORACLE PASS <layer>[/<scenario(,scenario)>] or
 # ORACLE FAIL <layer>[/<scenario(,scenario)>]: <reason>; exit 0 on PASS.
@@ -126,6 +128,8 @@ stop_dismisser() {
 # --- reaper layer -----------------------------------------------------------
 run_reaper() {
   local env_file="oracle/scenarios/$SCENARIO.env"
+  # Keep per-scenario env isolated between scenarios in the suite.
+  unset SPEED_REAPER_FAKE_DEVICE
   if [[ -f "$env_file" ]]; then
     # shellcheck disable=SC1090
     . "$env_file"
@@ -135,6 +139,9 @@ run_reaper() {
   rm -rf "$OUT/home"
   mkdir -p "$OUT/home/.config/REAPER/UserPlugins"
   cp build/plugin/reaper_speed_reaper.so "$OUT/home/.config/REAPER/UserPlugins/"
+  # Licensed copy (kept outside the repo) avoids the nag screen / browser launch.
+  [[ -f "${REAPER_LICENSE:-$HOME/.config/REAPER/reaper-license.rk}" ]] \
+    && cp "${REAPER_LICENSE:-$HOME/.config/REAPER/reaper-license.rk}" "$OUT/home/.config/REAPER/reaper-license.rk"
   rm -f "$OUT/probe.json" "$OUT/reaper.stderr"
   REAPER_RC=0
   if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt" "$OUT/trace_$SCENARIO.txt"; fi
@@ -154,6 +161,11 @@ run_reaper() {
 # lines mentioning our plugin, into reaper.stderr.
 run_crash_capture() {
   local reaper_args=(-newinst -nosplash "oracle/scenarios/$SCENARIO.lua")
+  local env_file="oracle/scenarios/$SCENARIO.env"
+  if [[ -f "$env_file" ]]; then
+    # shellcheck disable=SC1090
+    . "$env_file"
+  fi
   # `reaper` on PATH is a nix wrapper script; gdb cannot exec scripts, so
   # gdb the real ELF and use the wrapper as exec-wrapper (it sets
   # LD_LIBRARY_PATH & co, then exec's the ELF, which becomes gdb's child).
@@ -177,10 +189,11 @@ run_crash_capture() {
 }
 
 # Reaper-layer scenario suite: explicit --scenario wins; otherwise the bare
-# run (layer all) runs load, then jog_demo (vibes/18-oracle-linux.md task 9).
+# run (layer all) runs load, then jog_demo (vibes/18-oracle-linux.md task 9),
+# then hid_wheel (vibes/20-m1-wheel-playhead.md task 7).
 REAPER_SCENARIOS=("$SCENARIO")
 if [[ $SCENARIO_EXPLICIT -eq 0 && "$LAYER" == all ]]; then
-  REAPER_SCENARIOS=(load jog_demo)
+  REAPER_SCENARIOS=(load jog_demo hid_wheel)
 fi
 
 HOST_RC=0

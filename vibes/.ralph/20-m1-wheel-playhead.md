@@ -7,6 +7,11 @@ Workers update their own `## Task:` section; ralph writes results.
 
 Durable facts every task should know (keep short).
 
+- Oracle timing: REAPER runs CLI scenario lua ~40 ms after plugin load; the fake-device script clock starts at plugin load, so scenarios must not wait for UI settle before the first scripted event.
+- REAPER timer delivery can gap >200 ms while defer sampling keeps running; onTimer catches up in wall-clock — keep per-callback catch-up bounded (`kMaxCatchUpMs` in main.cpp) or the cursor jumps in one sample interval.
+- `reaper.time_precise()` is a boot-based monotonic clock (tens of thousands of seconds), not seconds-since-REAPER-start.
+- FakeTransport plays its script once from the first Open; `unplug`→worker retries open every 1 s, so reconnect lands up to ~1.5 s after `plug` (script baseline keeps running).
+
 
 ## Task: 1. Rename the plugin's `WheelEvent` to `WheelSample`
 
@@ -205,3 +210,22 @@ Files:
 ```
 M vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+## Task: 7. Oracle scenario: `hid_wheel` (fake device end-to-end)
+
+### Attempt 2 — 2026-10-12T04:50:37Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Tree clean (only this record dirty). FakeTransport (src/speed_editor/fake_transport.cpp) time base = steady_clock since FIRST successful Open; script plays once (not re-armed). `unplug` → Read returns -1; worker logs `disconnected`, retries open every 1 s; `plug` due → open succeeds, logs `connected` again.
+  - `g_hid.Start()` is called at plugin entry (main.cpp), i.e. at REAPER startup — BEFORE the CLI scenario lua runs. So the fake script timeline starts at plugin load; the scenario's t0 is later by an unknown offset (REAPER startup + dialog dismissal). Measuring that offset with a temp scenario `zz_probe` (bgrun job `zz-probe`, log vibes/.ralph/logs/zz-probe.log): it dumps the first/last trace lines + reaper.time_precise().
+  - Trace format: `<ms since first trace> <line>`; trace file is flushed per line, so the scenario lua can read `$ORACLE_OUT/trace_<name>.txt` live.
+  - tools/reaper-oracle: per-scenario env file `oracle/scenarios/<name>.env` is sourced in the harness shell before reaper; env vars leak into later scenarios (default order load,jog_demo) — plan to `unset SPEED_REAPER_FAKE_DEVICE` at top of run_reaper and append hid_wheel to the default REAPER_SCENARIOS list.
+  - REAPER runs the CLI lua script ~40 ms after plugin load (measured: `48 unload` right after the probe scenario finished; no dialog stall before the script). So the fake-script clock ≈ scenario clock (+~40 ms); no warm-up is possible (turn 1 starts at 100 ms).
+  - ENGINEERING FIX (stutter flake, ~50% repro before): REAPER delays *timer* delivery by >200 ms (trace: `timer gap=234`) while the main loop / defer sampling keeps running (sample dt stays ~32 ms). onTimer then flushed the whole acc_ms backlog in one callback: cursor moved 0.06–0.07 s inside one 32 ms sample interval → max-step check failed. Fixed with two small caps: (1) `kMaxCatchUpMs=50` in main.cpp onTimer (consume ≤50 ms of catch-up per callback, rest stays in acc_ms — no steady-state drift since the normal cycle is ~33 ms); (2) `kMaxDeltaPerTick=60` in HidWheelSource::Tick with carry-over (worker-deschedule bursts no longer spike the engine velocity). All motion is still delivered (rise1 ≈ 0.283). Max step after fix: 0.019–0.021 (2.5× margin).
+  - Diagnostics left in the plugin trace (no-op without SPEED_REAPER_TRACE): `timer gap=<ms>` (UI/timer delivery gap >100 ms) and `scrub dt=<s>` (single ScrubBySeconds > 5 ms).
+- Dead ends:
+  - Scenario-side exclusion of sample intervals with dt > 100 ms does NOT fix it: the 234 ms timer gap does not stall defer sampling, so the offending step spans a normal 32 ms interval. Plugin-side catch-up cap was the real fix.
+  - Capping JogEngine's per-tick target rate would DROP motion (delta is consumed once) → rise1 would fall below 0.2. The caps live where motion is preserved (per-callback tick budget in onTimer; per-tick delta carry in HidWheelSource).
+  - No warm-up in the scenario (unlike jog_demo's 1500 ms) — turn 1 starts 100 ms after device open, i.e. ~60 ms after the script starts.
+- Next:
+  - Task complete: wheel_unplug.txt + hid_wheel.env + hid_wheel.lua added, scenario in the default suite, two plugin caps, full `tools/reaper-oracle` (host+load+jog_demo+hid_wheel) PASS, scenario verify 3/3 green. Checkbox ticked.

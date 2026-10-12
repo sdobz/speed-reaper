@@ -164,7 +164,21 @@ bool HidWheelSource::SleepSliced(int ms) {
 }
 
 void HidWheelSource::Tick(WheelSample *out) {
-  out->delta = delta_.exchange(0);
+  // Cap the per-tick delta at kMaxDeltaPerTick and carry the rest over to
+  // the next tick: a descheduled worker can accumulate a backlog of wheel
+  // events that would otherwise hit the engine as one burst (single-tick
+  // velocity spike = cursor stutter). All motion is still delivered.
+  std::int32_t pending = delta_.exchange(0) + delta_carry_;
+  if (pending > kMaxDeltaPerTick) {
+    out->delta = kMaxDeltaPerTick;
+    delta_carry_ = pending - kMaxDeltaPerTick;
+  } else if (pending < -kMaxDeltaPerTick) {
+    out->delta = -kMaxDeltaPerTick;
+    delta_carry_ = pending + kMaxDeltaPerTick;
+  } else {
+    out->delta = pending;
+    delta_carry_ = 0;
+  }
 }
 
 bool HidWheelSource::PopButton(ButtonChange *out) {

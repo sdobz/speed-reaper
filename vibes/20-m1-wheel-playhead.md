@@ -110,7 +110,7 @@ ORACLE_FULL=1 tools/check
 tools/reaper-oracle --layer reaper --scenario hid_wheel
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. SMOKE-TEST.md: "M1 — wheel drives the playhead"
 

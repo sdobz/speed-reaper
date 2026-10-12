@@ -66,7 +66,14 @@ class HidWheelSource : public IWheelSource {
   std::thread worker_;
   std::atomic<bool> running_{false};
 
+  // Per-Tick cap on the relative delta handed to the engine (main-thread
+  // only, with delta_carry_): if the worker is descheduled, its backlog of
+  // wheel events would otherwise arrive as one burst and spike the engine's
+  // velocity in a single tick (the oracle sees that as cursor stutter). The
+  // excess carries over to the next tick, so no motion is lost.
+  static constexpr std::int32_t kMaxDeltaPerTick = 60;
   std::atomic<std::int32_t> delta_{0};    // worker → main: relative accumulator
+  std::int32_t delta_carry_ = 0;          // main-thread-only overflow carry
   std::atomic<std::int32_t> abs_{0};      // worker → main: latest absolute reading
   std::atomic<bool> connected_{false};
 

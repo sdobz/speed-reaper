@@ -62,6 +62,14 @@ plugin_register_variadic g_register = nullptr;
 
 // Engine step (ms): 125 Hz keeps the scrub motion smooth.
 constexpr int kTimerMs = 8; // must match DemoWheelSource::kTickMs
+// Max catch-up per timer callback. REAPER can delay timer delivery by >200 ms
+// (observed 234 ms in the oracle) while its main loop and the oracle's
+// sampling keep running; flushing the whole acc_ms backlog in one callback
+// would move the cursor by up to ~0.07 s inside a single ~33 ms sample
+// interval, which the oracle reads as stutter. Consume at most this much per
+// callback and leave the rest in acc_ms for the next one. 50 ms covers the
+// normal ~33 ms cycle (no steady-state drift) yet bounds the per-sample step.
+constexpr double kMaxCatchUpMs = 50.0;
 
 IPlayheadSink *g_sink = nullptr;
 JogEngine *g_engine = nullptr;
@@ -79,6 +87,7 @@ class ReaperPlayheadSink : public IPlayheadSink {
   // transport is stopped (docs/notes/oracle-limits.md). While playing,
   // seek the playhead instead so playback follows the wheel.
   void ScrubBySeconds(double dt) override {
+    if (dt > 0.005) Trace("scrub dt=%.4f", dt);  // normal tick ~0.002
     if (GetPlayState() & 1) {
       double p = GetPlayPosition() + dt;
       SetEditCurPos(p < 0 ? 0 : p, false, true);
@@ -110,15 +119,19 @@ void onTimer() {
   static auto last = std::chrono::steady_clock::now();
   static double acc_ms = 0.0;
   auto now = std::chrono::steady_clock::now();
-  acc_ms += std::chrono::duration<double, std::milli>(now - last).count();
+  double gap_ms = std::chrono::duration<double, std::milli>(now - last).count();
+  if (gap_ms > 100.0) Trace("timer gap=%.0f", gap_ms);  // REAPER UI stall
+  acc_ms += gap_ms;
   last = now;
   if (acc_ms > 250.0) acc_ms = 250.0; // don't spiral after a stall
   static int calls = 0; // heartbeat so the oracle trace shows the timer is alive
   if ((++calls % 100) == 1) Trace("timer call=%d", calls);
   if (!g_engine) { acc_ms = 0.0; return; }
-  while (acc_ms >= kTimerMs) {
+  double consumed_ms = 0.0;
+  while (acc_ms >= kTimerMs && consumed_ms < kMaxCatchUpMs) {
     g_engine->Tick(kTimerMs);
     acc_ms -= kTimerMs;
+    consumed_ms += kTimerMs;
   }
 }
 
