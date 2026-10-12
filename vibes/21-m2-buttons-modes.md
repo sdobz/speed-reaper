@@ -17,7 +17,7 @@ Design: `docs/plugin-design-m1-m3.md` §6. Verified by the oracle (`docs/plugin-
 tools/check button_diff
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. `Router` and `ModeGatedSource` (pure)
 
