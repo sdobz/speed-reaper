@@ -57,7 +57,7 @@ tools/check
 tools/check led_state
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Oracle scenario: `verbs` (also validates the command ids)
 

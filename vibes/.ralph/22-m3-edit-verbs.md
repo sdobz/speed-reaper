@@ -87,3 +87,11 @@ Files:
 ```
 M vibes/.ralph/22-m3-edit-verbs.md
 ```
+
+## Task: 4. SNAP LED follows REAPER's snap state
+
+### Attempt 4 — 2026-10-12T15:44:06Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: prior attempt left no code (clean slate). LED_SNAP = bit 5 in src/speed_editor/key_map.h (byte0 bit5); key_map.h reached via `${REPO_ROOT}/src` include dir (already on path for plugin, hid_probe, Linux tests, and the WIN32 block). HidWheelSource::RequestLeds just marks pending_ dirty — safe to call pre-connect.
+- Facts: wrote plugin/src/led_state.h/.cpp (`MainLedMask(bool)` = `snapOn ? 1u<<LED_SNAP : 0u`), plugin/test/led_state_test.cpp (3 checks), added led_state.cpp to PLUGIN_PURE_SOURCES (test CMakeLists globs *_test.cpp). main.cpp: REAPERAPI_WANT_GetToggleCommandState; global `int g_snap_mask = -1` (−1 = unsent); reconnect edge resets it; onTimer polls `GetToggleCommandState(1157)` every 31 ticks (~250 ms @30 Hz) or whenever g_snap_mask<0, traces `led main=%x` and calls RequestLeds only on change. No other LEDs, no ripple read.
+- Next: DONE — `tools/check led_state` passed rc=0 on first run (job `ledcheck`): led_state_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host. Line 60 ticked.

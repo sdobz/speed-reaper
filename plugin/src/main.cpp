@@ -48,6 +48,7 @@
 #define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
+#define REAPERAPI_WANT_GetToggleCommandState // onTimer: SNAP LED (command 1157)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -56,6 +57,7 @@
 #include "wheel_mode.h"
 #include "gesture.h" // GestureEngine, Gesture, GestureKind (design §7)
 #include "verbs.h" // VerbRouter, VerbDoubleTapKeys (design §7)
+#include "led_state.h" // MainLedMask: SNAP LED follows REAPER's snap state
 #include "trace.h"
 #include "speed_editor/key_map.h" // KEY_* codes for the router-key split
 
@@ -143,6 +145,7 @@ GestureEngine g_gestures; // tap / double-tap / hold recognition (design §7)
 ModeGatedSource g_gated_source(g_hid, g_router); // HID delta: pass-through in Jog, scroll in Scrl
 SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
 bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
+int g_snap_mask = -1; // last pushed SNAP-LED mask; -1 = not sent (force send)
 
 const char *GestureKindName(GestureKind k) {
   switch (k) {
@@ -216,8 +219,24 @@ void onTimer() {
   WheelMode changed;
   if (g_router.TakeModeChange(&changed)) ApplyModeToHid(changed);
   const bool connected = g_hid.Connected();
-  if (connected && !g_was_connected) ApplyModeToHid(g_router.Mode());
+  if (connected && !g_was_connected) {
+    ApplyModeToHid(g_router.Mode());
+    g_snap_mask = -1; // re-send the SNAP LED after a reconnect edge
+  }
   g_was_connected = connected;
+  // SNAP LED (M3 edit verbs task 4): poll REAPER's snap toggle (command 1157)
+  // every ~250 ms (~31 timer ticks at REAPER's ~30 Hz) and push the
+  // main-panel mask only when it changes or after a reconnect edge.
+  static int snap_tick = 0;
+  if (g_snap_mask < 0 || (snap_tick % 31) == 0) {
+    const std::uint32_t mask = MainLedMask(GetToggleCommandState(1157) == 1);
+    if (static_cast<std::uint32_t>(g_snap_mask) != mask) {
+      g_snap_mask = static_cast<int>(mask);
+      Trace("led main=%x", mask); // oracle greps (M3 edit verbs task 5)
+      g_hid.RequestLeds(mask);
+    }
+  }
+  ++snap_tick;
   static auto last = std::chrono::steady_clock::now();
   static double acc_ms = 0.0;
   auto now = std::chrono::steady_clock::now();
