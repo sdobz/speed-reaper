@@ -74,3 +74,11 @@ M vibes/.ralph/21-m2-buttons-modes.md
 - Facts: `tools/reaper-oracle --layer reaper --scenario buttons` PASS first try, all 12 checks non-vacuous: rise1=0.326 s (JOG turn), dev2=0.0000 (SCRL turn), dev3=0.0000 (after replug, still Scrl), GetPlayState 0→1, trace = `mode Jog`@190 → `mode Scrl`@1217 (led jog=1/jog=4, no Shtl), `cmd 40044` once, `led jog=4` re-traced @3717 after the `log disconnected`@2700/reconnect@3700. No plugin bug found (button semantics were verified host-level in attempt 3). Added `buttons` to `REAPER_SCENARIOS` default suite in tools/reaper-oracle (+ comments).
 - Dead ends: first full default run (`buttonsfull`) FAILED `buttons: trace: cmd 40044 exactly once` (count=2) — not a plugin bug: in `--layer all` mode `run_reaper` never wiped `trace_$SCENARIO.txt` (only `--layer reaper` did), so Trace (append) piled stale lines from the earlier standalone run; every 2nd default run would fail. Fixed in tools/reaper-oracle: `rm -f trace_$SCENARIO.txt` unconditionally at scenario start (minimal change; no timing edits).
 - Done: `buttonsfull2` full default run `ORACLE PASS all/load,jog_demo,hid_wheel,buttons`; verify command re-run again = PASS (deterministic with the trace-wipe fix). Line 60 ticked; commit.
+
+Result: exit 0; done; log: logs/21-m2-buttons-modes-L60-a4-1791790225087.log
+
+### Done — 2026-10-12 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/21-m2-buttons-modes.md
+```
