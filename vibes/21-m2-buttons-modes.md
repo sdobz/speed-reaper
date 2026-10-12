@@ -79,5 +79,14 @@ grep -q '^## M2 — buttons and wheel modes' SMOKE-TEST.md
 
 ### 6. (human) Run the M2 hand test
 
-- [!] Done
+- [x] Done
   BLOCKED: precondition — `ORACLE_FULL=1 tools/check` green. Human runs SMOKE-TEST.md "M2" (real device only: LED brightness, scroll *feel*). Pass bar: JOG/SCRL/STOP-PLAY work with LEDs truthful; scroll speed acceptable (record in `docs/notes/m2-observations.md`). Then tick this box; next is `22-m3-edit-verbs.md`.
+
+  Hand-test feedback (1st pass): JOG works as expected; **SCRL too sensitive**
+  — line-step `CSurf_OnScroll` ran ~73k steps/revolution. Reworked: SCRL now
+  scrolls in timeline seconds (`GetSet_ArrangeView2` + `UpdateArrange`), same
+  scale as the jog cursor → same on-screen speed as the cursor at any zoom
+  (design §6, workflow §3, smoke steps 2/6 and config §2.4 updated; oracle
+  `buttons` gained scroll-trace checks; details in `docs/notes/m2-observations.md`).
+  Awaiting re-test.
+  Retest complete, works well!

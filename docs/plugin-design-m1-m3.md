@@ -93,10 +93,10 @@ device was found**. Output prefixes: `log: `, `wheel: sum=<n>`, `button: <key he
 
 - `plugin/src/button_diff.h`: `void DiffHeldKeys(const std::vector<uint16_t>& prev, const std::vector<uint16_t>& cur, std::vector<ButtonChange>* out);` — releases first (in `prev` order), then presses (in `cur` order).
 - `plugin/src/wheel_mode.h`: `enum class WheelMode { Jog, Shtl, Scrl };` `uint8_t ProtocolMode(WheelMode)` → Jog=0, Scrl=2, Shtl=3 (ABSOLUTE_DEADZERO).
-- `plugin/src/action_sink.h`: `class IActionSink { public: virtual ~IActionSink()=default; virtual void RunCommand(int cmd)=0; virtual void ScrollView(int steps)=0; };` REAPER implements it in `main.cpp` with `Main_OnCommand(cmd, 0)` / `CSurf_OnScroll(steps, 0)` (steps: + = right/later, − = left).
+- `plugin/src/action_sink.h`: `class IActionSink { public: virtual ~IActionSink()=default; virtual void RunCommand(int cmd)=0; virtual void ScrollBySeconds(double dt)=0; };` REAPER implements it in `main.cpp` with `Main_OnCommand(cmd, 0)` / `GetSet_ArrangeView2` read + shift both times by `dt` + set + `UpdateArrange` (project from `EnumProjects(-1)`; dt: + = right/later, − = left).
 - `plugin/src/router.{h,cpp}`: `class Router` — owns the current `WheelMode` and handles the **press-semantics** buttons (JOG, SCRL, SHTL, STOP/PLAY). Unit-testable (no HID, no REAPER):
   `explicit Router(IActionSink&)`; `void OnButton(const ButtonChange&)`;
-  `void OnWheel(std::int32_t delta)` (only meaningful when `Mode()==Scrl`: accumulates and calls `ScrollView(±1)` once per `kScrollUnitsPerStep = 20` units, remainder kept; other modes ignore);
+  `void OnWheel(std::int32_t delta)` (only meaningful when `Mode()==Scrl`: calls `ScrollBySeconds(delta × JogEngine::kSecondsPerWheelUnit)` — the same timeline scale as the jog cursor, so the view travels the same on-screen distance per wheel unit as the cursor at any zoom; other modes and zero deltas are ignored);
   `WheelMode Mode() const`; `bool TakeModeChange(WheelMode* m)` (true once after each change, so `main.cpp` forwards it with `RequestWheelMode(ProtocolMode(m))` + `RequestJogLeds`).
   Press rules: JOG down → `Jog`; SCRL down → `Scrl`; STOP/PLAY down → `RunCommand(40044)`; **SHTL is ignored until M4** (mode unchanged, no LED change). Initial mode `Jog`.
 - `class ModeGatedSource : public IWheelSource` (in `router.h`): `ModeGatedSource(IWheelSource &hid, Router &r)`; `Tick` ticks `hid`; if `r.Mode()==Jog` passes the delta through, else calls `r.OnWheel(delta)` and outputs 0. This is the engine's source (so SCRL never moves the playhead).

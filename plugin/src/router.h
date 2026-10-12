@@ -10,9 +10,11 @@
 //   STOP/PLAY → RunCommand(40044)
 // Initial mode: Jog.
 //
-// OnWheel is only meaningful in Scrl mode: it accumulates wheel units and
-// issues ScrollView(±1) once per kScrollUnitsPerStep units, keeping the
-// remainder. Other modes ignore the delta.
+// OnWheel is only meaningful in Scrl mode: it scrolls the arrange view by
+// delta × JogEngine::kSecondsPerWheelUnit seconds — the same timeline scale
+// as the jog cursor, so the view travels the same on-screen distance per
+// wheel unit at any zoom (seconds, not lines). Other modes ignore the
+// delta.
 //
 // ModeGatedSource (design §6) wraps the HID source for the engine: in Jog
 // the delta passes through (playhead motion); otherwise it is routed to
@@ -30,9 +32,6 @@
 
 class Router {
  public:
-  // Wheel units (signed ticks) that accumulate into one ScrollView step.
-  static constexpr std::int32_t kScrollUnitsPerStep = 20;
-
   explicit Router(IActionSink &sink);
 
   // One button edge from the worker (design §2). Down edges act;
@@ -54,7 +53,6 @@ class Router {
   IActionSink &sink_;
   WheelMode mode_ = WheelMode::Jog;
   bool mode_change_pending_ = false;
-  std::int32_t scroll_remainder_ = 0;
 };
 
 // IWheelSource for the engine: passes the wrapped source's delta through in

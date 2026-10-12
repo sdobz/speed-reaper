@@ -130,7 +130,7 @@ deliberately **not** a parameter (fixed by design, see note).
 
 | Parameter | Default | Range | Layer | Notes |
 |---|---|---|---|---|
-| `scroll.lines_per_notch` | 1 arrange line | 1–16 | L2 | `CSurf_OnScroll` granularity; "travel far" pace (workflow §3). |
+| `scroll.speed_factor` | 1.0× | 0.25–4.0 | L2 | SCRL scroll pace as a multiple of the jog cursor scale (default = same on-screen speed as the cursor, zoom-aware; workflow §3). |
 
 ### 2.5 Hold+rotate analog adjustments (workflow §4.3)
 

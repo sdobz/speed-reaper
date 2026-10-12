@@ -45,7 +45,9 @@
 #define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
 #define REAPERAPI_WANT_ShowConsoleMsg // onTimer: HID worker log lines
 #define REAPERAPI_WANT_Main_OnCommand // ReaperActionSink::RunCommand (Router STOP/PLAY)
-#define REAPERAPI_WANT_CSurf_OnScroll // ReaperActionSink::ScrollView (Router Scrl mode)
+#define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
+#define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
+#define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -110,8 +112,22 @@ class ReaperActionSink : public IActionSink {
     Trace("cmd %d", cmd); // oracle greps (docs/plugin-oracle-design.md §2)
     Main_OnCommand(cmd, 0);
   }
-  // Scroll the arrange view: +steps = right/later, −steps = left/earlier.
-  void ScrollView(int steps) override { CSurf_OnScroll(steps, 0); }
+  // Scroll the arrange view by dt seconds of timeline (+ = right/later).
+  // Same scale as the jog cursor (Router passes delta ×
+  // JogEngine::kSecondsPerWheelUnit): the view travels the same on-screen
+  // distance per wheel unit as the cursor, at any zoom level (seconds,
+  // not screen lines — CSurf_OnScroll's line steps do not track zoom).
+  void ScrollBySeconds(double dt) override {
+    ReaProject *proj = nullptr;
+    proj = EnumProjects(-1, nullptr, 0); // idx −1 = current project
+    double t0 = 0.0, t1 = 0.0;
+    GetSet_ArrangeView2(proj, false, 0, 0, &t0, &t1);
+    t0 += dt;
+    t1 += dt;
+    GetSet_ArrangeView2(proj, true, 0, 0, &t0, &t1);
+    UpdateArrange();
+    Trace("scroll dt=%.4f", dt); // oracle greps (design §2)
+  }
 };
 
 ReaperPlayheadSink g_reaper_sink;

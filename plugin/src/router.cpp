@@ -30,16 +30,11 @@ void Router::OnButton(const ButtonChange &change) {
 }
 
 void Router::OnWheel(std::int32_t delta) {
-  if (mode_ != WheelMode::Scrl) return;
-  scroll_remainder_ += delta;
-  while (scroll_remainder_ >= kScrollUnitsPerStep) {
-    sink_.ScrollView(1);
-    scroll_remainder_ -= kScrollUnitsPerStep;
-  }
-  while (scroll_remainder_ <= -kScrollUnitsPerStep) {
-    sink_.ScrollView(-1);
-    scroll_remainder_ += kScrollUnitsPerStep;
-  }
+  if (mode_ != WheelMode::Scrl || delta == 0) return;
+  // Same timeline scale as the jog cursor (JogEngine): the view scrolls the
+  // same seconds the cursor would move → same on-screen speed at any zoom.
+  sink_.ScrollBySeconds(static_cast<double>(delta) *
+                        JogEngine::kSecondsPerWheelUnit);
 }
 
 bool Router::TakeModeChange(WheelMode *m) {

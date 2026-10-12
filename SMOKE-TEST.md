@@ -282,7 +282,7 @@ Start from the M1 state: Speed Editor plugged in, plugin installed (M1 step 3), 
 
 2. **SCRL: horizontal scroll, cursor frozen**: press **SCRL** once. Turn the wheel in one direction, then the other. Then press **JOG** and turn again.
 
-   **Expected:** the LED switches JOG off / **SCRL** on. While SCRL is lit, turning the wheel scrolls the arrange view **horizontally** (direction follows the wheel) and the edit cursor does **not** move. JOG brings the cursor motion back. Mode-switch while the wheel is still spinning (keep it turning, tap SCRL, then JOG): the LED and the behavior flip together — the motion changes from cursor to scroll and back immediately, mid-turn.
+   **Expected:** the LED switches JOG off / **SCRL** on. While SCRL is lit, turning the wheel scrolls the arrange view **horizontally** (direction follows the wheel) and the edit cursor does **not** move. The view travels at roughly the **same on-screen speed as the cursor** in JOG (SCRL scrolls the same 20 s of timeline per wheel revolution the cursor moves — at any zoom level; it should not fly across the screen). JOG brings the cursor motion back. Mode-switch while the wheel is still spinning (keep it turning, tap SCRL, then JOG): the LED and the behavior flip together — the motion changes from cursor to scroll and back immediately, mid-turn.
 
 3. **STOP/PLAY**: press **STOP/PLAY**.
 
@@ -296,6 +296,6 @@ Start from the M1 state: Speed Editor plugged in, plugin installed (M1 step 3), 
 
    **Expected:** console shows `Speed Reaper: disconnected`, then `Speed Reaper: connected (serial …)`; after reconnect **SCRL is still the active mode** and its LED is lit (mode + LEDs are re-sent automatically on the reconnect edge — no button press needed). Wheel still scrolls, cursor still frozen.
 
-6. **Tuning note — scroll speed**: if step 2 feels too fast/slow, edit `kScrollUnitsPerStep` in `plugin/src/router.h` (wheel units per one scroll step — larger = slower), rebuild + reinstall the plugin (M1 step 3), restart REAPER, and re-run step 2. Record the final value and the feel in `docs/notes/m2-observations.md` (create it if missing).
+6. **Tuning note — scroll speed**: SCRL deliberately shares the jog scale (`JogEngine::kSecondsPerWheelUnit` in `plugin/src/jog_engine.h`), so it matches the cursor's on-screen speed at any zoom by construction. If you want SCRL to travel faster/slower *than the cursor*, that is a deliberate divergence — record the desired ratio and the feel in `docs/notes/m2-observations.md` (a `scroll.speed_factor` parameter is its likely home, `docs/plugin-configuration.md` §2.4).
 
 Pass bar: the jog LEDs are always truthful (exactly one of JOG/SCRL lit, SHTL never lit), SCRL scrolling never moves the edit cursor, STOP/PLAY toggles transport in both modes, and the active mode survives an unplug/replug.

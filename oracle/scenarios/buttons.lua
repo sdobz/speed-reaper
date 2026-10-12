@@ -108,15 +108,21 @@ run(function()
     local cur = "Jog"
     local want_bit = { Jog = "1", Scrl = "4", Shtl = "2" } -- one LED per mode
     local dis_i, cmd_count, scrl_led_after_disc = 0, 0, false
+    local scroll_total, first_scroll_i, first_scrl_mode_i = 0, 0, 0
     for i = 1, #lines do
       local l = lines[i]
       local m = l:match(" mode ([A-Za-z]+)$")
       if m then
         if m == "Shtl" then shtl = true end
         if m == "Scrl" and not seen_jog then order_bad = true end
+        if m == "Scrl" and first_scrl_mode_i == 0 then first_scrl_mode_i = i end
         seen_jog = seen_jog or (m == "Jog")
         seen_scrl = seen_scrl or (m == "Scrl")
         cur = m -- a `led` line follows its `mode` line
+      end
+      if l:find(" scroll dt=", 1, true) then
+        scroll_total = scroll_total + 1
+        if first_scroll_i == 0 then first_scroll_i = i end
       end
       if l:find("log disconnected", 1, true) and dis_i == 0 then
         dis_i = i
@@ -150,6 +156,13 @@ run(function()
           dis_i > 0 and scrl_led_after_disc,
           string.format("disconnected_at_line=%d scrl_led_after=%d",
                         dis_i, scrl_led_after_disc and 1 or 0))
+    check("trace: scroll dt= lines present (SCRL turns scrolled the view)",
+          scroll_total >= 1, "count=" .. scroll_total)
+    check("trace: no scroll before the first mode Scrl",
+          first_scrl_mode_i == 0 or first_scroll_i == 0
+              or first_scroll_i > first_scrl_mode_i,
+          string.format("first_scroll_line=%d first_scrl_mode_line=%d",
+                        first_scroll_i, first_scrl_mode_i))
 
     finish()
   end)
