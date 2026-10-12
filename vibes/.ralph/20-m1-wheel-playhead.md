@@ -155,3 +155,16 @@ warning: Git tree '/home/vkhougaz/projects/speed-reaper' is dirty
 ```
 
 Result: exit 0; verify-failed; 2 files changed, 52 insertions(+), 2 deletions(-); log: logs/20-m1-wheel-playhead-L85-a5-1791773988106.log
+
+### Attempt 1 — 2026-10-12T04:22:01Z — budget 600s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - The attempt-5 blocker is gone: `vibes/19-…` task 3 landed meanwhile (commits `a86161b`/`1921b25`) — `plugin/src/transport_factory.{h,cpp}`, `src/speed_editor/fake_transport.{h,cpp}` + `hidapi_transport.cpp`, `oracle/fake/wheel_turn.txt`, and the `SPEED_REAPER_FAKE_DEVICE` CMake option (default OFF) all exist; `tools/check` builds with `-DSPEED_REAPER_FAKE_DEVICE=ON`.
+  - `SpeedEditorHID` takes `std::unique_ptr<IHidTransport>` in its ctor (default nullptr = real), so `std::make_unique<SpeedEditorHID>(MakeTransport())` is the whole seam. FakeTransport serial is `FAKE0001`; its wheel input reports echo the mode set via `setWheelMode` (wheel_turn script → mode 0 → relative deltas).
+  - Implementation: `hid_wheel_source.cpp` worker loop = design §4 steps 1–5 (1 s open retry via `SleepSliced` ≤100 ms, `device not found` logged once until open succeeds, `auth failed` → close → retry, init `setWheelMode(0)`+`setJogLeds(true,false,false)` → `connected (serial …)`, event loop with `readEvent(ev, 20)`, disconnect detected via `getState()==State::Disconnected` → `disconnected`, worker exits with `close()`). `DiffHeldKeys` is a file-local anonymous-namespace helper (releases in prev order, then presses in cur order) pending M2's `button_diff.h`. Pending outputs applied between reads: 18 LED bits → three 6-bit bytes for `setLeds`.
+  - Added private methods `WorkerLoop/PushLog/ApplyPending/SleepSliced` to `hid_wheel_source.h` (worker-thread-only). `PushLog` also `Trace("log %s", line)`.
+  - `Stop()` = `running_.exchange(false)` + join; worker wakes within one 100 ms slice, so join is well under 1 s even with no device. `main.cpp` untouched, `src/speed_editor/` untouched.
+- Dead ends:
+  - `std::min(left, std::chrono::milliseconds(100))` with `left` in steady_clock nanosecond duration doesn't compile (deduction failure) — cast `left` to `milliseconds` first.
+- Next:
+  - Task complete; checkbox ticked, full Verify (tools/check + fake-device probe greps) exits 0 (`VERIFY_OK` in vibes/.ralph/logs/task5-verify.log).

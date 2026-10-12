@@ -82,7 +82,7 @@ tools/check && ./build/plugin/hid_probe --seconds 2 | grep -q 'wheel: sum=0'
 tools/check && out=$(SPEED_REAPER_FAKE_DEVICE=oracle/fake/wheel_turn.txt ./build/plugin/hid_probe --seconds 3) && echo "$out" | grep -q 'log: connected' && echo "$out" | grep -Eq 'wheel: sum=[1-9]'
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Use `HidWheelSource` in the plugin
 

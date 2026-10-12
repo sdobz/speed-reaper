@@ -78,6 +78,12 @@ class HidWheelSource : public IWheelSource {
 
   std::mutex pending_mutex_;
   PendingOutput pending_;
+
+  // Worker-thread-only helpers (design §4 steps 1–5).
+  void WorkerLoop();
+  void PushLog(const std::string &line);  // enqueue + Trace
+  void ApplyPending();                    // apply + clear dirty flags
+  bool SleepSliced(int ms);               // sleep ≤100 ms slices; false if stopped
 };
 
 #endif  // SPEED_REAPER_HID_WHEEL_SOURCE_H
