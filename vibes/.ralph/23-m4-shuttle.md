@@ -136,3 +136,11 @@ M vibes/.ralph/23-m4-shuttle.md
 - Design: new `IActionSink::ApplyShuttleRate(double)` + `IActionSink::HardStop()`; Router gains `OnShuttleOffset(int32_t)` (no-op outside Shtl; 0 → one HardStop per band entry, re-armed on nonzero rate or any mode change; ±2068 → ±4.5 passed to sink). Router tracks `shuttle_prev_` for STOP/PLAY exit (initial Jog). main.cpp: ReaperActionSink implements both (stopped transport parks forward/reverse; JOG/SCRL hand-off = rate 1.0); onTimer engine-tick loop calls `g_router.OnShuttleOffset(g_hid.AbsolutePosition())` each 8 ms step. Fake sinks in router_test.cpp and verbs_test.cpp updated (new pure virtuals).
 - Dead ends: `#include <algorithm>` + `std::min` in main.cpp fails the -Werror build — the SDK/Swell min/max macros are in force after reaper_plugin.h; use a ternary (`rate < 4.0 ? rate : 4.0`).
 - Done: `tools/check router` rc=0 (job check-router2, log vibes/.ralph/logs/check-router2.log): -Werror build clean, router_test passes (dead band → no rate call + one HardStop; ±2068 → ±4.5; STOP/PLAY in SHTL → HardStop + exit to prior mode; JOG tap → rate 1.0), Windows cross build PASS, oracle host PASS. Full ctest: 10/10. Line 74 ticked.
+
+Result: exit 0; done; log: logs/23-m4-shuttle-L74-a5-1791841152951.log
+
+### Done — 2026-10-12 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/23-m4-shuttle.md
+```
