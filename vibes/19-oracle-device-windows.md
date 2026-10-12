@@ -32,7 +32,13 @@ tools/check && make -C src && ./build/speedcli scan; test $? -le 1
 tools/check fake_transport
 ```
 
-- [ ] Done
+- [ ] Fix the fake_transport_test expectation and make `tools/check fake_transport` green
+  <!-- ralph: replanned=1 -->
+  All files for this task already exist and compile (`src/speed_editor/fake_transport.{h,cpp}`, `src/speed_editor/auth.h`, `plugin/test/fake_transport_test.cpp`); do not rewrite them and do not touch `hid_device.*` or `plugin/CMakeLists.txt`.
+  The one known bug: `plugin/test/fake_transport_test.cpp:33` checks `evs.size() == 8`, but the `goodScript()` script has 7 event lines and `evs[0]..evs[6]` are checked — change 8 to 7.
+  `ParseFakeScript` in `src/speed_editor/fake_transport.cpp` already fills `*err` for all 13 bad-script cases (read it to confirm); the bad-case failures in `vibes/.ralph/logs/task2-verify-a3.log` predate the current parser — if any other CHECK still fails, fix the parser, not the expectations.
+  Run `tools/check fake_transport` in the foreground (incremental build, ~2-4 min, it self-launches `nix develop`); when it exits 0, tick the box.
+  Verify: `tools/check fake_transport`
 
 ### 3. Select the fake by env (test builds only)
 

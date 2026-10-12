@@ -27,3 +27,27 @@ Files:
 M vibes/.ralph/19-oracle-device-windows.md
  M vibes/20-m1-wheel-playhead.md
 ```
+
+## Task: 2. `FakeTransport` and its script parser (pure)
+
+### Attempt 2 — 2026-10-12T03:37:22Z — budget 600s
+- Facts: all files written: `src/speed_editor/auth.h` (free functions `speed_editor_auth::{rol8,rol8n,calculateResponse}` + tables; `SpeedEditorHID` static auth helpers removed, `authenticate()` calls `speed_editor_auth::calculateResponse`), `fake_transport.{h,cpp}`, `plugin/test/fake_transport_test.cpp`; `fake_transport.cpp` added to the Linux `PLUGIN_PURE_SOURCES` block in `plugin/CMakeLists.txt`. `src/Makefile` SRCS untouched (CLI doesn't need the fake).
+- Facts: design decisions — script plays once from the *first* successful Open (reconnect continues the same timeline; wheel mode + held keys + auth re-arm on each Open, like re-enumeration); Read blocks until next due event or timeout; input reports gated on auth Accepted (0 otherwise); GetFeature 0x06 returns [06,01,challenge LE] / [06,02] / [06,04 accepted] / [06,05 rejected]; `at <ms> unplug|plug` and stray `plug` (no unplug) is a no-op consume.
+- Dead ends: first background launch (`g++ … && setsid nohup tools/check … &` inside one && chain) died with no log — the harness kills the chain when the foreground echo exits; relaunch as `setsid bash -c '…' </dev/null & disown` works.
+- Next: `tools/check fake_transport` running in background, log `vibes/.ralph/logs/task2-build.log` (nix develop → make src → cmake plugin -Werror → ctest -R fake_transport → oracle host). Poll log; if green, tick line 35 of `vibes/19-oracle-device-windows.md`.
+
+Result: timeout after 600s; progress; 4 files changed, 14 insertions(+), 55 deletions(-); log: logs/19-oracle-device-windows-L35-a2-1791776242317.log
+
+### Attempt 3 — 2026-10-12T03:47:57Z — budget 600s
+- Facts: attempt 2's files are all present and complete; attempt 2's build (log `vibes/.ralph/logs/task2-build.log`) failed on one compile error: `fake_transport_test.cpp:7: fatal error: fake_transport.h: No such file` — the test used bare includes, but the test targets' include root is `${REPO_ROOT}/src` (convention: `speed_editor/hid_device.h`, see `plugin/src/hid_wheel_source.cpp`). Fixed includes in the test to `speed_editor/fake_transport.h` / `speed_editor/hid_device.h`.
+- Facts: verified `SpeedEditorHID` semantics against the test: `readEvent` false on timeout (state unchanged), false + `close()` (→ Disconnected) on Read <0; `authenticate` needs GetFeature replies [06,01,challenge]/[06,02]/[06,04] — FakeTransport's state machine matches.
+- Facts: test auto-registers via `file(GLOB *_test.cpp)` in `plugin/test/CMakeLists.txt`; no CMakeLists change needed beyond attempt 2's `PLUGIN_PURE_SOURCES` line.
+- Next: `tools/check fake_transport` relaunched (attempt 3), log `vibes/.ralph/logs/task2-verify-a3.log` (ends with `EXIT=<n>`). Poll it; if `EXIT=0`, tick line 35 of `vibes/19-oracle-device-windows.md`.
+
+Result: timeout after 600s; progress; 4 files changed, 22 insertions(+), 55 deletions(-); log: logs/19-oracle-device-windows-L35-a3-1791776877969.log
+
+### Replan (depth 0) — REWRITE → "Fix the fake_transport_test expectation and make `tools/check fake_transport` green"
+Trigger: 3 attempt(s), last: timeout after 600s, progress
+Why: Both attempts burned the 600s budget on build orchestration; a3's log shows the build now compiles and the only live defect is the test's own expectation — goodScript() has 7 event lines but line 33 checks evs.size() == 8 — while the 14 bad-case failures in that log came from a stale parser revision (a3's build never recompiled fake_transport.cpp, and the on-disk parser sets *err on all 13 bad cases).
+Rejected: BUDGET: the approach is fine and the remaining work is one line; a bigger budget with the old 'create the four files' block risks another full orbit re-reading and re-doing finished work. SPLIT: nothing to split — one expectation fix plus the existing Verify. SPIKE: no open design decision; all contracts are settled and the code is written. BLOCK: nothing needs a human.
+Log: logs/19-oracle-device-windows-L35-replan-1791777517928.log

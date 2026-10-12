@@ -5,60 +5,14 @@
 //   - battery input report 0x07 is parsed (the vendored driver dropped it as Unknown)
 //   - raw input-report bytes are attached to events (for `speedcli -v`)
 //   - setWheelMode() added; sendInitReports()/ledChaseDemo() removed
-// The auth handshake, tables, and report layouts are unchanged from the
-// vendored driver and match docs/speed-editor-capabilities.md.
+//   - auth math moved to auth.h (free functions, shared with FakeTransport)
+// The auth handshake and report layouts are unchanged from the vendored
+// driver and match docs/speed-editor-capabilities.md.
 #include "hid_device.h"
 #include "hidapi_transport.h"
 
 #include <cstdio>
 #include <cstring>
-
-// ── Authentication tables (from smunaut's reverse-engineering) ──────
-
-static const uint64_t AUTH_EVEN[] = {
-    0x3AE1206F97C10BC8ULL, 0x2A9AB32BEBF244C6ULL,
-    0x20A6F8B8DF9ADF0AULL, 0xAF80ECE52CFC1719ULL,
-    0xEC2EE2F7414FD151ULL, 0xB055ADFD73344A15ULL,
-    0xA63D2E3059001187ULL, 0x751BF623F42E0DDEULL,
-};
-
-static const uint64_t AUTH_ODD[] = {
-    0x3E22B34F502E7FDEULL, 0x24656B981875AB1CULL,
-    0xA17F3456DF7BF8C3ULL, 0x6DF72E1941AEF698ULL,
-    0x72226F011E66AB94ULL, 0x3831A3C606296B42ULL,
-    0xFD7FF81881332C89ULL, 0x61A3F6474FF236C6ULL,
-};
-
-static const uint64_t AUTH_MASK = 0xA79A63F585D37BF0ULL;
-
-// ── Authentication math ────────────────────────────────────────────
-
-uint64_t SpeedEditorHID::rol8(uint64_t value) {
-    return ((value << 56) | (value >> 8)) & 0xFFFFFFFFFFFFFFFFULL;
-}
-
-uint64_t SpeedEditorHID::rol8n(uint64_t value, int n) {
-    for (int i = 0; i < n; i++) {
-        value = rol8(value);
-    }
-    return value;
-}
-
-uint64_t SpeedEditorHID::calculateResponse(uint64_t challenge) {
-    int n = challenge & 7;
-    uint64_t v = rol8n(challenge, n);
-    uint64_t k;
-
-    if ((v & 1) == ((0x78 >> n) & 1)) {
-        k = AUTH_EVEN[n];
-    }
-    else {
-        v ^= rol8(v);
-        k = AUTH_ODD[n];
-    }
-
-    return v ^ (rol8(v) & AUTH_MASK) ^ k;
-}
 
 // ── Constructor / Destructor ───────────────────────────────────────
 
@@ -151,7 +105,7 @@ bool SpeedEditorHID::authenticate() {
     // Step 3 — compute and send response
     uint64_t challenge;
     memcpy(&challenge, &challengeBuf[2], sizeof(uint64_t));
-    uint64_t response = calculateResponse(challenge);
+    uint64_t response = speed_editor_auth::calculateResponse(challenge);
 
     uint8_t respReport[10] = {0x06, 0x03};
     memcpy(&respReport[2], &response, sizeof(uint64_t));

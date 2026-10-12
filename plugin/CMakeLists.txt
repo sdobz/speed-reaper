@@ -50,6 +50,7 @@ if(UNIX AND NOT APPLE)
   list(APPEND PLUGIN_PURE_SOURCES
     ${REPO_ROOT}/src/speed_editor/hid_device.cpp
     ${REPO_ROOT}/src/speed_editor/hidapi_transport.cpp
+    ${REPO_ROOT}/src/speed_editor/fake_transport.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/hid_wheel_source.cpp
   )
 endif()

@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include "auth.h"
 #include "event_types.h"
 #include "hid_transport.h"
 
@@ -49,11 +50,6 @@ public:
     std::string getSerial() const { return transport->Serial(); }
 
 private:
-    // Authentication helpers
-    static uint64_t rol8(uint64_t value);
-    static uint64_t rol8n(uint64_t value, int n);
-    static uint64_t calculateResponse(uint64_t challenge);
-
     void sendFeatureReport(const uint8_t* data, size_t len);
     int recvFeatureReport(uint8_t reportId, uint8_t* buf, size_t len);
     bool writeOutputReport(const uint8_t* data, size_t len);
