@@ -103,3 +103,16 @@ Files:
 ```
 M vibes/.ralph/22-m3-edit-verbs.md
 ```
+
+## Task: 5. Oracle scenario: `verbs` (also validates the command ids)
+
+### Attempt 5 — 2026-10-12T15:46:51Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 1 file changed, 5 insertions(+); log: logs/22-m3-edit-verbs-L74-a5-1791820011981.log
+
+### Replan (depth 0) — SPLIT op=AND → "Fake device script: `oracle/fake/verbs.txt` + `verbs.env`", "Scenario `oracle/scenarios/verbs.lua` (validates the command ids)", "Add `verbs` to the default oracle suite"
+Trigger: 5 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Why: Five attempts, zero scenario code: attempt 5's worker understood the whole oracle mechanism but stalled 180s in a design monologue (step windows, REAPER semantics) before writing anything. The task bundles 4+ artifacts and open design decisions, far beyond one 27B sitting; the log shows it needs the design decisions pre-settled and the work sliced per file.
+Rejected: BUDGET: the record shows no real progress (no source files ever written) and the stall was monologue, not a long build, so the rules bar it and more time on the same-sized task would stall again. SPIKE: the only open questions (does time selection drive GetSet_LoopTimeRange, what SPLIT selects, snap/undo interplay) are exactly what one real oracle run settles — the spike would be verbs.lua itself, and the 'finish the parent' follow-up would still be the oversized task. REWRITE: the task text is clear and its Verify is correct; the problem is size, not clarity. BLOCK: nothing needs a human decision.
+Log: logs/22-m3-edit-verbs-L74-replan-1791820482588.log

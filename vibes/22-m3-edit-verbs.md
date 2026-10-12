@@ -72,6 +72,27 @@ tools/reaper-oracle --layer reaper --scenario verbs
 ```
 
 - [ ] Done
+  <!-- ralph: replanned=1 op=AND -->
+  - [ ] Fake device script: `oracle/fake/verbs.txt` + `verbs.env`
+    - Create `oracle/fake/verbs.txt` (parent bullet 1) and `oracle/scenarios/verbs.env` (`export SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt`, same shape as `buttons.env`).
+    - Grammar `at <ms> key 0xNN down|up` (see `oracle/fake/buttons.txt`); 8 steps 400 ms apart, a tap = down + up 50 ms apart.
+    - Order: SPLIT 0x2F, IN 0x07, OUT 0x08, TRIM IN 0x09, IN double-tap, RIPL DEL 0x2B, SNAP 0x2E, ESC 0x31 double-tap. Document the order in a header comment: the IN double-tap comes after TRIM IN because it only touches the time selection, keeping the trim-check window clean (reordering is allowed by the task).
+    - Double-tap: press 2 starts ~100 ms after press 1's release (window is 300 ms: `double_tap_ms` in `plugin/src/gesture.h`).
+    - Do not create `verbs.lua`, do not touch `tools/reaper-oracle` or any plugin source.
+    Verify: `test -s oracle/fake/verbs.txt && test -s oracle/scenarios/verbs.env && grep -q 'SPEED_REAPER_FAKE_DEVICE=oracle/fake/verbs.txt' oracle/scenarios/verbs.env && for k in 0x2F 0x07 0x08 0x09 0x2B 0x2E 0x31; do grep -q "key $k down" oracle/fake/verbs.txt; done && test "$(grep -c 'key 0x07 down' oracle/fake/verbs.txt)" -ge 2 && test "$(grep -c 'key 0x31 down' oracle/fake/verbs.txt)" -ge 2`
+  - [ ] Scenario `oracle/scenarios/verbs.lua` (validates the command ids)
+    - Create `oracle/scenarios/verbs.lua` per the parent's 2nd bullet; model on `oracle/scenarios/buttons.lua` + `oracle/lib.lua`. Setup: new project, one empty item (`AddMediaItemToTrack`, pos 0, len 10 s, selected), edit cursor at 5 s.
+    - Read `oracle/fake/verbs.txt` for exact event times. Verified facts: the fake device clock leads the script clock ~40 ms (buttons.lua header); IN/OUT taps are deferred as double-tap keys and promoted to Tap after 300 ms.
+    - Assert per step by sampling every defer cycle for ~4.5 s (track item count, min `D_POSITION`, `GetSet_LoopTimeRange`, `GetToggleCommandState(1157)`, `Undo_CanUndo2`) and checking each parent-bullet effect at a mid-window sample; every effect stays true until the next step that changes that state, so all windows are >=300 ms.
+    - Also assert on `build/oracle/trace_verbs.txt`: the 8 `gesture %04x <kind>` lines in script order (kinds `tap`/`double_tap`); `cmd` lines 40012, 40625, 40626, 40511, 40635, 40006, 1157, 40029 in order; plain `led main=` lines present with final value `20` if snap state is 1 else `0` (LED_SNAP = bit 5); the last `cmd 40029` line comes after the last `cmd 40635` line.
+    - A failing check means a wrong id (or bug) in `plugin/src/verbs.cpp`: fix the table and record each corrected id and the check that proved it in `docs/notes/m3-observations.md`. Do not loosen a check.
+    - Do not edit `tools/reaper-oracle` yet (the next step adds the scenario to the suite).
+    Verify: `tools/reaper-oracle --layer reaper --scenario verbs`
+  - [ ] Add `verbs` to the default oracle suite
+    - In `tools/reaper-oracle`, append `verbs` to `REAPER_SCENARIOS=(load jog_demo hid_wheel buttons)` (near the bottom, 'Reaper-layer scenario suite') and mention it in the comment above that line.
+    - Then run the full default suite and confirm all scenarios plus the host layer are green.
+    - Do not edit scenario or plugin files in this step.
+    Verify: `tools/reaper-oracle`
 
 ### 6. SMOKE-TEST.md: "M3 — edit verbs"
 
