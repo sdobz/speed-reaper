@@ -27,5 +27,32 @@ int main() {
   double settled = sink.total;
   for (int i = 0; i < 10; ++i) eng.Tick(8.0);
   CHECK_NEAR(sink.total, settled, 1e-9);
+
+  // SummedWheelSource adds the deltas of both sources every tick.
+  {
+    FixedSource a, b;
+    a.d = 7;
+    b.d = -3;
+    SummedWheelSource summed(a, b);
+    WheelSample s;
+    summed.Tick(&s);
+    CHECK(s.delta == 4);
+
+    // A triggered DemoWheelSource fed through the engine moves the sink
+    // forward and eventually settles.
+    DemoWheelSource demo;
+    NullWheelSource null;
+    SummedWheelSource src2(demo, null);
+    SumSink sink2;
+    JogEngine eng2(src2, sink2);
+    CHECK(sink2.total == 0.0);
+    demo.Trigger();
+    for (int i = 0; i < 260; ++i) eng2.Tick(8.0); // turn (1.25 s) + 800 ms coast
+    CHECK(sink2.total > 0.0);
+    double settled2 = sink2.total;
+    for (int i = 0; i < 10; ++i) eng2.Tick(8.0);
+    CHECK_NEAR(sink2.total, settled2, 1e-9);
+  }
+
   return check_failures();
 }

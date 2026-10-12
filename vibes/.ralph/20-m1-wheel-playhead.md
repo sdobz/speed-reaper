@@ -33,3 +33,18 @@ M plugin/src/jog_engine.cpp
  M vibes/20-m1-wheel-playhead.md
 ?? vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+## Task: 2. Fix the demo wiring: `SummedWheelSource`
+
+### Attempt 2 — 2026-10-12T02:46:37Z — budget 600s
+- Facts:
+  - At start, only the record file was dirty; `main.cpp` already had the demo action driving `g_demo_source` directly, but the engine was built on `g_demo_source` alone and `JogEngine` still owned `demo_`/`ToggleDemo()`/etc.
+  - Added `NullWheelSource` + `SummedWheelSource` (header-only, refs to both sources) to `plugin/src/jog_engine.h`; removed `demo_`, `demo_on_`, `ToggleDemo()`, `DemoActive()`, `Demo()` from `JogEngine`. No other references existed (`grep -rn "ToggleDemo|DemoActive|Demo()" plugin/` clean).
+  - `main.cpp`: `NullWheelSource g_null;` + `SummedWheelSource g_wheel_source(g_demo_source, g_null);`; engine built on `g_wheel_source`.
+  - Test: sums two `FixedSource`s (7 + -3 = 4); triggered `DemoWheelSource` through `SummedWheelSource(demo, null)` into engine moves `SumSink` forward, then settles.
+  - `tools/check jog_engine` exits 0 (test + oracle PASS).
+- Dead ends:
+  - `SummedWheelSource src2(demo, NullWheelSource())` — cannot bind rvalue to `IWheelSource&` param; use a named local.
+  - Settle check right after the turn: the low-pass velocity (tau=50 ms) keeps drifting for ~800 ms, so the sink moves >1e-9 within a short window. Fix: coast 260 ticks (turn 1.25 s + 800 ms ≈ 16 tau) before measuring `settled2`, then CHECK_NEAR over 10 ticks — same pattern as the pre-existing test.
+- Next:
+  - Task complete; checkbox ticked.

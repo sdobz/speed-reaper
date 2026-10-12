@@ -82,6 +82,8 @@ class ReaperPlayheadSink : public IPlayheadSink {
 
 ReaperPlayheadSink g_reaper_sink;
 DemoWheelSource g_demo_source; // synthetic wheel; swapped for the HID driver later
+NullWheelSource g_null; // task 6 replaces this with the HID source
+SummedWheelSource g_wheel_source(g_demo_source, g_null);
 
 // --- callbacks driven by REAPER ---------------------------------------
 
@@ -172,7 +174,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
                               "Speed Reaper: scrub back 0.5 s");
   if (!g_cmd_demo || !g_cmd_fwd || !g_cmd_back) return done(0);
 
-  g_engine = new JogEngine(g_demo_source, g_reaper_sink);
+  g_engine = new JogEngine(g_wheel_source, g_reaper_sink);
   g_sink = &g_reaper_sink;
 
   // SDK header: "for actions, the related callback should be registered

@@ -1,8 +1,9 @@
 // jog_engine.h — wheel input → smooth playhead motion.
 //
 // This layer is the seam for the Speed Editor: IWheelSource is the only
-// thing the engine cares about. Today it is DemoWheelSource (synthetic
-// wheel turns). When the C++ driver from src/speed_editor/ is integrated,
+// thing the engine cares about. Today main.cpp feeds it a
+// SummedWheelSource(DemoWheelSource, NullWheelSource). When the C++ driver
+// from src/speed_editor/ is integrated,
 // a HidWheelSource implementing the same interface wraps the hidapi poll
 // loop and is handed to JogEngine instead — no other code changes.
 
@@ -23,6 +24,29 @@ class IWheelSource {
  public:
   virtual ~IWheelSource() = default;
   virtual void Tick(WheelSample *out) = 0;
+};
+
+// Always reports no motion. Lets the engine be built from a source that
+// can be swapped in/out without rebuilding (main.cpp: today it is summed
+// with the demo source; task 6 replaces it with the HID source).
+struct NullWheelSource : IWheelSource {
+  void Tick(WheelSample *out) override { out->delta = 0; }
+};
+
+// Sums two sources: each tick, both are ticked and their deltas added.
+class SummedWheelSource : public IWheelSource {
+ public:
+  SummedWheelSource(IWheelSource &a, IWheelSource &b) : a_(a), b_(b) {}
+  void Tick(WheelSample *out) override {
+    WheelSample sa, sb;
+    a_.Tick(&sa);
+    b_.Tick(&sb);
+    out->delta = sa.delta + sb.delta;
+  }
+
+ private:
+  IWheelSource &a_;
+  IWheelSource &b_;
 };
 
 // Destination for smoothed motion. REAPER implements this (main.cpp) with
@@ -72,16 +96,8 @@ class JogEngine {
   // Advance one tick; dt_ms must match the REAPER timer interval.
   void Tick(double dt_ms);
 
-  void ToggleDemo() {
-    if (demo_.Active()) demo_.Stop();
-    else demo_.Trigger();
-    demo_on_ = demo_.Active();
-  }
   void NudgeSeconds(double dt) { sink_.ScrubBySeconds(dt); }
-  bool DemoActive() const { return demo_on_; }
   double Velocity() const { return vel_; } // wheel units per ms (debug)
-
-  DemoWheelSource &Demo() { return demo_; }
 
   // Wheel unit → time mapping: 1 relative wheel tick = 0.1 ms of project
   // time (≈ one full turn at max speed moves ~0.5 s of timeline).
@@ -90,8 +106,6 @@ class JogEngine {
  private:
   IWheelSource &source_;
   IPlayheadSink &sink_;
-  DemoWheelSource demo_;
-  bool demo_on_ = false;
   double vel_ = 0.0;
 };
 

@@ -41,7 +41,7 @@ Today `JogEngine` ticks only its constructor `source_`, while `ToggleDemo()` dri
 tools/check jog_engine
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Wire the driver and hidapi into the plugin build (stub `HidWheelSource`)
 
