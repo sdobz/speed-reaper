@@ -87,7 +87,7 @@ trap 'stop_dismisser 2>/dev/null; [[ -n "$XVFB_PID" ]] && kill "$XVFB_PID" 2>/de
 # --- host layer -------------------------------------------------------------
 run_host() {
   # tools/check's cmake flags.
-  cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror >/dev/null
+  cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror -DSPEED_REAPER_FAKE_DEVICE=ON >/dev/null
   cmake --build build/plugin
   rm -f "$OUT/plugin_host.out" "$OUT/trace.txt"
   SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \

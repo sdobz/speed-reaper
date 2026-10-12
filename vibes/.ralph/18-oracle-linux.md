@@ -267,3 +267,13 @@ Result: timeout after 600s; progress; 2 files changed, 78 insertions(+), 35 dele
 ### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
 Trigger: 3 attempt(s), last: timeout after 600s, progress
 Log: logs/18-oracle-linux-L146-replan-1791762955893.log
+
+## Task: 10. Make the oracle part of `tools/check`
+
+### Attempt 1 — 2026-10-12T02:42:00Z — budget 600s
+Facts:
+- CMakeLists.txt has no SPEED_REAPER_FAKE_DEVICE option yet (defined by 19-…); passing `-DSPEED_REAPER_FAKE_DEVICE=ON` on the configure line is silently accepted (unused cache var, no warning, no failure) — confirmed by ORACLE_FULL run.
+- Edited tools/check: added -DSPEED_REAPER_FAKE_DEVICE=ON to configure line; after ctest runs `tools/reaper-oracle --layer host`, or `tools/reaper-oracle` when ORACLE_FULL=1. Usage comment updated.
+- Verified: `ORACLE_FULL=1 tools/check` exits 0 → "ORACLE PASS all/load,jog_demo"; plain `tools/check` → "ORACLE PASS host". Unused -D var only emits `CMake Warning (unused-cli)`, build succeeds.
+- "error creating client" lines in verify log are reaper audio noise, harmless (oracle still PASS).
+- Task done, line 160 ticked.

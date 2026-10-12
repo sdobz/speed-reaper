@@ -10,6 +10,18 @@ unfree; flake already allows it) starts under `xvfb-run reaper -newinst -nosplas
 with an isolated `HOME`; a Lua file passed on the command line runs inside REAPER
 and can write files, call `NamedCommandLookup`, `Main_OnCommand`, etc.
 
+## How to use
+
+```
+tools/check                                   # build + unit tests + oracle host layer
+ORACLE_FULL=1 tools/check                     # same, but oracle runs all layers, all scenarios
+tools/reaper-oracle --layer reaper --scenario jog_demo   # one reaper-layer scenario only
+```
+
+`ORACLE_FULL=1 tools/check` is the heavy end-to-end check (~1 min: REAPER starts
+per scenario). `tools/check` alone stays fast (<30 s incl. build) and catches
+link/entry regressions.
+
 ## §1 The command
 
 ```
