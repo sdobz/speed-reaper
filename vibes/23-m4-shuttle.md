@@ -60,7 +60,7 @@ tools/reaper-oracle --layer reaper --scenario spike_rate --report-only >/dev/nul
 test -s docs/plugin-design-m4-shuttle-impl.md && grep -q 'Decision' docs/plugin-design-m4-shuttle-impl.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Wire SHTL per the decision
 

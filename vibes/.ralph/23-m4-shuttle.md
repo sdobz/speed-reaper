@@ -104,3 +104,25 @@ Files:
 ```
 M vibes/.ralph/23-m4-shuttle.md
 ```
+
+## Task: 4. Decide the shuttle approach by rule (no human)
+
+### Attempt 4 — 2026-10-12T21:37:29Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Rule eval from docs/notes/m4-shuttle-api.md: −1× reverse reads back 0.25 and the playhead moves *forward* → rule 1 ("playrate only") fails on reverse; forward works (2.0→2.0, 8.0→clamped 4.0, forward) → **rule 2 wins**: forward via playrate, reverse via stepped seek.
+- Wrote docs/plugin-design-m4-shuttle-impl.md: rate setter CSurf_OnPlayRateChange (read-back Master_GetPlayRate(nullptr)); reverse via SetEditCurPos(pos − |rate|·dt, false, 1) — same call ReaperPlayheadSink::ScrubBySeconds already uses (main.cpp L128); tick period = existing kTimerMs=8 ms engine steps in the ~30 Hz REAPER timer (main.cpp L80, L206); STOP/PLAY = hard stop via OnStopButton (never 40045) + rate 1.0 + exit SHTL; JOG/SCRL tap = rate 1.0 + hand off to relative mode; dead band 0 → OnStopButton, no rewind.
+
+Next:
+- DONE: verify passed, line 63 ticked.
+
+Result: exit 0; done; 2 files changed, 13 insertions(+), 1 deletion(-); log: logs/23-m4-shuttle-L63-a4-1791841049690.log
+
+### Done — 2026-10-12 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/23-m4-shuttle.md
+ M vibes/23-m4-shuttle.md
+?? docs/plugin-design-m4-shuttle-impl.md
+```
