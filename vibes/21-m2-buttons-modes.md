@@ -44,7 +44,7 @@ tools/check router
 ORACLE_FULL=1 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Oracle scenario: `buttons`
 

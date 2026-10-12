@@ -47,3 +47,12 @@ Files:
 ```
 M vibes/.ralph/21-m2-buttons-modes.md
 ```
+
+## Task: 3. Wire the router into the plugin
+
+### Attempt 3 — 2026-10-12T07:23:48Z — budget 1800s
+
+- Facts: tree clean (tasks 1–2 committed). Design §6 + oracle §2 confirm: trace lines `mode <Jog|Scrl|Shtl>`, `led jog=<bits> main=<hex>`, `cmd <n>`. SDK has `Main_OnCommand(int,int)` and `CSurf_OnScroll(int xdir,int ydir)` in vendor/reaper-sdk; both names in oracle/reaper_api_names.txt (plugin_host stubs them). Default oracle reaper suite is load,jog_demo,hid_wheel (no buttons scenario yet — task 4 not done). hid_wheel fake scripts have no key events → no mode change, wheel stays pass-through (no regression risk). Jog LED report 0x04 bits: 0=JOG,1=SHTL,2=SCRL → Jog mask 0x1, Scrl mask 0x4.
+- Facts: main.cpp edits done: `ReaperActionSink` (RunCommand→`Trace("cmd %d")`+`Main_OnCommand(cmd,0)`, ScrollView→`CSurf_OnScroll(steps,0)`), `g_router`/`g_gated_source`/`SummedWheelSource(g_gated_source, g_demo_source)`, helper `ApplyModeToHid` (traces mode + led, RequestWheelMode + RequestJogLeds matching LED only), onTimer: PopButton→`g_router.OnButton`, `TakeModeChange`→`ApplyModeToHid`, `Connected()` false→true edge→`ApplyModeToHid(current)` via `g_was_connected`. Added `REAPERAPI_WANT_Main_OnCommand`/`_CSurf_OnScroll`. No new std includes needed (router.h's <vector> already pre-SDK-included).
+- Facts: plugin_host smoke with `SPEED_REAPER_FAKE_DEVICE` (script /tmp/smoke_buttons.txt): on connect trace shows `mode Jog` + `led jog=1 main=0` (reconnect edge works); SCRL down → `mode Scrl` + `led jog=4 main=0`; STOP/PLAY down → `cmd 40044` exactly once. Host ticks are ~µs-apart, so fake-device script events >~1 ms don't get delivered in a host run — use all-`at 0` events for host-level button tests; timed button flows need the reaper layer (task 4). Note: buttons queued between two timer callbacks collapse to the final mode in one `TakeModeChange` (mode_ read at pop time) — correct by design.
+- Done: build3 (build+6 unit tests) rc=0; committed main.cpp (7a05739); checkfull (`ORACLE_FULL=1 tools/check`) rc=0 — WINDOWS ORACLE PASS static, ORACLE PASS all/load,jog_demo,hid_wheel. Line 47 ticked.
