@@ -11,7 +11,6 @@
 
 #include "hid_wheel_source.h"
 
-#include <algorithm>
 #include <chrono>
 #include <cstdarg>
 #include <utility>
@@ -20,23 +19,6 @@
 #include "speed_editor/hid_device.h"
 #include "transport_factory.h"
 #include "trace.h"
-
-namespace {
-
-// Held-set diff (design §6, to move to button_diff.h in milestone 2):
-// releases first (in prev order), then presses (in cur order).
-void DiffHeldKeys(const std::vector<std::uint16_t> &prev,
-                  const std::vector<std::uint16_t> &cur,
-                  std::vector<ButtonChange> *out) {
-  for (std::uint16_t key : prev)
-    if (std::find(cur.begin(), cur.end(), key) == cur.end())
-      out->push_back({key, false});
-  for (std::uint16_t key : cur)
-    if (std::find(prev.begin(), prev.end(), key) == prev.end())
-      out->push_back({key, true});
-}
-
-}  // namespace
 
 HidWheelSource::HidWheelSource() = default;
 

@@ -19,14 +19,15 @@
 //     nudge, verifies the sink path with no source involved.
 
 // Before SDK/Swell headers: their min/max macros break <limits>/<string>
-// (hid_wheel_source.h needs <string> & friends; include them here so they
-// parse before the macros land).
+// (hid_wheel_source.h needs <string> & friends; button_diff.h needs
+// <vector>; include them here so they parse before the macros land).
 #include <chrono>
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 #include "reaper_plugin.h"
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
 // REAPERAPI_MINIMAL: REAPERAPI_LoadAPI only probes the functions below

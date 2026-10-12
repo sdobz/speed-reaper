@@ -21,17 +21,12 @@
 #include <string>
 #include <thread>
 
+#include "button_diff.h"
 #include "jog_engine.h"
 
 // The driver (src/speed_editor/hid_device.h) is included in hid_wheel_source.cpp
 // only; forward-declare so the header stays REAPER- and hidapi-header-free.
 class SpeedEditorHID;
-
-// One button edge, worker → main (design §2). key = KEY_* from key_map.h.
-struct ButtonChange {
-  std::uint16_t key;
-  bool down;
-};
 
 class HidWheelSource : public IWheelSource {
  public:
