@@ -11,6 +11,7 @@ Durable facts every task should know (keep short).
 - REAPER timer delivery can gap >200 ms while defer sampling keeps running; onTimer catches up in wall-clock — keep per-callback catch-up bounded (`kMaxCatchUpMs` in main.cpp) or the cursor jumps in one sample interval.
 - `reaper.time_precise()` is a boot-based monotonic clock (tens of thousands of seconds), not seconds-since-REAPER-start.
 - FakeTransport plays its script once from the first Open; `unplug`→worker retries open every 1 s, so reconnect lands up to ~1.5 s after `plug` (script baseline keeps running).
+- `hid_probe` exits 0 even when the device is absent (it is a probe, not a gate); absence shows as `log: device not found` with no `wheel: sum` lines.
 
 
 ## Task: 1. Rename the plugin's `WheelEvent` to `WheelSample`
@@ -237,3 +238,14 @@ Files:
 ```
 M vibes/.ralph/20-m1-wheel-playhead.md
 ```
+
+## Task: 8. SMOKE-TEST.md: "M1 — wheel drives the playhead"
+
+### Attempt 3 — 2026-10-12T05:16:49Z — budget 1800s
+- Facts:
+  - Plugin console lines confirmed in source: main.cpp:115 prefixes every PushLog with `Speed Reaper: `; hid_wheel_source.cpp logs `connected (serial …)` (line 84) and `disconnected` (line 96).
+  - `hid_probe` (plugin/tools/hid_probe.cpp) exits **0 whether or not a device was found** — the smoke-test step says so explicitly instead of claiming exit 1. It prints `log: device not found` (hid_wheel_source.cpp:65) once until the device appears, `wheel: sum=<n>` once per second.
+  - `tools/reaper-oracle` default REAPER scenarios include `hid_wheel` (reaper-oracle:196); `--scenario hid_wheel` runs it alone.
+  - `docs/notes/m1-hid-observations.md` does not exist yet — the smoke-test section just points human testers at it (the file is created at test time, task 9 is human).
+- Dead ends: none (attempt 3 was a clean docs-only pass).
+- Next: done — section appended to SMOKE-TEST.md, checkbox ticked. Verify passes.

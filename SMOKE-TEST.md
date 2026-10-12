@@ -235,3 +235,37 @@ C++ runtime — no Visual C++ redistributable needed.
 If a future version of the plugin implements REAPER C++ interface
 classes (vtables REAPER instantiates), the MinGW path stops being safe —
 build on Windows with MSVC instead and update `CROSS-PLATFORM.md`.
+
+## M1 — wheel drives the playhead
+
+Automated equivalent: `tools/reaper-oracle --layer reaper --scenario hid_wheel`; this hand test only adds real hardware.
+
+1. **Prereqs**: DaVinci Resolve and any running `speedcli` closed (Prerequisite 4); udev rule from Prerequisite 3 installed. Speed Editor plugged in over USB-C.
+
+   **Expected:** `./build/speedcli scan` finds the device; REAPER is not yet running.
+
+2. **Probe the driver** (no REAPER): run `hid_probe --seconds 10` (see `plugin/tools/`) with the device plugged in; while the 10 s window runs, turn the wheel one way, then the other; then run it again with the device unplugged.
+
+   **Expected (plugged in):** `log: connected (serial …)` at startup; turning the wheel changes `wheel: sum`, and the sign flips with direction. **Expected (unplugged):** `log: device not found` and no `wheel: sum` lines. (The tool exits 0 either way after the full window — it is a probe, not a pass/fail gate.)
+
+3. **Build + install the plugin**: reuse the hello-world *Build* and *Install (once)* steps above (`cmake … build/plugin/reaper_speed_reaper.so`, copy to `~/.config/REAPER/UserPlugins/`), then start REAPER with the device still plugged in.
+
+   **Expected:** REAPER console shows `Speed Reaper: connected (serial …)` shortly after startup.
+
+4. **Jog the playhead**: with the edit cursor on the timeline and transport **stopped**, turn the wheel — first slowly, then faster, then reverse — and release it.
+
+   **Expected:** the edit cursor glides as smoothly as the "jog demo" action from Test 6 (accelerates, cruises, no jumping); on release it coasts to a stop in ~0.2 s. Reversing direction while moving also glides (no jump or stall).
+
+5. **Hot-unplug**: while REAPER is running and connected, unplug the USB cable; then replug.
+
+   **Expected:** console shows `Speed Reaper: disconnected`; REAPER stays responsive (transport, actions, UI all work — the device is just gone). Replugging shows `Speed Reaper: connected (serial …)` again **without restarting REAPER**.
+
+6. **Restart REAPER** with the device attached (quit fully, relaunch).
+
+   **Expected:** `Speed Reaper: connected (serial …)` on startup — the plugin reconnects across REAPER restarts with no manual step.
+
+7. **Observation** (record the answers in `docs/notes/m1-hid-observations.md`): with REAPER holding the device —
+   - press a few Speed Editor buttons (e.g. **CUT**, **SNAP**, **CAM 3**): do they type characters or trigger REAPER shortcuts in any app (OS-level HID keyboard leak)?
+   - run `./build/speedcli listen`: does it still open the device, or fail with "could not open" (exclusivity)?
+
+   **Expected (hypothesis to confirm):** no visible keystrokes/shortcuts anywhere; `speedcli listen` fails to open while REAPER holds the device (exclusivity), and succeeds again after REAPER is closed.

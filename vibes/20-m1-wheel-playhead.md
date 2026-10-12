@@ -130,7 +130,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel
 grep -q '^## M1 — wheel drives the playhead' SMOKE-TEST.md && grep -q 'hid_probe' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 9. (human) Run the M1 hand test
 
