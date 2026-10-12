@@ -32,9 +32,9 @@ namespace {
 // Same layout as the SDK's reaper_plugin_info_t
 // (vendor/reaper-sdk/sdk/reaper_plugin.h): caller_version, hwnd_main,
 // Register, GetFunc. On Linux HWND is void*. Register is declared variadic
-// because REAPER's actual plugin_register is variadic ("timer" needs
-// name, id, interval_ms, fn) — the SDK header's two-arg form is what the
-// plugin casts around in plugin/src/main.cpp.
+// because REAPER's actual plugin_register is variadic; the SDK header's
+// two-arg form is what the plugin casts around in plugin/src/main.cpp.
+// ("timer" takes just the callback: REAPER chooses the ~30 Hz period.)
 struct reaper_plugin_info_t {
   int caller_version;
   void* hwnd_main;
@@ -86,10 +86,9 @@ int hostRegister(const char* name, ...) {
   va_list ap;
   va_start(ap, name);
   if (n == "timer") {
-    int id = va_arg(ap, int);
-    int interval_ms = va_arg(ap, int);
+    // SDK: "timer" takes only void (*)(); REAPER picks the period (~30 Hz).
     void (*fn)() = va_arg(ap, void (*)());
-    g.timers.push_back({id, interval_ms, fn});
+    g.timers.push_back({0, 0, fn});
     va_end(ap);
     return 1;
   }

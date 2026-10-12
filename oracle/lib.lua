@@ -22,11 +22,23 @@ function oracle.record(key, value)
 end
 
 function oracle.wait_ms(ms, fn, on_done)
-  local t0 = reaper.get_time()
+  local t0 = reaper.time_precise()
   local function step()
-    if fn then fn() end
-    if (reaper.get_time() - t0) * 1000 >= ms then
-      if on_done then on_done() end
+    if fn then
+      local ok, err = pcall(fn)
+      if not ok then
+        oracle.check("scenario step error", false, tostring(err))
+        return oracle.finish()
+      end
+    end
+    if (reaper.time_precise() - t0) * 1000 >= ms then
+      if on_done then
+        local ok, err = pcall(on_done)
+        if not ok then
+          oracle.check("scenario callback error", false, tostring(err))
+          oracle.finish()
+        end
+      end
     else
       reaper.defer(step)
     end
@@ -89,6 +101,12 @@ function oracle.finish()
   end
   f:write(encode({ checks = checks, info = info }) .. "\n")
   f:close()
+  -- A scenario that touches the project leaves it dirty, and Quit would then
+  -- block on a "save changes?" dialog until the harness timeout. Save to a
+  -- scratch path (no dialog) first.
+  if reaper.Main_SaveProjectEx then
+    reaper.Main_SaveProjectEx(0, out_dir .. "/scratch.rpp", 0)
+  end
   reaper.Main_OnCommand(40004, 0) -- Quit REAPER
 end
 
@@ -97,4 +115,16 @@ check = oracle.check
 record = oracle.record
 wait_ms = oracle.wait_ms
 finish = oracle.finish
+
+-- Run a scenario body; any Lua error becomes a failing check + immediate
+-- finish() (instead of a silent 60 s timeout).
+function oracle.run(body)
+  local ok, err = xpcall(body, debug.traceback)
+  if not ok then
+    oracle.check("scenario error", false, tostring(err))
+    oracle.finish()
+  end
+end
+run = oracle.run
+
 return oracle

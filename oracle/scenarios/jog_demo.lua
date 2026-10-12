@@ -9,6 +9,12 @@
 --   4. last 0.5 s of samples are constant (coasts to a stop)
 dofile(os.getenv("ORACLE_LIB"))
 
+run(function()
+-- Warm-up: REAPER shows startup dialogs in a fresh profile (dismissed by
+-- tools/reaper-oracle); wait for the UI to settle so their stall isn't
+-- mistaken for jog stutter.
+wait_ms(1500, nil, function() run(function()
+
 record("app_version", reaper.GetAppVersion())
 
 local cmd = reaper.NamedCommandLookup("_speed_reaper_jogdemo")
@@ -16,15 +22,15 @@ check("action speed_reaper_jogdemo", cmd ~= 0,
       "NamedCommandLookup(_speed_reaper_jogdemo)=" .. tostring(cmd))
 
 reaper.SetEditCurPos(10, false, false)
-reaper.GetSetTransportInfo(0, "RATE", 0) -- transport stopped
+check("transport stopped", reaper.GetPlayState() == 0, "GetPlayState=" .. tostring(reaper.GetPlayState()))
 
 local start = reaper.GetCursorPosition()
 reaper.Main_OnCommand(cmd, 0)
 
 local samples = {} -- {t = s since trigger, pos = cursor position}
-local t0 = reaper.get_time()
+local t0 = reaper.time_precise()
 local function sample()
-  table.insert(samples, { t = reaper.get_time() - t0,
+  table.insert(samples, { t = reaper.time_precise() - t0,
                           pos = reaper.GetCursorPosition() })
 end
 
@@ -33,7 +39,7 @@ wait_ms(3000, sample, function()
   local final = n > 0 and samples[n].pos or start
   local disp = final - start
   check("displacement in [0.3,0.8] s", disp >= 0.3 and disp <= 0.8,
-        string.format("start=%.3f final=%.3f disp=%.3f (n=%d samples, %.0f/s sampling)",
+        string.format("start=%.5f final=%.5f disp=%.5f (n=%d samples, %.0f/s sampling)",
                       start, final, disp, n,
                       n > 1 and n / samples[n].t or 0))
 
@@ -69,3 +75,4 @@ wait_ms(3000, sample, function()
 
   finish()
 end)
+end) end) end) -- close inner run, warm-up callback, outer run

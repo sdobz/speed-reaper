@@ -51,7 +51,7 @@ class DemoWheelSource : public IWheelSource {
   static constexpr double kRampUpS = 0.25;
   static constexpr double kHoldS = 0.50;
   static constexpr double kRampDownS = 0.50;
-  static constexpr double kMaxDeltaPerTick = 30.0;
+  static constexpr double kMaxDeltaPerTick = 53.0;
   static constexpr double kTickMs = 8.0; // must match the timer interval
 
  private:

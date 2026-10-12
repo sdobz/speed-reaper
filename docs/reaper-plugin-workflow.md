@@ -102,7 +102,7 @@ action result / message box on every switch.
 
 | mode | protocol mode (capabilities §2.1) | REAPER behavior |
 |---|---|---|
-| **JOG** | `RELATIVE_0` | edit-cursor move. Small deltas = 1-frame (or snap-quantized) nudges; larger deltas proportional. While playing: also moves the playhead. API: `CSurf_OnSeek` / `CSurf_ScrubAmt` when stopped. In SOURCE focus: source-edge scrub (§2.2). |
+| **JOG** | `RELATIVE_0` | edit-cursor move. Small deltas = 1-frame (or snap-quantized) nudges; larger deltas proportional. While playing: also moves the playhead. API: `SetEditCurPos` (cursor, stopped) / seek via `SetEditCurPos(...,seekplay=true)` (playing) — `CSurf_OnSeek` is not exported and `CSurf_ScrubAmt` does not move a stopped cursor (docs/notes/oracle-limits.md). In SOURCE focus: source-edge scrub (§2.2). |
 | **SCRL** | `RELATIVE_2` | **arrange view scroll only — cursor does not move.** `CSurf_OnScroll`. This differs from Resolve (where SCRL moves the playhead fast); in REAPER the cursor-move job is JOG+SHTL, so SCRL takes the one job REAPER has a first-class action for: `View: Scroll`. Enables the "travel far, land precise" pattern: SCRL across the project → JOG to settle. |
 | **SHTL** | `ABSOLUTE_DEADZERO` | **shuttle — our own control law** (REAPER has no analog shuttle). Center (dead band) = stop; offset magnitude = rate; sign = direction. Implemented over playrate: `Master_NormalizePlayRate` maps 0.5 ↔ 1.0×, so wheel baseline (0) → normalize 0.5. |
 

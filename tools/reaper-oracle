@@ -56,6 +56,33 @@ fi
 
 OUT=build/oracle
 mkdir -p "$OUT"
+SCENARIO_TIMEOUT=${ORACLE_SCENARIO_TIMEOUT:-20}
+
+# One Xvfb for the whole run. (xvfb-run costs a fixed ~3 s per invocation.)
+XVFB_PID=""
+start_xvfb() {
+  [[ -n "$XVFB_PID" ]] && return 0
+  local d i
+  for i in 1 2 3 4 5 6 7 8; do
+    d=$((100 + RANDOM % 800))
+    grep -q "X$d\$" /proc/net/unix 2>/dev/null && continue
+    Xvfb ":$d" -screen 0 1280x1024x24 -nolisten tcp >/dev/null 2>&1 &
+    XVFB_PID=$!
+    # wait (up to 5 s) for the socket instead of a fixed sleep
+    local w
+    for w in $(seq 50); do
+      # socket is a file or (sandboxed /tmp) an abstract unix socket
+      if [[ -e "/tmp/.X11-unix/X$d" ]] || grep -q "X$d\$" /proc/net/unix; then
+        export DISPLAY=":$d"; return 0
+      fi
+      kill -0 "$XVFB_PID" 2>/dev/null || break
+      sleep 0.1
+    done
+    kill "$XVFB_PID" 2>/dev/null || true; XVFB_PID=""
+  done
+  echo "tools/reaper-oracle: Xvfb did not start" >&2; exit 2
+}
+trap 'stop_dismisser 2>/dev/null; [[ -n "$XVFB_PID" ]] && kill "$XVFB_PID" 2>/dev/null || true' EXIT
 
 # --- host layer -------------------------------------------------------------
 run_host() {
@@ -73,6 +100,29 @@ run_host() {
   cat "$OUT/plugin_host.out" >> "$OUT/trace.txt"
 }
 
+# REAPER opens modal dialogs at startup in a fresh profile ("Error opening
+# devices", the evaluation "About REAPER" nag, "New Version Notification").
+# While one is open REAPER does not run plugin timers, so the jog engine
+# freezes mid-scenario and Quit hangs. Dismiss them with Return (NOT by
+# closing the X window — that leaves REAPER's modal loop stuck).
+DISMISSER_PID=""
+start_dismisser() {
+  command -v xdotool >/dev/null 2>&1 || return 0
+  (
+    while true; do
+      for w in $(xdotool search --onlyvisible --name "About REAPER|Notification|Error opening" 2>/dev/null); do
+        xdotool key --window "$w" Return 2>/dev/null || true
+      done
+      sleep 0.1
+    done
+  ) &
+  DISMISSER_PID=$!
+}
+stop_dismisser() {
+  [[ -n "$DISMISSER_PID" ]] && kill "$DISMISSER_PID" 2>/dev/null || true
+  DISMISSER_PID=""
+}
+
 # --- reaper layer -----------------------------------------------------------
 run_reaper() {
   local env_file="oracle/scenarios/$SCENARIO.env"
@@ -81,18 +131,21 @@ run_reaper() {
     . "$env_file"
   fi
   # Isolated HOME, wiped each run.
+  start_xvfb
   rm -rf "$OUT/home"
   mkdir -p "$OUT/home/.config/REAPER/UserPlugins"
   cp build/plugin/reaper_speed_reaper.so "$OUT/home/.config/REAPER/UserPlugins/"
   rm -f "$OUT/probe.json" "$OUT/reaper.stderr"
+  REAPER_RC=0
   if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt" "$OUT/trace_$SCENARIO.txt"; fi
+  start_dismisser
   HOME="$OUT/home" \
   ORACLE_LIB="$PWD/oracle/lib.lua" \
   ORACLE_OUT="$PWD/$OUT" \
   SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
-    timeout 60 xvfb-run -a reaper -newinst -nosplash "oracle/scenarios/$SCENARIO.lua" \
-      2> "$OUT/reaper.stderr"
-  REAPER_RC=$?
+    timeout "$SCENARIO_TIMEOUT" reaper -newinst -nosplash "oracle/scenarios/$SCENARIO.lua" \
+      2> "$OUT/reaper.stderr" || REAPER_RC=$?
+  stop_dismisser
 }
 
 # --- crash capture (vibes/18-oracle-linux.md task 6) ------------------------
@@ -114,12 +167,12 @@ run_crash_capture() {
   rm -f "$OUT/bt.txt"
   HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
   SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
-    timeout 60 xvfb-run -a gdb -batch -ex "set exec-wrapper $launcher" \
+    timeout "$SCENARIO_TIMEOUT" gdb -batch -ex "set exec-wrapper $launcher" \
       -ex run -ex bt --args "$elf" "${reaper_args[@]}" \
       > "$OUT/bt.txt" 2>&1 || true
   ( HOME="$OUT/home" ORACLE_LIB="$PWD/oracle/lib.lua" ORACLE_OUT="$PWD/$OUT" \
     SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
-      LD_DEBUG=libs timeout 60 xvfb-run -a reaper "${reaper_args[@]}" \
+      LD_DEBUG=libs timeout "$SCENARIO_TIMEOUT" reaper "${reaper_args[@]}" \
       2>&1 ) | grep -i speed_reaper > "$OUT/reaper.stderr" || true
 }
 
