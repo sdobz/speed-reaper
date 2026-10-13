@@ -21,7 +21,7 @@
 --   5. REAPER stays responsive: reaching finish() proves it.
 dofile(os.getenv("ORACLE_LIB"))
 
-run(function()
+start("device", function()
   record("app_version", reaper.GetAppVersion())
 
   reaper.SetEditCurPos(10, false, false)

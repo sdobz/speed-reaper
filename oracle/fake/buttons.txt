@@ -84,8 +84,8 @@ at 1788 wheel 600
 at 1796 wheel 600
 at 1804 wheel 600
 at 1812 wheel 600
-at 2100 key 0x1C down  # SHTL tap (ignored: mode stays Scrl)
-at 2150 key 0x1C up
+at 2100 key 0x33 down  # CAM1 tap (unmapped: ignored, mode stays Scrl)
+at 2150 key 0x33 up
 at 2400 key 0x3C down  # STOP/PLAY tap -> cmd 40044, playback starts
 at 2450 key 0x3C up
 at 2700 unplug         # worker logs `disconnected`

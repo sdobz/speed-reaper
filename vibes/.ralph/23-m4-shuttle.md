@@ -181,3 +181,28 @@ Facts:
 
 Next:
 - DONE: nothing; task complete.
+
+Result: exit 0; done; 17 files changed, 55 insertions(+), 197 deletions(-); log: logs/23-m4-shuttle-L96-a1-1791853034185.log
+
+### Done — 2026-10-13 — 1 attempt(s)
+Files:
+```
+M oracle/fake/buttons.txt
+ M oracle/lib.lua
+ M oracle/scenarios/buttons.lua
+ D oracle/scenarios/dbg1.lua
+ D oracle/scenarios/dbg2.lua
+ D oracle/scenarios/dbg3.lua
+ D oracle/scenarios/dbg4.lua
+ D oracle/scenarios/dbg5.lua
+ D oracle/scenarios/dbg6.lua
+ D oracle/scenarios/dbg7.lua
+ D oracle/scenarios/dbg8.lua
+ D oracle/scenarios/dbg9.lua
+ M oracle/scenarios/hid_wheel.lua
+ M oracle/scenarios/jog_demo.lua
+ M oracle/scenarios/shuttle.lua
+ M oracle/scenarios/spike_rate.lua
+ M oracle/scenarios/verbs.lua
+ M vibes/.ralph/23-m4-shuttle.md
+```

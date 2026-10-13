@@ -9,11 +9,7 @@
 --   4. last 0.5 s of samples are constant (coasts to a stop)
 dofile(os.getenv("ORACLE_LIB"))
 
-run(function()
--- Warm-up: REAPER shows startup dialogs in a fresh profile (dismissed by
--- tools/reaper-oracle); wait for the UI to settle so their stall isn't
--- mistaken for jog stutter.
-wait_ms(1500, nil, function() run(function()
+start("settled", function()
 
 record("app_version", reaper.GetAppVersion())
 
@@ -75,4 +71,4 @@ wait_ms(3000, sample, function()
 
   finish()
 end)
-end) end) end) -- close inner run, warm-up callback, outer run
+end)

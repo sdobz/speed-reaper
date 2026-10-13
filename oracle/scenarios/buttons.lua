@@ -7,17 +7,16 @@
 --   600-912      wheel turn 1 (Jog): cursor must rise
 --   1200/1250    SCRL tap -> mode Scrl
 --   1500-1812    wheel turn 2 (Scrl): scrolls the view, cursor must NOT move
---   2100/2150    SHTL tap (ignored: mode stays Scrl, no trace)
+--   2100/2150    CAM1 tap 0x33 (unmapped key: ignored, mode stays Scrl, no trace;
+--                SHTL is a real mode since M4, so it can no longer be the inert key)
 --   2400/2450    STOP/PLAY tap -> cmd 40044, playback starts
 --   2700         unplug -> `log disconnected`
 --   3600         plug -> worker reconnects on its 1 s open retry and
 --                re-sends the current mode (Scrl) + LED
 --   4800-5112    wheel turn 3: must still be Scrl -> cursor must NOT move
--- The CLI script starts ~40 ms after plugin load (measured in the oracle),
--- so the sample clock below tracks the script clock with a small offset.
 dofile(os.getenv("ORACLE_LIB"))
 
-run(function()
+start("device", function()
   record("app_version", reaper.GetAppVersion())
 
   reaper.SetEditCurPos(10, false, false)

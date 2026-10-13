@@ -4,8 +4,9 @@
 --
 -- The harness sources oracle/scenarios/shuttle.env, which points
 -- SPEED_REAPER_FAKE_DEVICE at oracle/fake/shuttle.txt. The scripted device
--- plays on a clock starting at plugin load; the CLI script starts ~40 ms
--- later, so lua t ≈ script t − 40 ms. Windows below leave margin for it:
+-- plays on a clock starting at plugin load; the scenario syncs its clock on
+-- the plugin's `log connected` trace line (no fixed warm-up timer), so
+-- lua t ≈ script t. Windows below leave margin for it:
 --   300/350      SHTL tap        -> mode Shtl (protocol wheel mode 3).
 --                                   NOTE: while in Shtl the absolute offset
 --                                   is still 0 -> dead band -> HardStop,
@@ -31,7 +32,7 @@
 -- script/defer queue headless — M4 task 3).
 dofile(os.getenv("ORACLE_LIB"))
 
-run(function()
+start("device", function()
   record("app_version", reaper.GetAppVersion())
 
   reaper.SetEditCurPos(10, false, false)
@@ -40,9 +41,6 @@ run(function()
   local start = reaper.GetCursorPosition()
   check("cursor at 10 s", math.abs(start - 10) < 1e-6,
         "GetCursorPosition=" .. tostring(start))
-
-  -- Warm-up so startup-dialog stalls do not shift the script/lua offset.
-  wait_ms(1500, nil, function() run(function()
 
   local samples = {} -- {t = lua ms, pos = playhead, state, rate}
   local t0 = reaper.time_precise()
@@ -74,16 +72,6 @@ run(function()
       finish()
       return
     end
-    do -- DEBUG: dump the full sample series (remove once green)
-      local dump = {}
-      for i = 1, n do
-        table.insert(dump, string.format(
-          "%.0f %.3f s=%d r=%.2f", samples[i].t, samples[i].pos,
-          samples[i].state, samples[i].rate))
-      end
-      local f = io.open(os.getenv("ORACLE_OUT") .. "/dbg_shuttle_samples.txt", "w")
-      if f then f:write(table.concat(dump, "\n") .. "\n") f:close() end
-    end
     -- First/last sample index inside [tmin, tmax] ms of the lua clock.
     local function window(tmin, tmax)
       local a, b = nil, nil
@@ -100,14 +88,14 @@ run(function()
     -- above realtime and the read-back rate is REAPER's documented 4.0
     -- cap of the requested 8.0 (M4 spike: master playrate clamps 0.25..4.0;
     -- docs/plugin-design-m4-shuttle-impl.md).
-    local fa, fb = window(760, 1600)
+    local fa, fb = window(800, 1450)
     check("forward window sampled", fa ~= nil and fb ~= nil and fb > fa,
           string.format("fa=%s fb=%s n=%d", tostring(fa), tostring(fb), n))
     if fa then
       local rise = samples[fb].pos - samples[fa].pos
       local r = samples[fb].rate
       check("forward: playhead advanced > 2x realtime (offset +4096 -> rate 8.0 requested)",
-            rise > 2.0,
+            rise / math.max((samples[fb].t - samples[fa].t) / 1000, 1e-3) > 2.0,
             string.format("rise=%.3f over t=%.0f..%.0f (%.4f -> %.4f) read-back=%.3f",
                           rise, samples[fa].t, samples[fb].t,
                           samples[fa].pos, samples[fb].pos, r))
@@ -223,4 +211,4 @@ run(function()
 
     finish()
   end)
-  end) end) end) -- close inner run, warm-up callback, outer run
+end)

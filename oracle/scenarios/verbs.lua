@@ -27,7 +27,7 @@
 -- selection, so this does not disturb their windows).
 dofile(os.getenv("ORACLE_LIB"))
 
-run(function()
+start("device", function()
   record("app_version", reaper.GetAppVersion())
 
   -- Setup: new project + one empty item + cursor at 5 s.

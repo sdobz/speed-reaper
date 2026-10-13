@@ -39,9 +39,7 @@ local function last_matching(lines, needle)
   return nil
 end
 
-run(function()
--- Warm-up so startup-dialog stalls aren't mistaken for cursor motion.
-wait_ms(1500, nil, function() run(function()
+start("settled", function()
 
 record("app_version", reaper.GetAppVersion())
 
@@ -118,4 +116,4 @@ local function next_action()
 end
 next_action()
 
-end) end) end) -- close inner run, warm-up callback, outer run
+end)

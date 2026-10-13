@@ -6,6 +6,12 @@
 --   record(key, value)          attach a key/value fact (e.g. app version)
 --   wait_ms(ms, fn, on_done)    defer loop: fn() each cycle until ms elapsed,
 --                               then on_done() if given
+--   start(mode, body)          run body once synced, event-based (no fixed
+--                               warm-up timers):
+--                                 "device"  plugin traced `log connected`, i.e. the
+--                                           fake device clock just started (lua t ~ script t)
+--                                 "settled" 10 consecutive defer cycles < 100 ms
+--                                           (startup-dialog stalls are over)
 --   finish()                    write probe.json to $ORACLE_OUT, then quit REAPER
 
 local oracle = {}
@@ -126,5 +132,36 @@ function oracle.run(body)
   end
 end
 run = oracle.run
+
+local function poll_until(pred, on_ready)
+  local function step()
+    local ok, res = pcall(pred)
+    if not ok then oracle.check("sync error", false, tostring(res)) return oracle.finish() end
+    if res then return oracle.run(on_ready) end
+    reaper.defer(step)
+  end
+  reaper.defer(step)
+end
+
+function oracle.start(mode, body)
+  if mode == "device" then
+    local path = os.getenv("SPEED_REAPER_TRACE")
+    return poll_until(function()
+      local f = path and io.open(path, "r")
+      if not f then return false end
+      local data = f:read("*a")
+      f:close()
+      return data:find("log connected", 1, true) ~= nil
+    end, body)
+  end
+  local last, quiet = reaper.time_precise(), 0
+  poll_until(function()
+    local now = reaper.time_precise()
+    quiet = (now - last < 0.1) and quiet + 1 or 0
+    last = now
+    return quiet >= 10
+  end, body)
+end
+start = oracle.start
 
 return oracle
