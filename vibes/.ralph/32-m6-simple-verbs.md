@@ -165,3 +165,36 @@ Trigger: 6 attempt(s), last: exit 0, progress
 Why: Attempt 6 wrote all artifacts and got the scenario running (9/18 checks pass; FULL VIEW id 40346 confirmed), then hit one real open question — 40916 measured as a no-op on overlapping A/C, so it's unclear whether the SMTH CUT id is wrong or a config was untested — plus four small Lua-binding bugs whose diagnoses live only in the attempt log, not the record the next worker can see.
 Rejected: SPLIT: subtask 2 would just be the auto finish step and still branch on the id finding. BUDGET: the blocker is a research question, not time; a longer run re-discovers the same quirks. REWRITE: task and Verify are fine. BLOCK: the id question is answerable empirically with the oracle and the action list.
 Log: logs/32-m6-simple-verbs-L75-replan-1791875721550.log
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" 
+
+### Attempt 1 — 2026-10-13T07:32:32Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection"
+
+### Attempt 1 — 2026-10-13T07:05:00Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts (probe run 1): configs A/D (MEETING items, same track, tsel over meeting point) and B/C (two [0,5] fully overlapping on two DIFFERENT tracks, tsel [1,2]) — BOTH 40916 and 41059 left every fade at 0 (finA/foutA=0, no crossfade). New items default fin/fout=0.01 (not auto).
+- Facts (probe run 1): this Lua build also lacks reaper.GetSetEditCurPos (nil) — the marker/name probes crashed before running. Added set_cursor() fallback (SetEditCurPos / JumpToTime) + configs E/F = OVERLAPPING items on ONE track (e1 [0,3.5], e2 [1.5,5], tsel [1.5,3.5]) with 40916 and 41059; re-run as job probe_smth2.
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" 
+
+Result: timeout after 180s without tool use (monologuing/stalled); progress; 2 files changed, 148 insertions(+), 114 deletions(-); log: logs/32-m6-simple-verbs-L79-a1-1791876752764.log
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" 
+
+### Attempt 2 — 2026-10-13T07:44:23Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" 
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 2 files changed, 157 insertions(+), 114 deletions(-); log: logs/32-m6-simple-verbs-L79-a2-1791877463094.log
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" 
+
+### Replan (depth 1) — REWRITE → "Spike: settle the SMTH CUT command (does 40916 crossfade? fallback candidate `41059`) — findings to docs/notes/m5-observations.md"
+Trigger: 2 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Why: Both spike attempts stalled 180s with zero tool use on a ~600-word dense body, while the tree already contains a finished probe_smth.lua (attempt 1 ran it and found 40916/41059 no-op on configs A–D); what's left is run one command, read one JSON, write three note bullets.
+Rejected: SPLIT: the probe runs all three investigations in one script and the write-up is ~15 lines — small enough for one sitting; the failure was spec readability, not size. BUDGET: the stall was monologuing with no tool use, not time pressure, and the record shows no progress on this leaf. BLOCK: the id question is empirically answerable and mostly answered already; only configs E/F need running and transcribing.
+Log: logs/32-m6-simple-verbs-L79-replan-1791877783391.log
