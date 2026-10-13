@@ -1,5 +1,7 @@
 # Milestone 7 — Hold + rotate: MOVE, edge nudge, SLIP, volume
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `32-m6-simple-verbs.md`. The gesture engine already emits `HoldStart` / `HoldRotate` / `HoldEnd` (M3); no verb uses them. Design (normative): `docs/plugin-design-m5-m9.md` §4. One hold = one undo block; the target set is resolved once at `HoldStart`. Every Verify starts with `tools/check`.
 
 ### 1. `HoldNudge` accumulator (pure)

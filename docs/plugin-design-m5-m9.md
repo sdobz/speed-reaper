@@ -1,5 +1,7 @@
 # Plugin design for milestones M5–M9 (normative for `vibes/31…36`)
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Follows `plugin-design-m1-m3.md` (§7 gestures + verbs stay as is). Behavior
 source: `reaper-plugin-workflow.md` (§5 targeting, §6 LEDs, §7 mapping) and
 `reaper-workflow.md`. Every command id below is a **candidate**: the oracle

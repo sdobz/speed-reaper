@@ -12,7 +12,8 @@ namespace {
 
 // The verb table (design §7): (key, kind) → REAPER command id.
 // Ids are candidates confirmed by behavior via the M3 oracle / hand test;
-// a wrong id is a one-line fix here. (M5 design §3: TRIM IN / TRIM OUT
+// a wrong id is a one-line fix here. Look ids up by number/name in
+// docs/reaper-actions.tsv (REAPER 7.82 action list, grep it; do not guess). (M5 design §3: TRIM IN / TRIM OUT
 // live in the composite table kCompositeTable, which wins over id rows.)
 struct VerbRow {
   std::uint16_t key;
@@ -21,7 +22,7 @@ struct VerbRow {
 };
 
 constexpr VerbRow kVerbTable[] = {
-    {KEY_SPLIT,    GestureKind::Tap,       40012},  // Item: Split items at edit cursor
+    {KEY_SPLIT,    GestureKind::Tap,       40012},  // Item: Split items at edit or play cursor (select right)
     {KEY_IN,       GestureKind::Tap,       40625},  // Time selection: Set start point
     {KEY_OUT,      GestureKind::Tap,       40626},  // Time selection: Set end point
     {KEY_IN,       GestureKind::DoubleTap, 40635},  // Time selection: Remove (unselect) time selection
@@ -29,8 +30,8 @@ constexpr VerbRow kVerbTable[] = {
     {KEY_SNAP,     GestureKind::Tap,       1157},   // Options: Toggle snapping
     {KEY_ESC,      GestureKind::Tap,       40635},  // Time selection: Remove (unselect) time selection
     {KEY_ESC,      GestureKind::DoubleTap, 40029},  // Edit: Undo
-    {KEY_AUDIO_LEVEL, GestureKind::DoubleTap, 40157},  // Insert: Insert marker at edit cursor
-    {KEY_FULL_VIEW, GestureKind::Tap, 40346},  // View: toggle maximized arrange (candidate, settled by M6 task 6)
+    {KEY_AUDIO_LEVEL, GestureKind::DoubleTap, 40157},  // Markers: Insert marker at current position
+    {KEY_FULL_VIEW, GestureKind::Tap, 40346},  // Toggle fullscreen (REAPER's name for 40346; NOT 'maximize arrange' — no such action in docs/reaper-actions.tsv; settled by M6 task 6)
 };
 
 // Command id for a (key, kind) pair, or -1 when the gesture is unmapped
@@ -82,9 +83,9 @@ void RiplDel(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &
   const bool ripple_off = project.RippleMode() == 0;
   project.Undo_Begin();
   WithTargetSelected(project, [&sink, ripple_off] {
-    if (ripple_off) sink.RunCommand(40310);  // Options: Toggle ripple edit (per-track)
+    if (ripple_off) sink.RunCommand(40310);  // Set ripple editing per-track (a set, not a toggle)
     sink.RunCommand(40006);                  // Item: Remove items
-    if (ripple_off) sink.RunCommand(40309);  // restore ripple: off
+    if (ripple_off) sink.RunCommand(40309);  // Set ripple editing off
   });
   project.Undo_End("Speed Reaper: delete");
 }

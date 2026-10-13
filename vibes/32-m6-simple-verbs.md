@@ -1,5 +1,7 @@
 # Milestone 6 — Obvious tap verbs: takes, marker, SMTH CUT, PLACE ON TOP, view buttons
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `31-m5-targeting.md` (needs `IProject`, `WithTargetSelected`, composite rows). Each button here has a direct REAPER equivalent. Design (normative): `docs/plugin-design-m5-m9.md` §3 table. Every Verify starts with `tools/check`. One task = one verb group; the oracle scenario is the last task and proves the ids.
 
 ### 1. Extend `IProject` for takes
@@ -74,7 +76,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Spike: settle the SMTH CUT command (does 40916 crossfade?) — findings to docs/notes/m5-observations.md
+  - [ ] Spike: settle the SMTH CUT command (does 40916 crossfade? REAPER names it "Item: Crossfade items within time selection" — confirm behavior only; fallback candidate `41059` "Item: Crossfade any overlapping items", see `docs/reaper-actions.tsv`) — findings to docs/notes/m5-observations.md
     Finish oracle/scenarios/probe_smth.lua (attempt 6's throwaway probe; it crashes at reaper.Main_NewProject, which is NOT in this Lua build — never reset the project, use separate tracks per config) to test what SMTH CUT does empirically. Configs: (a) task's — two [0,5] items on adjacent tracks fully overlapping + time selection [1,2] via GetSet_LoopTimeRange(true,true,1,2,true); (b) canonical per docs/reaper-plugin-workflow.md — two MEETING items on one track within the time selection. Run Main_OnCommand(40916), dump per-item positions + D_FADEINLEN_AUTO/D_FADEOUTLEN_AUTO before/after; if 40916 is a no-op, fetch https://raw.githubusercontent.com/madskjeldgaard/reaper-nvim/master/lua/reaper-nvim/actions.lua, grep -i 'crossfade\|fade' for candidate ids, probe the top candidates the same way. Also settle: capture ALL 8 returns of reaper.EnumProjectMarkers(i) after a 40157 marker insert (marker lands at pos 1; attempt 6 read return #3 as 0.0 — record which return holds the position) and whether track names stick when set via GetSetMediaTrackInfo_String(tr,'NAME',s,#s+1,true) (attempt 6 used buf_len=1 and scratch.rpp showed NAME ""). Append findings under a new '## M6' heading in docs/notes/m5-observations.md: SMTH CUT verdict (40916 works — with measured fade value — or the correct id with measured behavior), marker return order, and the name behavior. Facts from attempt 6: CountMediaItems(nil, track) returns the PROJECT TOTAL in this build (count per-track items by looping GetTrackMediaItem(tr, i) until nil); reaper.GetCommandLabel is nil. Do not modify plugin source, simple_verbs.lua/.env, oracle/fake/simple_verbs.txt, or any Verify; probe_smth.lua is throwaway (may delete it once the note is written).
     Verify: `grep -q '^## M6' docs/notes/m5-observations.md && grep -qi 'smth cut' docs/notes/m5-observations.md`
   - [ ] Finish the parent task using the findings of the step above
@@ -83,7 +85,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 
 ### 7. SMOKE-TEST.md: "M6 — takes, marker, view"
 
-- Add the section: E6 (three-take item, CAM 2/3, nothing selected vs. selected), E8 (MARK), SMTH CUT over a jump cut, PLACE ON TOP, VIDEO_ONLY/AUDIO_ONLY re-tap restores, FULL VIEW. List expected results per step (CAM LEDs are M8; note "LED not yet" for CAM).
+- Add the section: E6 (three-take item, CAM 2/3, nothing selected vs. selected), E8 (MARK), SMTH CUT over a jump cut, PLACE ON TOP, VIDEO_ONLY/AUDIO_ONLY re-tap restores, FULL VIEW (`40346` is REAPER's "Toggle fullscreen", not "maximize arrange"; no such action exists in `docs/reaper-actions.tsv` — record what it actually does). List expected results per step (CAM LEDs are M8; note "LED not yet" for CAM).
 
 **Verify**
 ```bash

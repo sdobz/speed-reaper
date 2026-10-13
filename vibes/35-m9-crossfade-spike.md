@@ -1,10 +1,13 @@
 # Milestone 9 — Crossfade family (TRANS / DIS / CUT / TRANS DUR): spike first
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `34-m8-led-bar.md`. SMTH CUT shipped in M6 (`40916`). The rest of the family needs "crossfade at the cursor" and a default length, and **which REAPER API does that is unknown**. This file stops at a spike + human checkpoint. Do not guess. Design: `docs/plugin-design-m5-m9.md` §6; workflow `docs/reaper-plugin-workflow.md` §7. Every Verify starts with `tools/check`.
 
 ### 1. Spike: crossfade at the cursor, under the oracle
 
 - Add `oracle/scenarios/spike_xfade.lua` (no device): two overlapping items A [0,5], B [4,9] on one track and two abutting items C [0,5], D [5,10] on another. Probe and `record` (do not assert behavior) for each: `D_FADEINLEN`, `D_FADEOUTLEN`, `D_FADEINLEN_AUTO`, `D_FADEOUTLEN_AUTO`, `C_FADEINSHAPE` before/after (a) `40916` with a time selection over the overlap, (b) setting the fade lengths by API on both items, (c) REAPER's auto-crossfade preference read (`SNM`-free: `GetConfigVar`/`get_config_var_string` for `autoxfade`-style names; see `docs/reaper-api-subset.md`). Also record how to read the "default crossfade length" (config var name) and whether it can be written.
+- Also probe these action ids (names in `docs/reaper-actions.tsv`) as the "action id produced it" branch of the §2 rule: `41059` Crossfade any overlapping items; `43776` Set crossfade length to default (candidate for TRANS DUR tap); `43777` Set crossfade shape to default; `41191`/`41192`/`41193` Remove fade in / out / in and out (candidate for CUT); `40509`/`40510` Fade items in to / out from cursor; `41118`/`41119` Enable / disable auto-crossfades; `41116` cycle editing modes (also feeds M8 LEDs). Record each one's effect on the fade properties above.
 - Write `docs/notes/m9-crossfade-api.md` from the output: a table per probe and 2–3 candidate designs for TRANS (create at cursor, abutting vs overlapping items), CUT (remove), TRANS DUR (tap default / double-tap save / hold+rotate). Do not implement any.
 
 **Verify**

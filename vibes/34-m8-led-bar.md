@@ -1,10 +1,12 @@
 # Milestone 8 — LED status bar: ripple (3-state), trim-behind, CAM take, isolate/solo
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `33-m7-hold-rotate.md` and `22-m3-edit-verbs.md` §4 (SNAP LED exists). Makes REAPER's hidden state visible; the device only reads, never writes. Design (normative): `docs/plugin-design-m5-m9.md` §5. Every Verify starts with `tools/check`.
 
 ### 1. Research: prove the state reads
 
-- Add `oracle/scenarios/led_reads.lua` (no fake device): set ripple off/per-track/all (`40309`/`40310`/`40311`), trim-behind off/on (toggle `41117` — find its current state first), and record `GetToggleCommandState` of `1157`, `40310`, `40311`, `41117` after each change as `check` details. Assert only that each read tracks the change you made; where it does not, find the right query (see `docs/reaper-api-subset.md`, REAPER user guide §7.20) and say so.
+- Add `oracle/scenarios/led_reads.lua` (no fake device): set ripple off/per-track/all (`40309`/`40310`/`40311`), trim-behind off/on (toggle `41117` "Options: Trim content behind media items when editing" — find its current state first; `41116` cycles auto-crossfade off/on/trim-behind, `41118`/`41119` enable/disable auto-crossfades; names in `docs/reaper-actions.tsv`), and record `GetToggleCommandState` of `1157`, `40310`, `40311`, `41117` after each change as `check` details. Assert only that each read tracks the change you made; where it does not, find the right query (see `docs/reaper-api-subset.md`, REAPER user guide §7.20) and say so.
 - Write `docs/notes/m8-state-reads.md`: a table (state → query → value per setting) from `build/oracle/` output. Fix the candidate ids in design §5 if the measurements differ.
 
 **Verify**

@@ -1,5 +1,7 @@
 # REAPER API subset for the Speed Editor plugin
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Token-efficient extraction of the REAPER API function list from
 `docs/reaper-api.htm` (source: REAPER v7.82/win64). Curated for this project:
 transport / playback state, edit cursor, tempo & time maps, actions,

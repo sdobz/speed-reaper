@@ -1,5 +1,7 @@
 # Milestone 5 — Targeting without a select button: RIPL DEL & friends work on a bare timeline
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `22-m3-edit-verbs.md`. REAPER's item actions (`Item: Remove items`, trim) act on *selected items*, and the Speed Editor has no way to select. This milestone adds the implicit-target rule, an explicit select verb on TIMELINE, and a RIPL DEL that really ripples. Design (normative): `docs/plugin-design-m5-m9.md` §1–§3. Oracle rules: `docs/plugin-oracle-design.md`. Every Verify starts with `tools/check`.
 
 ### 1. `IProject` + `TargetItems` (pure)

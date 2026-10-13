@@ -1,5 +1,7 @@
 # Backlog — milestones after M4 (NOT ready for ralph)
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Outline of everything past `23-m4-shuttle.md`. These are goals, not sized
 tasks. When M4 is done, turn the next section into its own
 `vibes/NN-mX-*.md` file in ralph format (see `pi-ralph guide`): one artifact

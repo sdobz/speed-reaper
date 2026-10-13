@@ -1,5 +1,7 @@
 # Plugin design for milestones M1–M4 (normative for `vibes/20…23`)
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Settles every name, signature, and file path the M1–M4 tasks use, so no task
 has to design. Behavior of the *buttons* stays in
 `docs/reaper-plugin-workflow.md` (§ refs below); protocol facts stay in
@@ -138,7 +140,7 @@ id is a one-line table edit):
 
 | key | gesture | REAPER action | id |
 |---|---|---|---|
-| SPLIT | Tap | Item: Split items at edit cursor | 40012 |
+| SPLIT | Tap | Item: Split items at edit or play cursor (select right) | 40012 |
 | RIPL DEL | Tap | Item: Remove items | 40006 |
 | IN | Tap | Time selection: Set start point | 40625 |
 | OUT | Tap | Time selection: Set end point | 40626 |

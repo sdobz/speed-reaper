@@ -39,8 +39,8 @@
 
 namespace {
 
-// Ripple toggle commands (design §3): 40310 = "Ripple items (per track)",
-// 40311 = "Ripple items (all tracks)".
+// Ripple commands (design §3): 40310 = "Set ripple editing per-track",
+// 40311 = "Set ripple editing all tracks" (names: docs/reaper-actions.tsv).
 constexpr int kRipplePerTrack = 40310;
 constexpr int kRippleAll = 40311;
 

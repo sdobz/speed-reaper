@@ -1,5 +1,7 @@
 # Milestone 10 — Configurable non-obvious buttons (binding table)
 
+> Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`; REAPER 7.82 action list, Main section = ids for `Main_OnCommand`). e.g. `rg -i 'crossfade' docs/reaper-actions.tsv`. Never guess an id.
+
 Builds on `34-m8-led-bar.md` (needs composite rows and `IProject`; independent of M9). The non-obvious buttons (SMART INSRT, APPND, RIPL O/WR, SRC O/WR, CLOSE UP, SYNC BIN, LIVE O/WR, SOURCE, ROLL, and the crossfade keys until M9 lands) ship **unassigned** and are bound by the user. Design (normative): `docs/plugin-design-m5-m9.md` §6; storage rules: `docs/plugin-configuration.md` §3.3–3.4. Every Verify starts with `tools/check`.
 
 ### 1. `BindingTable` (pure)
