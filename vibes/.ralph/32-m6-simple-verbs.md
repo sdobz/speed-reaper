@@ -55,3 +55,11 @@ Dead ends:
 
 Next:
 - DONE: job `check2` exited 0 (verbs_test passed, -Werror clean, WINDOWS ORACLE PASS static, ORACLE PASS host); line 28 ticked.
+
+Result: exit 0; done; log: logs/32-m6-simple-verbs-L28-a2-1791872902185.log
+
+### Done — 2026-10-13 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
