@@ -13,7 +13,7 @@ Builds on `22-m3-edit-verbs.md`. REAPER's item actions (`Item: Remove items`, tr
 tools/check target
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. `ReaperProject` (REAPER-backed `IProject`)
 
