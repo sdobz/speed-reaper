@@ -17,6 +17,14 @@
 // last-touched track. (3) Nothing: empty.
 std::vector<int> TargetItems(IProject &project);
 
+// Target track = first selected track, else last-touched track; -1 if none.
+int TargetTrack(IProject &project);
+
+// Rule 2 only (M5 design §1.2, for the explicit TIMELINE select verbs):
+// the item on the target track containing the cursor, ignoring any existing
+// selection. 0 or 1 element.
+std::vector<int> CursorTargetItem(IProject &project);
+
 // Snapshot the selection; if (and only if) nothing is selected but targets
 // exist, select the targets; call f; restore the snapshot. Net selection
 // change = none.

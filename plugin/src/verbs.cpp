@@ -1,5 +1,7 @@
 #include "verbs.h"
 
+#include <algorithm>  // std::clamp (TIMELINE select stepping)
+
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
 #include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
 #include "trace.h"                 // Trace (no-target diagnostics)
@@ -42,18 +44,18 @@ int CommandFor(std::uint16_t key, GestureKind kind) {
 struct CompositeRow {
   std::uint16_t key;
   GestureKind kind;
-  void (*run)(IActionSink &, IProject &);
+  void (*run)(VerbRouter &, IActionSink &, IProject &, const Gesture &);
 };
 
 // TRIM IN / TRIM OUT (M5 design §3): the same ids as before (40511 / 40512),
 // now wrapped so they act on the implicit targets and undo in one step.
-void TrimIn(IActionSink &sink, IProject &project) {
+void TrimIn(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &) {
   project.Undo_Begin();
   WithTargetSelected(project, [&sink] { sink.RunCommand(40511); });
   project.Undo_End("Speed Reaper: trim");
 }
 
-void TrimOut(IActionSink &sink, IProject &project) {
+void TrimOut(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &) {
   project.Undo_Begin();
   WithTargetSelected(project, [&sink] { sink.RunCommand(40512); });
   project.Undo_End("Speed Reaper: trim");
@@ -64,7 +66,7 @@ void TrimOut(IActionSink &sink, IProject &project) {
 // close the gap — if ripple is off, switch to per-track (40310), remove
 // (40006), restore (40309); else just 40006. No targets → trace
 // `target none` and do nothing.
-void RiplDel(IActionSink &sink, IProject &project) {
+void RiplDel(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &) {
   if (project.HasTimeSelection()) {
     sink.RunCommand(40201);
     return;
@@ -83,10 +85,71 @@ void RiplDel(IActionSink &sink, IProject &project) {
   project.Undo_End("Speed Reaper: delete");
 }
 
+constexpr int kSelectStepTicks = 20;  // wheel ticks per TIMELINE select step
+
+// TIMELINE select verbs (M5 design §1.2): explicit selection — unlike the
+// implicit "T" verbs, these deliberately change the selection.
+void TimelineTap(VerbRouter &, IActionSink &, IProject &project, const Gesture &) {
+  const std::vector<int> target = CursorTargetItem(project);
+  if (target.empty()) {
+    Trace("target none");
+    return;
+  }
+  std::vector<int> selected;
+  for (const ItemInfo &item : project.Items())
+    if (item.selected) selected.push_back(item.id);
+  if (selected.size() == 1 && selected[0] == target[0])
+    project.SetSelectedItems({});  // sole selection → tap again = deselect all
+  else
+    project.SetSelectedItems(target);  // select the target exclusively
+}
+
+void TimelineDoubleTap(VerbRouter &, IActionSink &sink, IProject &, const Gesture &) {
+  sink.RunCommand(40289);  // deselect all items
+}
+
+// One hold+rotate step: move the selection to the next (dir>0) / previous
+// (dir<0) item on the target track, clamped at the ends; the cursor does
+// not move. No selection on the track: + selects the first item, - the
+// last. Exclusive selection of the single stepped-to item.
+void StepSelection(IProject &project, int dir) {
+  const int track = TargetTrack(project);
+  if (track < 0) return;
+  std::vector<int> ids;  // target-track item ids in pos order
+  int sel_idx = -1;      // first (leftmost) selected item on the track, or -1
+  for (const ItemInfo &item : project.Items()) {  // ordered by track then pos
+    if (item.track != track) continue;
+    if (item.selected && sel_idx < 0) sel_idx = static_cast<int>(ids.size());
+    ids.push_back(item.id);
+  }
+  if (ids.empty()) return;
+  const int last = static_cast<int>(ids.size()) - 1;
+  if (sel_idx < 0) {  // nothing selected on the track: step from an end
+    project.SetSelectedItems({ids[dir > 0 ? 0 : last]});
+    return;
+  }
+  const int idx = std::clamp(sel_idx + dir, 0, last);
+  project.SetSelectedItems({ids[idx]});
+}
+
+void TimelineHoldRotate(VerbRouter &router, IActionSink &,
+                        IProject &project, const Gesture &g) {
+  router.select_delta_ += g.delta;
+  while (router.select_delta_ >= kSelectStepTicks ||
+         router.select_delta_ <= -kSelectStepTicks) {
+    const int dir = router.select_delta_ > 0 ? 1 : -1;
+    router.select_delta_ -= dir * kSelectStepTicks;  // keep the remainder
+    StepSelection(project, dir);
+  }
+}
+
 constexpr CompositeRow kCompositeTable[] = {
     {KEY_TRIM_IN,  GestureKind::Tap, TrimIn},  // Item: Trim items left of edit cursor
     {KEY_TRIM_OUT, GestureKind::Tap, TrimOut},  // Item: Trim items right of edit cursor
     {KEY_RIPL_DEL, GestureKind::Tap, RiplDel},  // remove targets (+close gap) / time sel
+    {KEY_TIMELINE, GestureKind::Tap, TimelineTap},  // select cursor target exclusively
+    {KEY_TIMELINE, GestureKind::DoubleTap, TimelineDoubleTap},  // deselect all (40289)
+    {KEY_TIMELINE, GestureKind::HoldRotate, TimelineHoldRotate},  // step selection
 };
 
 // Composite row for a (key, kind) pair, or nullptr when none (the id table
@@ -101,7 +164,7 @@ const CompositeRow *CompositeFor(std::uint16_t key, GestureKind kind) {
 
 void VerbRouter::OnGesture(const Gesture &g) {
   if (const CompositeRow *row = CompositeFor(g.key, g.kind)) {
-    row->run(sink_, project_);  // composite rows win over id rows
+    row->run(*this, sink_, project_, g);  // composite rows win over id rows
     return;
   }
   const int cmd = CommandFor(g.key, g.kind);
@@ -110,5 +173,5 @@ void VerbRouter::OnGesture(const Gesture &g) {
 }
 
 std::vector<std::uint16_t> VerbDoubleTapKeys() {
-  return {KEY_IN, KEY_OUT, KEY_ESC};
+  return {KEY_IN, KEY_OUT, KEY_ESC, KEY_TIMELINE};
 }

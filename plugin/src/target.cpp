@@ -7,6 +7,8 @@ namespace {
 
 constexpr double kEps = 1e-9;  // item ends and the cursor are doubles in seconds
 
+}  // namespace
+
 // Target track = first selected track, else last-touched track; -1 if none.
 int TargetTrack(IProject &project) {
   const std::vector<int> tracks = project.SelectedTracks();
@@ -14,16 +16,7 @@ int TargetTrack(IProject &project) {
   return project.LastTouchedTrack();
 }
 
-}  // namespace
-
-std::vector<int> TargetItems(IProject &project) {
-  // Rule 1: a selection exists → the selected items (REAPER-native).
-  std::vector<int> selected;
-  for (const ItemInfo &item : project.Items())
-    if (item.selected) selected.push_back(item.id);
-  if (!selected.empty()) return selected;
-
-  // Rule 2: the item on the target track that contains the cursor.
+std::vector<int> CursorTargetItem(IProject &project) {
   const int track = TargetTrack(project);
   if (track < 0) return {};
   const double cursor = project.CursorPos();
@@ -41,7 +34,16 @@ std::vector<int> TargetItems(IProject &project) {
   // At the very end of the track's last item: that item.
   if (last_item_id >= 0 && std::fabs(cursor - last_end) < kEps)
     return {last_item_id};
-
-  // Rule 3: nothing.
   return {};
+}
+
+std::vector<int> TargetItems(IProject &project) {
+  // Rule 1: a selection exists → the selected items (REAPER-native).
+  std::vector<int> selected;
+  for (const ItemInfo &item : project.Items())
+    if (item.selected) selected.push_back(item.id);
+  if (!selected.empty()) return selected;
+
+  // Rule 2, then rule 3 (empty): the cursor item on the target track.
+  return CursorTargetItem(project);
 }

@@ -219,10 +219,134 @@ void test_ripl_del_composite() {
 
 void test_double_tap_keys() {
   auto keys = VerbDoubleTapKeys();
-  CHECK(keys.size() == 3);
+  CHECK(keys.size() == 4);
   CHECK(keys[0] == KEY_IN);
   CHECK(keys[1] == KEY_OUT);
   CHECK(keys[2] == KEY_ESC);
+  CHECK(keys[3] == KEY_TIMELINE);
+}
+
+// M5 design §1.2: TIMELINE explicit-select composites. The FakeProject does
+// not apply SetSelectedItems, so "the state after a tap" is simulated by
+// setting ItemInfo.selected directly.
+void test_timeline_gestures() {
+  // Two adjacent items on the target track, cursor inside A, nothing
+  // selected (last-touched track is the target track).
+  auto make_project = []() {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A
+    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, false});  // B
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    return project;
+  };
+
+  // 1) Tap: select the rule-2 target (cursor item) exclusively.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);  // A
+  }
+
+  // 2) Tap again with A already the sole selection: deselect all.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    project.items[0].selected = true;
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::Tap));
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].empty());
+  }
+
+  // 3) Tap with B selected (A still the cursor target): A selected
+  // exclusively.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    project.items[1].selected = true;
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::Tap));
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);
+  }
+
+  // 4) Tap with the cursor in a gap: no target, no selection change.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.items.push_back(ItemInfo{1, 0, 6.0, 4.0, false});
+    project.cursor = 4.5;  // between the items
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.selected_calls.empty());
+  }
+
+  // 5) DoubleTap: exactly 40289, no selection churn.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::DoubleTap));
+    CHECK(sink.commands.size() == 1);
+    CHECK(sink.commands[0] == 40289);
+    CHECK(project.selected_calls.empty());
+  }
+
+  // 6) HoldRotate: one step per kSelectStepTicks (=20) accumulated ticks,
+  // clamped at the ends, cursor untouched. 19+1 ticks = one step.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 19));
+    CHECK(project.selected_calls.empty());  // below the step threshold
+
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 1));  // total 20
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);  // from nothing: first item
+
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 20));
+    CHECK(project.selected_calls.size() == 2);
+    CHECK(project.selected_calls[1][0] == 1);  // next: B
+
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 20));
+    CHECK(project.selected_calls.size() == 3);
+    CHECK(project.selected_calls[2][0] == 1);  // clamped at the end
+
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -20));
+    CHECK(project.selected_calls.size() == 4);
+    CHECK(project.selected_calls[3][0] == 0);  // previous: A
+
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -40));  // two steps
+    CHECK(project.selected_calls.size() == 6);
+    CHECK(project.selected_calls[4][0] == 0);  // clamped at the start
+    CHECK(project.selected_calls[5][0] == 0);
+
+    CHECK(sink.commands.empty());               // pure selection, no commands
+    CHECK(project.cursor == 2.5);               // cursor untouched
+  }
+
+  // 7) HoldRotate from nothing selected, negative first step: last item.
+  {
+    FakeSink sink;
+    FakeProject project = make_project();
+    VerbRouter r(sink, project);
+    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -20));
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 1);
+  }
 }
 
 }  // namespace
@@ -233,5 +357,6 @@ int main() {
   test_trim_composites();
   test_ripl_del_composite();
   test_double_tap_keys();
+  test_timeline_gestures();
   return check_failures();
 }

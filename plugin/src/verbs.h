@@ -28,6 +28,8 @@ class VerbRouter {
  private:
   IActionSink &sink_;
   IProject &project_;
+  int select_delta_ = 0;  // TIMELINE hold+rotate ticks since the last step
+                          // (M5 design §1.2; ±kSelectStepTicks per step)
 };
 
 // The keys whose tap waits for a second press (design §7: IN, OUT, ESC).
