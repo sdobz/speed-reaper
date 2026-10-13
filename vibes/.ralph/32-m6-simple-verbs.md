@@ -10,6 +10,7 @@ Durable facts every task should know (keep short).
 - REAPER-API rule (main.cpp comment): every new API a milestone adds needs `REAPERAPI_WANT_<name>` in BOTH plugin/src/reaper_project.cpp (or the calling TU) AND main.cpp's list (owns REAPERAPI_IMPLEMENT), or the plugin refuses to load.
 - The host-layer oracle (plugin_host) resolves GetFunc for any name in oracle/reaper_api_names.txt (REAPER 7.81 export list, 874 names); all other names return nullptr.
 - `MediaItem` is only forward-declared in the vendored SDK (reaper_plugin.h:1465) — you cannot dereference item fields; use the string APIs (GetMediaItemInfo_Value / SetMediaItemInfo_Value, e.g. "I_CURTAKE").
+- REAPER 7.x Lua quirks (verified, see docs/notes/m5-observations.md ## M6): track name param is `P_NAME` ("NAME" silently fails both directions); `GetSetMediaTrackInfo_String` is 4-arg (no buf_len); `EnumProjectMarkers` returns (retval, isrgn, pos, rgnend, name, markrgnindexnumber) 0-based, idx 0's first return is retval not count — count with `GetNumRegionsOrMarkers(nil)`; `InsertTrackAtIndex` returns nothing in Lua (use `GetTrack`); `MediaTrack`/`ProjectMarker` are userdata (no `.name` field).
 - tools/check needs the nix dev shell for cmake (`nix develop --command ...`); it runs: make -C src, plugin build with -Werror + SPEED_REAPER_FAKE_DEVICE=ON, nm export check, ctest, Windows cross build (tools/windows-oracle --layer static), oracle host layer. Set SKIP_WINDOWS=1 / ORACLE_FULL for variants.
 - "Above" in track order = SMALLER index (track 0 is the arrange top). `InsertTrackInProject(nullptr, idx, flags)` (void) inserts a new track at idx; source track at idx shifts to idx+1. Inserting into several tracks in one pass: process indices DESCENDING so smaller pending indices stay valid. `GetItemStateChunk(item, buf, sz, bool)` (bool ret, C string) / `SetItemStateChunk(item, str, bool)` copy an item's state; `AddMediaItemToTrack(track)` creates the empty item.
 
@@ -198,3 +199,26 @@ Trigger: 2 attempt(s), last: timeout after 180s without tool use (monologuing/st
 Why: Both spike attempts stalled 180s with zero tool use on a ~600-word dense body, while the tree already contains a finished probe_smth.lua (attempt 1 ran it and found 40916/41059 no-op on configs A–D); what's left is run one command, read one JSON, write three note bullets.
 Rejected: SPLIT: the probe runs all three investigations in one script and the write-up is ~15 lines — small enough for one sitting; the failure was spec readability, not size. BUDGET: the stall was monologuing with no tool use, not time pressure, and the record shows no progress on this leaf. BLOCK: the id question is empirically answerable and mostly answered already; only configs E/F need running and transcribing.
 Log: logs/32-m6-simple-verbs-L79-replan-1791877783391.log
+
+## Task: Spike: settle the SMTH CUT command (does 40916 crossfade? fallback candidate `41059`) — findings to docs/notes/m5-observ
+
+### Attempt 1 — 2026-10-13T07:55:30Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: probe_smth run 2 had already completed — build/oracle/probe_probe_smth.json has all six configs (A–F); 40916 AND 41059 leave every fade 0 (finA/foutA/xf/xfn) in all of them → verdict: no id works in A–F.
+- Facts: probe_smth's marker probe was misleading: it queried EnumProjectMarkers(1) with only one marker present. Wrote throwaway follow-up oracle/scenarios/probe_mkr.lua (correct calls); run PASS, results in build/oracle/probe_probe_mkr.json.
+- Facts (marker): EnumProjectMarkers Lua returns (retval, isrgn, pos, rgnend, name, markrgnindexnumber), 0-based idx. Marker at 1.0: EnumProjectMarkers(0) = 1|false|1.0|0.0|M1|1; idx 1 (out of range) = 0|false|0.0|0.0||0|nil|nil. So return #3 IS pos; attempt 6's i=1..n loop just queried out-of-range entries. EnumProjectMarkers(0)'s first return is retval (1=found), NOT a count; count with GetNumRegionsOrMarkers(nil). REAPER 7.82 reascripthelp confirms the 6-return signature (func is "discouraged", use GetNumRegionsOrMarkers/GetRegionOrMarker).
+- Facts (track name): REAPER 7.x param is "P_NAME", not "NAME". 4-arg GetSetMediaTrackInfo_String(tr,"P_NAME","NAMETEST",true) → set=true; read-back (tr,"P_NAME","",false) = (true,"NAMETEST") — STICKS. "NAME" returns false + empty buf on both set and read (attempt 6's lookup failed for that reason). Lua binding is 4-arg, no buf_len; MediaTrack is userdata (no tr.name field). SetEditCurPos(1.0,false,false) works but returns nil; cursor read 1.0.
+- Facts (SMTH CUT): docs/reaper-actions.tsv confirms 40916 = "Item: Crossfade items within time selection", 41059 = "Item: Crossfade any overlapping items" — both right actions; the no-op is likely because probe takes are empty (no audio source). Note written (## M6, three bullets).
+- Dead ends: GetRegionOrMarkerInfo_Value/GetSetRegionOrMarkerInfo_String also take proj as arg #1 (nil); AddProjectMarker needs 6 args (wantidx, use -1); InsertTrackAtIndex returns nothing in Lua (use GetTrack after).
+- Next: nothing — note written, box ticked. Parent task: expect the SMTH CUT check to need the plugin's own fade logic (no 40916/41059 config crossfaded empty-source items); name lookup in simple_verbs.lua must use "P_NAME" and 4-arg calls; count items per track by GetTrackMediaItem loop; marker pos = EnumProjectMarkers(0) return #3.
+
+Result: exit 0; done; 3 files changed, 20 insertions(+), 1 deletion(-); log: logs/32-m6-simple-verbs-L79-a1-1791878130052.log
+
+### Done — 2026-10-13 — 1 attempt(s)
+Files:
+```
+M docs/notes/m5-observations.md
+ M vibes/.ralph/32-m6-simple-verbs.md
+ M vibes/32-m6-simple-verbs.md
+?? oracle/scenarios/probe_mkr.lua
+```

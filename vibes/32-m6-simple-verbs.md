@@ -76,7 +76,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Spike: settle the SMTH CUT command (does 40916 crossfade? fallback candidate `41059`) — findings to docs/notes/m5-observations.md
+  - [x] Spike: settle the SMTH CUT command (does 40916 crossfade? fallback candidate `41059`) — findings to docs/notes/m5-observations.md
     <!-- ralph: replanned=1 -->
     oracle/scenarios/probe_smth.lua is ALREADY WRITTEN (configs A–F: 40916 and 41059 on meeting/overlapping items on one or two tracks; plus marker and track-name probes) — do not rewrite it; only fix the exact line if a run reports a Lua error in the output.
     1. Run: `tools/reaper-oracle --layer reaper --scenario probe_smth` (it re-execs into the nix dev shell itself).
