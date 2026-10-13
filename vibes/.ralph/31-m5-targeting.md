@@ -76,3 +76,11 @@ Facts:
 - `verbs_test.cpp` now uses `fake_project.h`; existing tests unchanged in meaning (just an added `FakeProject` arg). New `test_trim_composites` covers: no selection → selects target `[0]` then restores `[]` (selected_calls `[[0],[]]`), undo block labelled `Speed Reaper: trim`; existing selection → single restore call, no extra selection.
 - `tools/check verbs` green: verbs_test 1/1, WINDOWS ORACLE PASS static, ORACLE PASS host. (Remember: git-add before check — windows build only sees tracked files.)
 Next: DONE — line 41 ticked, committed.
+
+Result: exit 0; done; log: logs/31-m5-targeting-L41-a3-1791854513482.log
+
+### Done — 2026-10-13 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/31-m5-targeting.md
+```
