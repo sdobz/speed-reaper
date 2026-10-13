@@ -25,6 +25,9 @@ class ReaperProject final : public IProject {
   int RippleMode() override;
   void Undo_Begin() override;
   void Undo_End(const char *label) override;
+  int ItemTakeCount(int id) override;
+  int ItemActiveTake(int id) override;
+  void SetItemActiveTake(int id, int take) override;
 };
 
 #endif  // SPEED_REAPER_REAPER_PROJECT_H

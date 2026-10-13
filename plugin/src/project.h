@@ -27,6 +27,11 @@ class IProject {
   virtual int RippleMode() = 0;  // 0 off, 1 per-track, 2 all
   virtual void Undo_Begin() = 0;  // Undo_BeginBlock2
   virtual void Undo_End(const char *label) = 0;  // Undo_EndBlock2 (one step)
+  // Takes (M6). id is an Items() id; a missing id is a no-op /
+  // reports 0 takes and no active take (-1).
+  virtual int ItemTakeCount(int id) = 0;  // CountTakes
+  virtual int ItemActiveTake(int id) = 0;  // 0-based (I_CURTAKE); -1 if none
+  virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
 };
 
 #endif  // SPEED_REAPER_PROJECT_H

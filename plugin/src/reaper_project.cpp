@@ -27,6 +27,9 @@
 #define REAPERAPI_WANT_GetCursorPosition
 #define REAPERAPI_WANT_GetToggleCommandState
 #define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
+#define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
+#define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
+#define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
 #include "reaper_plugin_functions.h"
 
 namespace {
@@ -72,6 +75,14 @@ std::vector<MediaItem *> EnumerateItems() {
   out.reserve(entries.size());
   for (const Entry &e : entries) out.push_back(e.item);
   return out;
+}
+
+// MediaItem for a design id (index in EnumerateItems() order); null if the
+// id is out of range.
+MediaItem *ItemById(int id) {
+  const std::vector<MediaItem *> items = EnumerateItems();
+  if (id < 0 || id >= static_cast<int>(items.size())) return nullptr;
+  return items[id];
 }
 
 }  // namespace
@@ -139,4 +150,22 @@ void ReaperProject::Undo_Begin() {
 
 void ReaperProject::Undo_End(const char *label) {
   Undo_EndBlock2(nullptr, label, -1);
+}
+
+int ReaperProject::ItemTakeCount(int id) {
+  MediaItem *item = ItemById(id);
+  return item ? CountTakes(item) : 0;
+}
+
+int ReaperProject::ItemActiveTake(int id) {
+  MediaItem *item = ItemById(id);
+  if (!item) return -1;
+  return static_cast<int>(GetMediaItemInfo_Value(item, "I_CURTAKE"));
+}
+
+void ReaperProject::SetItemActiveTake(int id, int take) {
+  MediaItem *item = ItemById(id);
+  if (!item) return;
+  SetMediaItemInfo_Value(item, "I_CURTAKE", static_cast<double>(take));
+  UpdateItemInProject(item);
 }

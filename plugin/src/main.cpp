@@ -69,6 +69,9 @@
 #define REAPERAPI_WANT_GetCursorPosition // ReaperProject::CursorPos
 #define REAPERAPI_WANT_GetToggleCommandState // already above; ripple read (40310/40311)
 #define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
+#define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
+#define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
+#define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"

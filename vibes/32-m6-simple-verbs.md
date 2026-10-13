@@ -12,7 +12,7 @@ Builds on `31-m5-targeting.md` (needs `IProject`, `WithTargetSelected`, composit
 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. CAM 1–9 = active take N
 
