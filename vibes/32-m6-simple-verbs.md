@@ -61,7 +61,7 @@ tools/check verbs
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Oracle scenario: `simple_verbs`
 

@@ -6,6 +6,8 @@
 #ifndef SPEED_REAPER_REAPER_PROJECT_H
 #define SPEED_REAPER_REAPER_PROJECT_H
 
+#include <utility>  // std::pair (saved solo flags)
+
 #include "project.h"
 #include "reaper_plugin.h"  // ReaProject / MediaTrack / MediaItem declarations
 
@@ -30,6 +32,18 @@ class ReaperProject final : public IProject {
   void SetItemActiveTake(int id, int take) override;
   double ItemVolume(int id) override;
   void DuplicateItemsAbove(const std::vector<int> &ids) override;
+  void ToggleIsolateTracks(const std::vector<int> &item_ids) override;
+  void ToggleSoloTracks(const std::vector<int> &item_ids) override;
+
+ private:
+  struct ShowFlag {
+    bool tcp = true;  // B_SHOWINTCP
+    bool mixer = true;  // B_SHOWINMIXER
+  };
+  bool isolate_active_ = false;
+  bool solo_active_ = false;
+  std::vector<ShowFlag> saved_isolate_;  // all tracks, index-aligned
+  std::vector<std::pair<int, int>> saved_solo_;  // (track, previous I_SOLO)
 };
 
 #endif  // SPEED_REAPER_REAPER_PROJECT_H

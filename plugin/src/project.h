@@ -37,6 +37,14 @@ class IProject {
   // each source track, same position; the originals and their selection
   // are left alone. Bad ids are ignored.
   virtual void DuplicateItemsAbove(const std::vector<int> &ids) = 0;
+  // View buttons (M6): toggle isolate (hide every track except the target
+  // items' tracks, B_SHOWINTCP/B_SHOWINMIXER) / solo (I_SOLO on the target
+  // items' tracks). The first call saves the previous per-track flags and
+  // the second restores exactly those; the saved state is plugin memory
+  // only (not REAPER undo). Bad ids are ignored; no valid target ids is a
+  // no-op that does not toggle the saved state.
+  virtual void ToggleIsolateTracks(const std::vector<int> &item_ids) = 0;
+  virtual void ToggleSoloTracks(const std::vector<int> &item_ids) = 0;
 };
 
 #endif  // SPEED_REAPER_PROJECT_H

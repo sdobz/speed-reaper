@@ -76,6 +76,7 @@
 #define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"

@@ -30,6 +30,7 @@ constexpr VerbRow kVerbTable[] = {
     {KEY_ESC,      GestureKind::Tap,       40635},  // Time selection: Remove (unselect) time selection
     {KEY_ESC,      GestureKind::DoubleTap, 40029},  // Edit: Undo
     {KEY_AUDIO_LEVEL, GestureKind::DoubleTap, 40157},  // Insert: Insert marker at edit cursor
+    {KEY_FULL_VIEW, GestureKind::Tap, 40346},  // View: toggle maximized arrange (candidate, settled by M6 task 6)
 };
 
 // Command id for a (key, kind) pair, or -1 when the gesture is unmapped
@@ -180,6 +181,32 @@ void SmthCutTap(VerbRouter &, IActionSink &sink, IProject &project,
   Trace("no time selection");
 }
 
+// VIDEO_ONLY Tap (M6 design §3): toggle the isolate view — hide every track
+// except the target items' tracks; the second tap restores the saved
+// per-track visibility (the saved state is plugin memory only, so no undo
+// block). No targets → trace `target none` and do nothing.
+void VideoOnlyTap(VerbRouter &, IActionSink &, IProject &project,
+                  const Gesture &) {
+  const std::vector<int> targets = TargetItems(project);
+  if (targets.empty()) {
+    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    return;
+  }
+  project.ToggleIsolateTracks(targets);
+}
+
+// AUDIO_ONLY Tap (M6 design §3): toggle solo on the target items' tracks;
+// the second tap restores the saved solo flags.
+void AudioOnlyTap(VerbRouter &, IActionSink &, IProject &project,
+                  const Gesture &) {
+  const std::vector<int> targets = TargetItems(project);
+  if (targets.empty()) {
+    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    return;
+  }
+  project.ToggleSoloTracks(targets);
+}
+
 // One hold+rotate step: move the selection to the next (dir>0) / previous
 // (dir<0) item on the target track, clamped at the ends; the cursor does
 // not move. No selection on the track: + selects the first item, - the
@@ -234,6 +261,8 @@ const std::vector<CompositeRow> &CompositeRows() {
     r.push_back({KEY_AUDIO_LEVEL, GestureKind::Tap, AudioLevelTap});  // M6: volume read-out
     r.push_back({KEY_SMTH_CUT, GestureKind::Tap, SmthCutTap});  // M6: 40916 if time sel
     r.push_back({KEY_PLACE_ON_TOP, GestureKind::Tap, PlaceOnTopTap});  // M6: duplicate onto a new track above
+    r.push_back({KEY_VIDEO_ONLY, GestureKind::Tap, VideoOnlyTap});  // M6: toggle isolate view
+    r.push_back({KEY_AUDIO_ONLY, GestureKind::Tap, AudioOnlyTap});  // M6: toggle solo on target tracks
     return r;
   }();
   return rows;

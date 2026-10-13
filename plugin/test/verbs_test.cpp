@@ -582,6 +582,129 @@ void test_place_on_top() {
   }
 }
 
+// M6 design §3: the view buttons. VIDEO_ONLY toggles the isolate view
+// (every track hidden except the target items' tracks; the second tap
+// restores the saved B_SHOWINTCP/B_SHOWINMIXER exactly). AUDIO_ONLY
+// toggles I_SOLO on the target items' tracks (same save/restore). FULL
+// VIEW runs 40346 (candidate, settled by the M6 task-6 oracle). The saved
+// state is plugin memory only — no undo block, no selection churn.
+void test_view_buttons() {
+  // 1) Isolate, direct on the fake with the target ids: A item on track 0,
+  // B item on track 1; track 1 was mixer-hidden beforehand. The first call
+  // hides track 1 (keeps track 0 shown); the second restores track 1's
+  // saved flags EXACTLY (tcp back to shown, mixer still hidden).
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: track 0
+    project.items.push_back(ItemInfo{1, 1, 0.0, 5.0, false});  // B: track 1
+    project.track_views = {{true, true, 0}, {true, false, 0}};
+
+    project.ToggleIsolateTracks({0});
+    CHECK(project.isolate_calls.size() == 1);
+    CHECK(project.isolate_calls[0].size() == 1);
+    CHECK(project.isolate_calls[0][0] == 0);
+    CHECK(project.isolate_active);
+    CHECK(project.track_views[0].show_tcp == true);
+    CHECK(project.track_views[0].show_mixer == true);
+    CHECK(project.track_views[1].show_tcp == false);  // hidden
+    CHECK(project.track_views[1].show_mixer == false);
+
+    project.ToggleIsolateTracks({0});
+    CHECK(project.isolate_calls.size() == 2);
+    CHECK(!project.isolate_active);
+    CHECK(project.track_views[0].show_tcp == true);
+    CHECK(project.track_views[0].show_mixer == true);
+    CHECK(project.track_views[1].show_tcp == true);     // restored
+    CHECK(project.track_views[1].show_mixer == false);  // restored exactly
+  }
+
+  // 2) Solo, direct on the fake: track 0 was already solo. The toggle
+  // affects only the target track; the second tap restores exactly.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: track 0
+    project.items.push_back(ItemInfo{1, 1, 0.0, 5.0, false});  // B: track 1
+    project.track_views = {{true, true, 1}, {true, true, 0}};
+
+    project.ToggleSoloTracks({1});
+    CHECK(project.solo_calls.size() == 1);
+    CHECK(project.solo_calls[0][0] == 1);
+    CHECK(project.solo_active);
+    CHECK(project.track_views[0].solo == 1);  // untouched
+    CHECK(project.track_views[1].solo == 1);  // soloed
+
+    project.ToggleSoloTracks({1});
+    CHECK(project.solo_calls.size() == 2);
+    CHECK(!project.solo_active);
+    CHECK(project.track_views[0].solo == 1);  // untouched
+    CHECK(project.track_views[1].solo == 0);  // restored exactly
+  }
+
+  // 3) A toggle with no valid target ids: recorded but no state change.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.ToggleIsolateTracks({99});
+    CHECK(project.isolate_calls.size() == 1);
+    CHECK(!project.isolate_active);
+    CHECK(project.track_views.empty());
+    project.ToggleSoloTracks({});
+    CHECK(project.solo_calls.size() == 1);
+    CHECK(!project.solo_active);
+  }
+
+  // 4) Routing: VIDEO_ONLY / AUDIO_ONLY taps pass the target ids (cursor
+  // target, rule 2) to the project toggles; FULL VIEW runs 40346. No
+  // commands from the toggles, no selection churn, no undo block.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: track 0
+    project.items.push_back(ItemInfo{1, 1, 0.0, 5.0, false});  // B: track 1
+    project.cursor = 2.5;  // inside A
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_VIDEO_ONLY, GestureKind::Tap));
+    CHECK(project.isolate_calls.size() == 1);
+    CHECK(project.isolate_calls[0].size() == 1);
+    CHECK(project.isolate_calls[0][0] == 0);
+    CHECK(project.isolate_active);
+    CHECK(project.track_views[1].show_tcp == false);  // track 1 hidden
+
+    r.OnGesture(G(KEY_AUDIO_ONLY, GestureKind::Tap));
+    CHECK(project.solo_calls.size() == 1);
+    CHECK(project.solo_calls[0].size() == 1);
+    CHECK(project.solo_calls[0][0] == 0);
+    CHECK(project.solo_active);
+    CHECK(project.track_views[0].solo == 1);
+
+    r.OnGesture(G(KEY_FULL_VIEW, GestureKind::Tap));
+    CHECK(sink.commands.size() == 1);
+    CHECK(sink.commands[0] == 40346);
+    CHECK(project.selected_calls.empty());  // no selection churn
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+  }
+
+  // 5) No target (cursor in a gap, nothing selected, no last-touched
+  // track): neither toggle is called, no commands (trace `target none`).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.cursor = 5.0;  // in a gap
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_VIDEO_ONLY, GestureKind::Tap));
+    r.OnGesture(G(KEY_AUDIO_ONLY, GestureKind::Tap));
+    CHECK(project.isolate_calls.empty());
+    CHECK(project.solo_calls.empty());
+    CHECK(sink.commands.empty());
+    CHECK(project.selected_calls.empty());
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -594,5 +717,6 @@ int main() {
   test_cam_takes();
   test_audio_level_and_smth_cut();
   test_place_on_top();
+  test_view_buttons();
   return check_failures();
 }
