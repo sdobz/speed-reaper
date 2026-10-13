@@ -25,11 +25,14 @@ class VerbRouter {
   // HoldEnd) are no-ops.
   void OnGesture(const Gesture &g);
 
+  // TIMELINE hold+rotate ticks since the last select step (M5 design §1.2;
+  // one step per ±kSelectStepTicks, remainder kept). Public because the
+  // composite rows in verbs.cpp are free functions.
+  int select_delta_ = 0;
+
  private:
   IActionSink &sink_;
   IProject &project_;
-  int select_delta_ = 0;  // TIMELINE hold+rotate ticks since the last step
-                          // (M5 design §1.2; ±kSelectStepTicks per step)
 };
 
 // The keys whose tap waits for a second press (design §7: IN, OUT, ESC).
