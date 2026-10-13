@@ -30,3 +30,11 @@ Dead ends:
 
 Next:
 - DONE: job `check` exited 0 (11/11 tests, WINDOWS ORACLE PASS static, ORACLE PASS host); line 15 ticked.
+
+Result: exit 0; done; log: logs/32-m6-simple-verbs-L15-a1-1791872429886.log
+
+### Done — 2026-10-13 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
