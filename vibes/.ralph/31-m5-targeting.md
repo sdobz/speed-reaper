@@ -106,3 +106,19 @@ D docs/ReaperUserGuide781c/ReaperUserGuide781c.pdf:Zone.Identifier
  M vibes/.ralph/31-m5-targeting.md
  M vibes/31-m5-targeting.md
 ```
+
+## Task: 5. TIMELINE select verbs
+
+### Attempt 5 — 2026-10-13T01:28:10Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Tree was clean (no partial task-5 work). `tools/check verbs` = build + `ctest -R verbs` + windows static oracle + host oracle.
+- main.cpp already routes every non-router key (JOG/SCRL/SHTL/STOP_PLAY) to the gesture engine via `default:` — TIMELINE needed no change there, verified.
+- Implementation: `target.h/.cpp` now also export `TargetTrack(IProject&)` and `CursorTargetItem(IProject&)` (rule 2 only; `TargetItems` = rule 1 → `CursorTargetItem`). verbs.cpp composite rows now take `(VerbRouter&, IActionSink&, IProject&, const Gesture&)` so TIMELINE HoldRotate can accumulate `delta` in a `select_delta_` member (±kSelectStepTicks=20 per step, remainder kept). StepSelection: no selection on target track → + selects first / - last; else ±1 index clamped; exclusive selection; cursor untouched. Tap: rule-2 target, sole-selection toggle, no target → Trace("target none"). DoubleTap → 40289. `VerbDoubleTapKeys()` now {IN, OUT, ESC, TIMELINE}.
+- Tests: `test_timeline_gestures` (7 scenarios) + updated `test_double_tap_keys` (4 keys). FakeProject does not apply selections — "state after tap" simulated by setting `ItemInfo.selected`.
+Dead ends:
+- First build (job `check-m5t5`) failed: composite rows are free functions in verbs.cpp's anonymous namespace and can't touch private `VerbRouter::select_delta_` → made it public. Committed as `31-m5-targeting: 5. select_delta_ public`.
+- `check-m5t5b` failed verbs_test: FakeProject records but never applies SetSelectedItems, so consecutive hold+rotate steps always saw "nothing selected". Fixed in the test only: `ApplyLastSelection()` pushes the last recorded selection into `items[].selected` between gestures (REAPER applies it; the fake doesn't).
+Facts (final):
+- `tools/check verbs` green (job `check-m5t5c`): verbs_test 1/1, WINDOWS ORACLE PASS static, ORACLE PASS host, rc=0. Line 66 ticked; commits: `49cb928` (TIMELINE select verbs), `select_delta_ public`, test apply-selection fix.
+- Design decisions for task 6/7: TIMELINE tap with no cursor target traces `target none` and does nothing; hold+rotate from an empty selection steps from an end (+ → first item, - → last item); multiple selected items on the track step from the leftmost.
