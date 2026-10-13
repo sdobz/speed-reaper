@@ -25,7 +25,7 @@ tools/check target
 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. `VerbRouter` takes `IProject`; composite rows
 

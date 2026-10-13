@@ -48,4 +48,19 @@ Facts:
 - `GetSet_Loc` is in NEITHER the subset doc NOR `reaper_api_names.txt` → resolve it via a manual `GetFunc("GetSet_Loc")` in a `ReaperProject::Init(void(*GetFunc)(const char*))` called from the entry after `REAPERAPI_LoadAPI`; oracle returns nullptr → `HasTimeSelection()` safely false. LOC_TSELSTART=0x20, LOC_TSELEND=0x21 (SDK reaper.h constants; could not verify online — web_search returned nothing, docs.reaper.com unreachable; step 5's oracle will exercise it).
 - REAPERAPI pattern: main.cpp has `REAPERAPI_IMPLEMENT`+`REAPERAPI_MINIMAL`; reaper_project.cpp will define its own WANT set (mirrored in main.cpp) so a missing mirror is a link error on `REAPERAPI_<name>`.
 - `tools/check` also runs `tools/reaper-oracle --layer host` (plugin_host + api names list) — all 12 new WANT names verified present in the list before adding them.
-Next: write reaper_project.h/.cpp, add 12 WANT lines + Init call in main.cpp, add .cpp to plugin target in CMakeLists (NOT PLUGIN_PURE_SOURCES), commit, tools/check.
+Facts (build fixes):
+- **Vendored SDK uses `REAPERAPI_FUNCNAME(x)=x` (identity)** — the function pointers are plain `GetPlayState`, `CountMediaItems`, …, NOT `REAPERAPI_GetPlayState` (that prefix exists only in the upstream SDK where reaper_plugin.h redefines REAPERAPI_FUNCNAME). main.cpp calls them plain; reaper_project.cpp must too. This is the #1 gotcha for any future REAPER-API TU.
+- `GetLastTouchedTrack()` takes NO parameters in this SDK (subset doc didn't show it; verified in reaper_plugin_functions.h:1914).
+- reaper_project.cpp must include <algorithm>/<set> BEFORE reaper_project.h (SDK/Swell min/max macros break STL — same pattern as main.cpp's header comment).
+- Files committed: `c555d0a` (ReaperProject) + `79acce2` (symbol-name/arity fixes). Native build + link green.
+Next: `tools/check` running as bg job `check-m5t2` (log vibes/.ralph/logs/check-m5t2.log); if green, tick line 28 of vibes/31-m5-targeting.md.
+Result: exit 0 (job check-m5t2): 11/11 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host. Line 28 ticked.
+
+Result: exit 0; done; 2 files changed, 8 insertions(+), 2 deletions(-); log: logs/31-m5-targeting-L28-a2-1791853676491.log
+
+### Done — 2026-10-13 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/31-m5-targeting.md
+ M vibes/31-m5-targeting.md
+```
