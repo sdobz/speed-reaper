@@ -23,15 +23,6 @@ local actions = {
   { name = "reset",   cmd = "_speed_reaper_spike_reset",   rate = "1.000000" },
 }
 
-local function read_trace()
-  local f = io.open(os.getenv("ORACLE_OUT") .. "/trace_spike_rate.txt", "r")
-  if not f then return {} end
-  local lines = {}
-  for line in f:lines() do table.insert(lines, line) end
-  f:close()
-  return lines
-end
-
 local function last_matching(lines, needle)
   for i = #lines, 1, -1 do
     if lines[i]:find(needle, 1, true) then return lines[i] end
@@ -83,7 +74,7 @@ local function next_action()
     if pa == nil and #samples > 0 then pa, qa = samples[1].pos, samples[1].play end
 
     -- The plugin's own ~300 ms measurement (spike set/rate/reverse lines).
-    local lines = read_trace()
+    local lines = read_trace() or {}
     local set_needle = a.name == "reset"
         and "spike set rate=1.0 (reset, stop)"
         or ("spike set rate=" .. a.rate)

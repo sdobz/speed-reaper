@@ -147,3 +147,26 @@ Result: exit 0; progress; 4 files changed, 17 insertions(+), 20 deletions(-); lo
 ### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
 Trigger: 6 attempt(s), last: exit 0, progress
 Log: logs/31-m5-targeting-L78-replan-1791856776597.log
+
+## Task: 7. SMOKE-TEST.md: "M5 — targeting"
+
+### Attempt 1 — 2026-10-13T06:16:58Z — budget 1800s
+- Facts: SMOKE-TEST.md has sections M1, M2, M3, M4 — the task says insert M5 "after M3", so it now sits between M3 and M4 (literal reading; M4 pre-dates the task text). TIMELINE is a real device key (0x001B, `src/speed_editor/key_map.h`). M5 composites per `docs/plugin-design-m5-m9.md` §1–§3 and `oracle/scenarios/target.lua`: RIPL DEL = time selection → 40201, else target delete 40006 inside temp per-track ripple (40310/40309); TRIM IN/OUT = 40511/40512 in WithTargetSelected; TIMELINE tap = exclusive select / re-tap deselects, double-tap = 40289, hold+rotate = 1 item per kSelectStepTicks=20, clamped, cursor untouched. New section has 5 steps + pass bar, each with an **Expected** line (grep -c 'Expected' = 39, verify exits 0).
+- Dead ends: none.
+- Next: none — box ticked; task done.
+
+Result: exit 0; done; 9 files changed, 104 insertions(+), 85 deletions(-); log: logs/31-m5-targeting-L89-a1-1791872218837.log
+
+### Done — 2026-10-13 — 1 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M oracle/lib.lua
+ M oracle/scenarios/buttons.lua
+ M oracle/scenarios/hid_wheel.lua
+ M oracle/scenarios/shuttle.lua
+ M oracle/scenarios/spike_rate.lua
+ M oracle/scenarios/verbs.lua
+ M vibes/.ralph/31-m5-targeting.md
+ M vibes/31-m5-targeting.md
+```

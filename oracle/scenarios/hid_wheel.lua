@@ -99,30 +99,15 @@ start("device", function()
                         n, rise2, samples[rp].t, samples[rp].pos, samples[n].pos))
 
     -- Trace: connected -> disconnected -> connected, in that order.
-    local trace = os.getenv("ORACLE_OUT") .. "/trace_hid_wheel.txt"
-    -- state 0 = want `log connected`, 1 = want `log disconnected`,
-    -- 2 = want `log connected` again, 3 = done. (Note: "log disconnected"
-    -- does not contain "log connected", so plain substring finds are safe.)
-    local state, detail = 0, "trace file missing: " .. trace
-    local f = io.open(trace, "r")
-    if f then
-      for line in f:lines() do
-        if state == 0 and line:find("log connected", 1, true) then
-          state = 1
-        elseif state == 1 and line:find("log disconnected", 1, true) then
-          state = 2
-        elseif state == 2 and line:find("log connected", 1, true) then
-          state = 3
-          break
-        end
-      end
-      f:close()
-      detail = string.format("connected=%d disconnected=%d reconnected=%d",
-                             state >= 1 and 1 or 0, state >= 2 and 1 or 0,
-                             state >= 3 and 1 or 0)
+    local lines = read_trace()
+    if lines then
+      -- ("log disconnected" does not contain "log connected": plain finds are safe)
+      local a = find_line(lines, "log connected")
+      local b = a > 0 and find_line(lines, "log disconnected", a + 1) or 0
+      local c = b > 0 and find_line(lines, "log connected", b + 1) or 0
+      check("trace: connected, disconnected, connected (in order)", c > 0,
+            string.format("lines=%d,%d,%d", a, b, c))
     end
-    check("trace: connected, disconnected, connected (in order)", state >= 3,
-          detail)
 
     finish()
   end)

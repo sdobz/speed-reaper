@@ -93,13 +93,8 @@ start("device", function()
           "final GetPlayState=" .. tostring(samples[n].play))
 
     -- Trace checks (trace_<scenario>.txt, lines are "<ms> <msg>").
-    local trace = os.getenv("ORACLE_OUT") .. "/trace_buttons.txt"
-    local f = io.open(trace, "r")
-    check("trace readable", f ~= nil, trace)
-    if not f then finish() return end
-    local lines = {}
-    for line in f:lines() do table.insert(lines, line) end
-    f:close()
+    local lines = read_trace()
+    if not lines then finish() return end
 
     local seen_jog, seen_scrl, shtl = false, false, false
     local order_bad, led_bad = false, false

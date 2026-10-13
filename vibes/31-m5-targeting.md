@@ -86,4 +86,4 @@ tools/reaper-oracle --layer reaper --scenario target
 grep -q '^## M5 — targeting' SMOKE-TEST.md && grep -c 'Expected' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done

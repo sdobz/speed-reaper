@@ -334,6 +334,44 @@ Setup: Speed Editor plugged in, plugin installed and connected (M1 step 3 / M2 s
 
 Pass bar: every verb does exactly what the same REAPER action does (split at cursor, time selection set/cleared, trims at cursor, item delete with correct ripple behavior, snap toggled), the SNAP LED tracks REAPER's snap both ways within ~1 s, and ESC double-tap undoes once without clearing the time selection.
 
+## M5 — targeting
+
+Automated equivalent: `tools/reaper-oracle --layer reaper --scenario target` (the composite command ids and the REAPER-visible results are pinned there); this hand test only adds real hardware. M5 changes the M3 step 4 expectation: RIPL DEL now **always** closes the gap, ripple mode or not — the plugin makes it ripple itself.
+
+Setup: M1 state (device plugged in, plugin connected). In REAPER: a project with **two adjacent audio items on one track** (A then B, no gap between them), **nothing selected** (click empty arrange space to be sure), ripple editing **off** (Options → Ripple Editing → Off). Put the **edit cursor inside the first item (A)**, not on an edge.
+
+1. **RIPL DEL with ripple off — deletes the cursor item and closes the gap**: with nothing selected and the cursor inside A, tap **RIPL DEL**.
+
+   **Expected:** A is deleted **and B shifts left to where A was** — the gap closes even though ripple is off, because the plugin runs the delete inside a temporary per-track ripple block (40310 → 40006 → 40309). Afterwards REAPER's ripple mode is **back to off** — verify in the Options menu; the plugin restores the prior mode and must not leave it on. This supersedes M3 step 4's "gap remains with ripple off": with M5 the implicit-target RIPL DEL always ripples.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+2. **IN / OUT + RIPL DEL — the time selection wins**: set a time selection covering part of an item (tap **IN**, move the cursor with the wheel in JOG, tap **OUT**), then tap **RIPL DEL**.
+
+   **Expected:** RIPL DEL acts on the time selection, not on the cursor's item: everything inside the selection is removed and the gap it left is closed, across all tracks (`40201`). Item targeting (the cursor rule) is only consulted when there is **no** time selection. Clear the selection afterwards (single **ESC** tap).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+3. **TRIM IN with no selection**: put the cursor inside an item, make sure **nothing is selected**, tap **TRIM IN**.
+
+   **Expected:** the item is trimmed at the cursor — left edge jumps to the cursor, length shortens from the left — exactly as it would be with the item explicitly selected (the implicit target is picked, used for the trim, then discarded). **Nothing is left selected afterwards**: the plugin's temporary selection is restored to "none", unlike a manual REAPER trim which would leave the item selected.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+4. **TIMELINE selection stepping**: with nothing selected and the cursor inside A: tap **TIMELINE**; tap **TIMELINE** again; then hold **TIMELINE** and rotate the wheel — one direction a bit more than a step, then the other — and release.
+
+   **Expected:** first tap: A becomes the **sole** selection (any other selected items are deselected). Second tap with A still the sole selection: **everything is deselected** (the tap toggles). Double-tap **TIMELINE**: deselects all items unconditionally (`40289`) — works even with several items selected. Hold + rotate: for every **20 wheel ticks** the selection moves to the next/previous item on the target track (watch the item shading step from A to B and back), **clamped at the track's ends** (rotating past the last item keeps it selected — no wrap), and the **edit cursor does not move** at any point. If the cursor is under no item, the tap is a no-op (`target none` in the console trace).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+5. **ESC double-tap undoes a RIPL DEL in one step**: with nothing selected and the cursor inside A, tap **RIPL DEL** (step 1's delete + ripple shift), then **double-tap ESC**.
+
+   **Expected:** the whole composite is undone in **one** step: A is back at its original position and B shifted back behind it — delete and ripple-close are a single undo block, so the one double-tap restores both. One further double-tap ESC does not roll anything back (no phantom extra undo point from the temporary ripple toggles). Ripple mode is still off.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+Pass bar: with nothing selected, RIPL DEL removes the item under the cursor **and** closes the gap with ripple left off, a time selection redirects RIPL DEL to `40201`, TRIM IN works on the implicit target and leaves nothing selected, the TIMELINE tap/double-tap/hold+rotate verbs select/deselect/step exactly as in step 4, and one ESC double-tap fully undoes a RIPL DEL.
+
 ## M4 — shuttle
 
 Automated equivalent: `tools/reaper-oracle --layer reaper --scenario shuttle`

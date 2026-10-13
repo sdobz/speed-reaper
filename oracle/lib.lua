@@ -12,6 +12,12 @@
 --                                           fake device clock just started (lua t ~ script t)
 --                                 "settled" 10 consecutive defer cycles < 100 ms
 --                                           (startup-dialog stalls are over)
+--   read_trace()                plugin trace as a list of "<ms> <msg>" lines;
+--                               records a failing check + returns nil if unreadable
+--   find_line(lines, needle, from)  index of first line >= from containing needle
+--                               (plain match), or 0
+--   window(samples, tmin, tmax) first/last index of samples (field .t, ms)
+--                               inside [tmin, tmax], or nil
 --   finish()                    write probe.json to $ORACLE_OUT, then quit REAPER
 
 local oracle = {}
@@ -163,5 +169,33 @@ function oracle.start(mode, body)
   end, body)
 end
 start = oracle.start
+
+function oracle.read_trace()
+  local path = os.getenv("SPEED_REAPER_TRACE")
+  local f = path and io.open(path, "r")
+  oracle.check("trace readable", f ~= nil, tostring(path))
+  if not f then return nil end
+  local lines = {}
+  for line in f:lines() do lines[#lines + 1] = line end
+  f:close()
+  return lines
+end
+
+function oracle.find_line(lines, needle, from)
+  for i = from or 1, #lines do
+    if lines[i]:find(needle, 1, true) then return i end
+  end
+  return 0
+end
+
+function oracle.window(samples, tmin, tmax)
+  local a, b
+  for i = 1, #samples do
+    local t = samples[i].t
+    if t >= tmin and t <= tmax then a = a or i; b = i end
+  end
+  return a, b
+end
+read_trace, find_line, window = oracle.read_trace, oracle.find_line, oracle.window
 
 return oracle

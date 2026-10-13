@@ -181,13 +181,8 @@ start("device", function()
                         tostring(u1), tostring(u2)))
 
     -- Trace checks (build/oracle/trace_verbs.txt, lines are "<ms> <msg>").
-    local trace = os.getenv("ORACLE_OUT") .. "/trace_verbs.txt"
-    local f = io.open(trace, "r")
-    check("trace readable", f ~= nil, trace)
-    if f then
-      local lines = {}
-      for line in f:lines() do table.insert(lines, line) end
-      f:close()
+    local lines = read_trace()
+    if lines then
 
       -- 1) The 8 gesture lines, in script order.
       local gest = {} -- {key = "002f", kind = "tap", ...}

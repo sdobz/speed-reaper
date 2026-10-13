@@ -72,23 +72,11 @@ start("device", function()
       finish()
       return
     end
-    -- First/last sample index inside [tmin, tmax] ms of the lua clock.
-    local function window(tmin, tmax)
-      local a, b = nil, nil
-      for i = 1, n do
-        if samples[i].t >= tmin and samples[i].t <= tmax then
-          if a == nil then a = i end
-          b = i
-        end
-      end
-      return a, b
-    end
-
     -- Forward (script 700-1700 -> lua ~660-1660): playhead advances well
     -- above realtime and the read-back rate is REAPER's documented 4.0
     -- cap of the requested 8.0 (M4 spike: master playrate clamps 0.25..4.0;
     -- docs/plugin-design-m4-shuttle-impl.md).
-    local fa, fb = window(800, 1450)
+    local fa, fb = window(samples, 800, 1450)
     check("forward window sampled", fa ~= nil and fb ~= nil and fb > fa,
           string.format("fa=%s fb=%s n=%d", tostring(fa), tostring(fb), n))
     if fa then
@@ -106,7 +94,7 @@ start("device", function()
 
     -- Dead band (script 1700 -> lua ~1660; resume at lua 1900): paused,
     -- rate back to 1.0, playhead held.
-    local pa, pb = window(1720, 1840)
+    local pa, pb = window(samples, 1720, 1840)
     check("pause window sampled", pa ~= nil and pb ~= nil and pb > pa,
           string.format("pa=%s pb=%s", tostring(pa), tostring(pb)))
     if pa then
@@ -127,7 +115,7 @@ start("device", function()
     -- Reverse (script 2300 -> lua ~2260; resume was lua ~1900): the stepped
     -- seek moves the playhead back 4.5x per tick while the transport runs
     -- it forward 1.0x -> net ~3.5x backward.
-    local ra, rb = window(2340, 3000)
+    local ra, rb = window(samples, 2340, 3000)
     check("reverse window sampled", ra ~= nil and rb ~= nil and rb > ra,
           string.format("ra=%s rb=%s", tostring(ra), tostring(rb)))
     if ra then
@@ -142,7 +130,7 @@ start("device", function()
 
     -- JOG-tap hand-off (script 3400 -> lua ~3360): rate 1.0 and the mode
     -- is back to Jog (wheel relative again).
-    local ja, jb = window(3440, 3800)
+    local ja, jb = window(samples, 3440, 3800)
     check("jog hand-off window sampled", ja ~= nil and jb ~= nil and jb > ja,
           string.format("ja=%s jb=%s", tostring(ja), tostring(jb)))
     if ja then
@@ -153,7 +141,7 @@ start("device", function()
     end
 
     -- STOP/PLAY (script 3900 -> lua ~3860): stopped at the end.
-    local sa, sb = window(3980, 4500)
+    local sa, sb = window(samples, 3980, 4500)
     check("stopped window sampled", sa ~= nil and sb ~= nil and sb > sa,
           string.format("sa=%s sb=%s", tostring(sa), tostring(sb)))
     if sa then
@@ -167,26 +155,12 @@ start("device", function()
     end
 
     -- Trace (trace_shuttle.txt, lines are "<ms> <msg>").
-    local trace = os.getenv("ORACLE_OUT") .. "/trace_shuttle.txt"
-    local f = io.open(trace, "r")
-    check("trace readable", f ~= nil, trace)
-    if not f then finish() return end
-    local lines = {}
-    for line in f:lines() do table.insert(lines, line) end
-    f:close()
-
-    local idx = function(needle)
-      for i = 1, #lines do
-        if lines[i]:find(needle, 1, true) then return i end
-      end
-      return 0
-    end
-    local shtl_i, jog_after_shtl = idx("mode Shtl"), 0
-    for i = shtl_i + 1, #lines do
-      -- plain find: `$` would be a literal char; the leading space already
-      -- keeps this away from any `...Shtl`/`mode Jog` substring traps
-      if lines[i]:find(" mode Jog", 1, true) then jog_after_shtl = i break end
-    end
+    local lines = read_trace()
+    if not lines then finish() return end
+    local idx = function(needle) return find_line(lines, needle) end
+    local shtl_i = idx("mode Shtl")
+    -- leading space keeps this away from `...Shtl`/`mode Jog` substring traps
+    local jog_after_shtl = find_line(lines, " mode Jog", shtl_i + 1)
     local cmd40044 = 0
     for i = 1, #lines do
       if lines[i]:find("cmd 40044", 1, true) then cmd40044 = cmd40044 + 1 end
