@@ -333,3 +333,116 @@ Setup: Speed Editor plugged in, plugin installed and connected (M1 step 3 / M2 s
 7. **Feel of the gesture windows** (record the answers in `docs/notes/m3-observations.md`): the double-tap window is **300 ms** and the hold threshold **350 ms** (`plugin/src/gesture.h`, `GestureParams`). On the real device: can you double-tap IN/OUT/ESC reliably within 300 ms, or do your natural taps land outside it? Does a deliberate press-and-hold (no rotate needed in M3 — hold+rotate is backlog) feel like a hold at 350 ms, or does it fire as a tap? Note whether 300/350 ms feel right as-is or need tuning.
 
 Pass bar: every verb does exactly what the same REAPER action does (split at cursor, time selection set/cleared, trims at cursor, item delete with correct ripple behavior, snap toggled), the SNAP LED tracks REAPER's snap both ways within ~1 s, and ESC double-tap undoes once without clearing the time selection.
+
+## M4 — shuttle
+
+Automated equivalent: `tools/reaper-oracle --layer reaper --scenario shuttle`
+(rates, cursor motion, hand-offs — the numbers are judged there). This hand
+test covers only what the oracle cannot judge (E2, real audio): **the sound
+at 2×/4×/reverse, and the feel** of the curve, the dead band, and parking at
+center. (This section supersedes M2 step 4 — SHTL is no longer inert.)
+
+The law, for reference (`ShuttleRate`, `plugin/src/shuttle.cpp`): the wheel's
+**absolute** deflection from center maps to a playback rate — `|offset| < 40`
+(dead band, ≈ the first 1% of travel) → stop; `±40` → `±1.0×`; full
+deflection `±4096` → `±8.0×` by the law, with smoothstep in between (≈ `2×`
+at ~¼ deflection, ≈ `4×` at ~½ deflection). Implementation decision
+(`docs/plugin-design-m4-shuttle-impl.md`, rule 2): forward goes through
+REAPER's master playrate, which REAPER caps at **4.0×** read-back — so the
+audible forward range is 1×–4×, flat at 4× from ~½ deflection up. Reverse is
+synthesized as stepped seeks (125 steps/s), so it sounds like a fast scrub,
+not time-stretched playback.
+
+Setup: M1 state (device plugged in, plugin installed and connected). In
+REAPER: a project with **one long, feature-rich audio item** (speech or music
+with clear transients — artifacts are easiest to hear there), edit cursor a
+third of the way in, transport playing at 1× via **STOP/PLAY** in JOG mode.
+
+1. **Enter SHTL while playing**: with the item playing at 1×, hold the wheel
+   deflected **forward just past the center click**, and press **SHTL**.
+
+   **Expected:** the **SHTL** LED lights (JOG goes off); playback continues
+   and the rate climbs above 1× as the deflection grows. The edit cursor no
+   longer crawls under the wheel — in SHTL the wheel is absolute (deflection
+   sets the rate; there is no relative jog).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_\_\_
+
+2. **Forward rates 2× and 4× (audible)**: keeping SHTL lit, sweep the wheel
+   from center to full forward deflection, pausing briefly at ~¼ and ~½
+   deflection, and listen.
+
+   **Expected (sound):** at ~¼ deflection it plays ≈ **2×** (both faster and
+   higher-pitched — the master playrate does not pitch-shift); at ~½
+   deflection ≈ **4×**; beyond ~½ deflection it stays at 4× (the REAPER cap —
+   pushing the wheel further does not change the sound, only the law value).
+   No digital buzz or crackle *added by the plugin* — any choppiness you hear
+   is REAPER's resampling, and is the point of this step: is 2× clean enough
+   for review listening, and is 4×? Note both.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_\_\_
+
+3. **Wheel parked at center = silent (dead band)**: while playing in SHTL,
+   bring the wheel back to **exactly center** and leave it there.
+
+   **Expected:** playback **stops immediately** — the dead band (`|offset| <
+   40`) is a hard stop, not a pause at 1×, and there is **no creep backwards**
+   ("no rewind"). The transport is stopped and the rate is back to 1.0, so
+   the moment you are at center it is silent and it stays silent while the
+   wheel sits there. Note the asymmetric restart: deflecting forward again
+   past center does **not** restart playback — while the transport is stopped
+   the rate law parks (the wheel still drives the law, but the sink only
+   acts while playing). Playback resumes by leaving SHTL (JOG tap) and
+   pressing STOP/PLAY, then re-entering SHTL with the wheel deflected.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_\_\_
+
+4. **Reverse (synthesized scrub)**: get playing again the documented way —
+   tap **JOG** (rate 1.0 hand-off), press **STOP/PLAY** (starts at 1×), press
+   **SHTL** holding the wheel slightly forward past center. Then sweep the
+   wheel to **full center-to-backward** in stages (~¼, ~½, full).
+
+   **Expected:** the playhead moves **backwards** through the item — at ~¼
+   backward deflection at ≈ 2× speed, at full deflection at ≈ 8× (stepped
+   seeks, not playrate). The sound is a fast scrub: expect discrete jumps /
+   stutter, *not* smooth time-stretched audio — that is the implementation,
+   not a defect. The playhead never crosses before 0 (clamped). If the
+   transport is stopped and you deflect backward instead, **nothing happens**
+   (reverse only acts while playing; scrubbing while stopped is JOG's job).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_\_\_
+
+5. **Hand-offs**: while shuttling (SHTL lit, wheel deflected, playing):
+   (a) tap **JOG**; (b) tap **SHTL** to re-enter and tap **STOP/PLAY**.
+
+   **Expected (a):** the rate snaps to **1.0× immediately** and the **JOG**
+   LED comes back — the wheel is relative jog again and transport keeps
+   playing at normal speed. **Expected (b):** the transport **hard-stops**
+   and the mode returns to the one you came from (JOG lit) — STOP/PLAY in
+   SHTL is never a play toggle.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_\_\_
+
+6. **Feel — record numbers, not impressions** (answers go to
+   `docs/notes/m4-observations.md`). The oracle pins the law's values; only
+   you can judge whether they feel right. If something feels wrong, report
+   the *parameter* to change and the *number* you want — the law's three
+   knobs are all in `ShuttleRate` (`plugin/src/shuttle.cpp`):
+   - **`kDeadBand` = 40** (out of 4096, ≈ 1% of travel): too small → you can
+     never park without accidentally playing (report, e.g., "want ±80, ≈ 2%");
+     too large → the low rates are unreachable ("want ±20").
+   - **Max rate = 8.0** (the `7.0` gain in `1 + 7·s²(3−2s)`): the *audible* forward
+     top is REAPER's 4.0× cap, which no parameter here can raise; changing
+     the gain rescales *where* each rate sits (e.g., "2× at ¼ turn is too
+     fast for fine review — want 2× at ~¾ turn, i.e. max ≈ 2.5").
+   - **Curve = smoothstep** `s²(3−2s)`: flattens at both ends, so the rate
+     barely moves near center and near full deflection. Near-center feel
+     ("too sluggish — it takes X% of a turn before it moves") or near-full
+     ("the last third of travel does nothing audible") is a curve question
+     (e.g., "a linear 1→8 law would put 2× at ~12% of travel").
+
+Pass bar: SHTL LED is truthful (lit exactly in SHTL), deflection continuously
+sets the rate with no coast, center is silent and stays silent, reverse
+moves the playhead backwards, and both hand-offs (JOG tap, STOP/PLAY exit)
+behave in step 5 — with the feel answers in `docs/notes/m4-observations.md`
+stating numbers.

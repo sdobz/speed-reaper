@@ -167,3 +167,17 @@ Result: exit 0; progress; 2 files changed, 22 insertions(+), 4 deletions(-); log
 ### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
 Trigger: 6 attempt(s), last: exit 0, progress
 Log: logs/23-m4-shuttle-L85-replan-1791842803633.log
+
+## Task: 7. Test instructions: SMOKE-TEST.md "M4 — shuttle"
+
+### Attempt 1 — 2026-10-13T00:57:13Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Appended `## M4 — shuttle` after M3 in SMOKE-TEST.md (~90 lines): oracle covers numbers (`--scenario shuttle`), hand test covers only E2 (sound at 2×/4×/reverse, feel of curve/dead-band/center-park). Per step: action, expected, ☐ pass / ☐ fail + notes line; ends with a pass bar.
+- Feel-tuning step names the three knobs in `ShuttleRate` (plugin/src/shuttle.cpp): dead-band `40` (≈1% of ±4096 travel), max-rate gain `7.0` (top 8.0; audible forward top is REAPER's 4.0× cap — no knob raises it), curve `s²(3−2s)`; human reports numbers (e.g. "want ±80") not impressions, to docs/notes/m4-observations.md.
+- Key behaviors documented: dead band = hard stop (one per band entry, no rewind); while stopped the rate law parks (forward deflection does NOT restart playback — resume = JOG tap, STOP/PLAY, re-enter SHTL); STOP/PLAY in SHTL = HardStop + exit to prior mode (never a play toggle); JOG/SCRL tap = rate 1.0 + relative mode; reverse while stopped is inert; section supersedes M2 step 4 (SHTL was documented inert there).
+- Verify `grep -q '^## M4 — shuttle' SMOKE-TEST.md` passes; line 96 ticked. No code touched → no build, no git-snapshot concern.
+
+Next:
+- DONE: nothing; task complete.
