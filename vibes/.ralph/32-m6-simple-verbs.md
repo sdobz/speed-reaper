@@ -137,4 +137,13 @@ M vibes/.ralph/32-m6-simple-verbs.md
 - Facts: prior attempts left no code (only this record header). Design §3 (docs/plugin-design-m5-m9.md:86-88): VIDEO_ONLY = isolate (hide all tracks except target items' tracks, B_SHOWINTCP/B_SHOWINMIXER, second tap restores), AUDIO_ONLY = solo (I_SOLO on target tracks, second tap restores), FULL VIEW = candidate 40346. SetMediaTrackInfo_Value IS in oracle/reaper_api_names.txt, so oracle-host layer links.
 - Facts: implemented IProject::ToggleIsolateTracks/ToggleSoloTracks (project.h), FakeProject track_views{show_tcp,show_mixer,solo} + saved state (fake_project.h), ReaperProject with REAPERAPI_WANT_SetMediaTrackInfo_Value added to BOTH reaper_project.cpp and main.cpp, verb rows VIDEO_ONLY/AUDIO_ONLY (composites, no-target → trace `target none`, no undo block) + FULL_VIEW id row 40346 in kVerbTable, test_view_buttons in verbs_test.cpp (direct fake toggles with target ids + routing + restore-exactly checks).
 - Facts: no-target toggle call (bad ids) is a recorded no-op that does NOT flip active state, in both fake and Reaper.
-- Next: run tools/check verbs (job: `m6task5`), then tick line 64.
+- Done: `tools/check verbs` passed rc=0 (job `m6task5`, log vibes/.ralph/logs/m6task5.log) — ctest verbs_test green, Windows cross build + oracle host layer pass. Line 64 ticked, committed (addd99e).
+- Next (task 6): the oracle scenario can probe the toggles via the plugin; the saved isolate/solo state is ReaperProject member state, so a second gesture within one plugin lifetime exercises the restore path.
+
+Result: exit 0; done; 1 file changed, 2 insertions(+), 1 deletion(-); log: logs/32-m6-simple-verbs-L64-a5-1791873821225.log
+
+### Done — 2026-10-13 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
