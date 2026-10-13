@@ -150,6 +150,24 @@ void AudioLevelTap(VerbRouter &, IActionSink &sink, IProject &project,
   sink.Message(msg);
 }
 
+// PLACE ON TOP Tap (M6 design §3): duplicate the target items onto one new
+// track above each source track, same position (IProject::
+// DuplicateItemsAbove); the original selection is restored. No targets →
+// trace `target none` and do nothing.
+void PlaceOnTopTap(VerbRouter &, IActionSink &, IProject &project,
+                   const Gesture &) {
+  const std::vector<int> targets = TargetItems(project);
+  if (targets.empty()) {
+    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    return;
+  }
+  project.Undo_Begin();
+  WithTargetSelected(project, [&project, &targets] {
+    project.DuplicateItemsAbove(targets);
+  });
+  project.Undo_End("Speed Reaper: place on top");
+}
+
 // SMTH CUT Tap (M6 design §3): 40916, but only with a time selection —
 // the verb has nothing to smooth-cut without one, so trace `no time
 // selection` and do nothing.
@@ -215,6 +233,7 @@ const std::vector<CompositeRow> &CompositeRows() {
                    CamSetTake});  // M6: active take N on the targets
     r.push_back({KEY_AUDIO_LEVEL, GestureKind::Tap, AudioLevelTap});  // M6: volume read-out
     r.push_back({KEY_SMTH_CUT, GestureKind::Tap, SmthCutTap});  // M6: 40916 if time sel
+    r.push_back({KEY_PLACE_ON_TOP, GestureKind::Tap, PlaceOnTopTap});  // M6: duplicate onto a new track above
     return r;
   }();
   return rows;

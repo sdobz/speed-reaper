@@ -72,6 +72,10 @@
 #define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
 #define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
 #define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
+#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"

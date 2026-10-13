@@ -33,6 +33,10 @@ class IProject {
   virtual int ItemActiveTake(int id) = 0;  // 0-based (I_CURTAKE); -1 if none
   virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
   virtual double ItemVolume(int id) = 0;  // D_VOL, linear (1.0 = 0 dB)
+  // PLACE ON TOP (M6): duplicate the given ids onto one new track above
+  // each source track, same position; the originals and their selection
+  // are left alone. Bad ids are ignored.
+  virtual void DuplicateItemsAbove(const std::vector<int> &ids) = 0;
 };
 
 #endif  // SPEED_REAPER_PROJECT_H

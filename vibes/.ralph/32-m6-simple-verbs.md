@@ -11,6 +11,7 @@ Durable facts every task should know (keep short).
 - The host-layer oracle (plugin_host) resolves GetFunc for any name in oracle/reaper_api_names.txt (REAPER 7.81 export list, 874 names); all other names return nullptr.
 - `MediaItem` is only forward-declared in the vendored SDK (reaper_plugin.h:1465) — you cannot dereference item fields; use the string APIs (GetMediaItemInfo_Value / SetMediaItemInfo_Value, e.g. "I_CURTAKE").
 - tools/check needs the nix dev shell for cmake (`nix develop --command ...`); it runs: make -C src, plugin build with -Werror + SPEED_REAPER_FAKE_DEVICE=ON, nm export check, ctest, Windows cross build (tools/windows-oracle --layer static), oracle host layer. Set SKIP_WINDOWS=1 / ORACLE_FULL for variants.
+- "Above" in track order = SMALLER index (track 0 is the arrange top). `InsertTrackInProject(nullptr, idx, flags)` (void) inserts a new track at idx; source track at idx shifts to idx+1. Inserting into several tracks in one pass: process indices DESCENDING so smaller pending indices stay valid. `GetItemStateChunk(item, buf, sz, bool)` (bool ret, C string) / `SetItemStateChunk(item, str, bool)` copy an item's state; `AddMediaItemToTrack(track)` creates the empty item.
 
 
 ## Task: 1. Extend `IProject` for takes
@@ -99,3 +100,24 @@ M plugin/src/action_sink.h
  M vibes/.ralph/32-m6-simple-verbs.md
  M vibes/32-m6-simple-verbs.md
 ```
+
+## Task: 4. PLACE ON TOP
+
+### Attempt 4 — 2026-10-13T06:36:30Z — budget 1800s
+
+Facts:
+- IProject::DuplicateItemsAbove(const std::vector<int>&) added (project.h, ReaperProject, FakeProject). ReaperProject: unique source tracks (ids→track index), processed DESCENDING so InsertTrackInProject(nullptr, t, 0) (inserts at index t, i.e. above src) never invalidates still-pending smaller indices; copies via AddMediaItemToTrack + GetItemStateChunk→SetItemStateChunk + D_POSITION re-set + UpdateItemInProject; originals/selection untouched.
+- Vendored SDK signatures (vendor/reaper-sdk/sdk/reaper_plugin_functions.h): InsertTrackInProject(ReaProject*, int idx, int flags) void; AddMediaItemToTrack(MediaTrack*) → MediaItem*; GetItemStateChunk(MediaItem*, char* buf, int sz, bool) → bool; SetItemStateChunk(MediaItem*, const char*, bool) → bool. All four names (plus UpdateItemInProject) are in oracle/reaper_api_names.txt, so the host oracle resolves them.
+- REAPERAPI_WANT added for the four new names in BOTH reaper_project.cpp and main.cpp (REAPERAPI rule).
+- Composite row: PlaceOnTopTap in verbs.cpp — TargetItems, empty → Trace("target none"); else Undo_Begin + WithTargetSelected { project.DuplicateItemsAbove(targets) } + Undo_End("Speed Reaper: place on top"). Row {KEY_PLACE_ON_TOP, Tap} appended in CompositeRows().
+- FakeProject: duplicate_calls records ids; also SIMULATES (descending source tracks: items on tracks above shift +1, copies appended on the new track at index t, same pos, unselected, ids renumbered) — stronger than record-only.
+- Tests: verbs_test.cpp test_place_on_top — (1) cursor target id 0 on track 0 → one call [0], label, 2 selection calls (select then restore empty), items[1] on track 1 pos 0.0 unselected; (2) no target → nothing.
+- Oracle host scenarios don't tap PLACE ON TOP (checked oracle/scenarios/verbs.lua), so no host-layer change.
+- Job `build`: nix develop cmake build + ctest -R verbs (vibes/.ralph/logs/build.log).
+
+Dead ends:
+- InsertTrackChain is NOT in the vendored SDK / oracle names list; InsertTrackInProject is — used that instead.
+- First fake draft shifted only tracks > t, then wrote copies at track t; my first test expectation also had it backwards (copy on track 1, original on 0). Correct semantics: insert at idx t puts the NEW track at index t (above, smaller index) and the source track shifts to t+1 — so original A ends on track 1, copy on track 0. Both fixed; all 11 tests pass.
+
+Next:
+- DONE: job `verify` exited 0 (verbs_test 1/1, -Werror clean, WINDOWS ORACLE PASS static, ORACLE PASS host); line 52 ticked.

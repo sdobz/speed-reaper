@@ -29,6 +29,7 @@ class ReaperProject final : public IProject {
   int ItemActiveTake(int id) override;
   void SetItemActiveTake(int id, int take) override;
   double ItemVolume(int id) override;
+  void DuplicateItemsAbove(const std::vector<int> &ids) override;
 };
 
 #endif  // SPEED_REAPER_REAPER_PROJECT_H

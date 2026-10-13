@@ -4,6 +4,7 @@
 #ifndef SPEED_REAPER_TEST_FAKE_PROJECT_H
 #define SPEED_REAPER_TEST_FAKE_PROJECT_H
 
+#include <algorithm>  // std::find (DuplicateItemsAbove)
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,6 +39,9 @@ class FakeProject final : public IProject {
   // item at default volume (1.0 = 0 dB). An out-of-range id reports 0.0.
   std::vector<double> item_volumes;
 
+  // DuplicateItemsAbove calls in order (the ids passed).
+  std::vector<std::vector<int>> duplicate_calls;
+
   std::vector<ItemInfo> Items() override { return items; }
   std::vector<int> SelectedTracks() override { return tracks; }
   int LastTouchedTrack() override { return last_touched; }
@@ -70,6 +74,37 @@ class FakeProject final : public IProject {
   double ItemVolume(int id) override {
     if (id < 0 || id >= static_cast<int>(items.size())) return 0.0;
     return id < static_cast<int>(item_volumes.size()) ? item_volumes[id] : 1.0;
+  }
+  // Simulates the duplication: one new track above each source track
+  // (track numbers above a new track shift by one), copies at the same
+  // position, unselected; originals and their selection untouched.
+  void DuplicateItemsAbove(const std::vector<int> &ids) override {
+    duplicate_calls.push_back(ids);
+    std::vector<int> tracks;  // unique source tracks, descending
+    for (int id : ids) {
+      if (id < 0 || id >= static_cast<int>(items.size())) continue;
+      const int t = items[id].track;
+      if (std::find(tracks.begin(), tracks.end(), t) == tracks.end())
+        tracks.push_back(t);
+    }
+    std::sort(tracks.rbegin(), tracks.rend());
+    for (const int t : tracks) {
+      // Copies first (membership is captured before the insert).
+      std::vector<ItemInfo> copies;
+      for (int id : ids) {
+        if (id < 0 || id >= static_cast<int>(items.size())) continue;
+        const ItemInfo &s = items[id];
+        if (s.track != t) continue;
+        copies.push_back(s);
+        copies.back().selected = false;
+      }
+      // Insert the new track at index t: everything on/above it shifts.
+      for (auto &it : items)
+        if (it.track >= t) ++it.track;
+      for (auto &c : copies) c.track = t;  // the new track sits at index t
+      items.insert(items.end(), copies.begin(), copies.end());
+      for (size_t i = 0; i < items.size(); ++i) items[i].id = static_cast<int>(i);
+    }
   }
 };
 

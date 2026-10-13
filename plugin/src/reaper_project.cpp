@@ -30,6 +30,10 @@
 #define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
 #define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
 #define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
+#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
+#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #include "reaper_plugin_functions.h"
 
 namespace {
@@ -173,4 +177,48 @@ void ReaperProject::SetItemActiveTake(int id, int take) {
 double ReaperProject::ItemVolume(int id) {
   MediaItem *item = ItemById(id);
   return item ? GetMediaItemInfo_Value(item, "D_VOL") : 0.0;
+}
+
+// PLACE ON TOP (M6 design §3): one new track above each source track;
+// every requested item is copied onto its source track's new track at the
+// same position. The copies are the only new things — the source items,
+// their selection, and the track selection are left alone.
+void ReaperProject::DuplicateItemsAbove(const std::vector<int> &ids) {
+  const std::vector<MediaItem *> items = EnumerateItems();  // id == index
+  std::vector<int> source_tracks;  // unique tracks of the valid ids
+  for (int id : ids) {
+    if (id < 0 || id >= static_cast<int>(items.size())) continue;
+    const int t = TrackIndex(GetMediaItem_Track(items[id]));
+    if (t < 0) continue;
+    if (std::find(source_tracks.begin(), source_tracks.end(), t) ==
+        source_tracks.end())
+      source_tracks.push_back(t);
+  }
+  // Descending: an insert at t shifts only tracks ABOVE t, so the smaller
+  // indices still to process stay valid.
+  for (int i = static_cast<int>(source_tracks.size()) - 1; i >= 0; --i) {
+    const int t = source_tracks[i];
+    MediaTrack *src = GetTrack(nullptr, t);
+    if (!src) continue;
+    InsertTrackInProject(nullptr, t, 0);  // new track above src, at index t
+    MediaTrack *dst = GetTrack(nullptr, t);
+    if (!dst) continue;
+    // ids are in Items() order (track, then pos) → copies land in pos order.
+    for (int id : ids) {
+      if (id < 0 || id >= static_cast<int>(items.size())) continue;
+      MediaItem *si = items[id];
+      if (GetMediaItem_Track(si) != src) continue;
+      MediaItem *ni = AddMediaItemToTrack(dst);
+      if (!ni) continue;
+      char chunk[8192];
+      chunk[sizeof chunk - 1] = 0;  // SetItemStateChunk wants a C string
+      if (GetItemStateChunk(si, chunk, static_cast<int>(sizeof chunk), false))
+        SetItemStateChunk(ni, chunk, false);
+      // Same position (the state chunk may carry take/item geometry; keep
+      // the item's edit position explicit per design §3).
+      SetMediaItemInfo_Value(ni, "D_POSITION",
+                             GetMediaItemInfo_Value(si, "D_POSITION"));
+      UpdateItemInProject(ni);
+    }
+  }
 }

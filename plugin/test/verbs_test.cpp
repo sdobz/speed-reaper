@@ -521,6 +521,67 @@ void test_audio_level_and_smth_cut() {
   }
 }
 
+// M6 design §3: PLACE ON TOP Tap duplicates the target items onto one new
+// track above each source track (IProject::DuplicateItemsAbove with the
+// target ids), one undo block "Speed Reaper: place on top"; the original
+// selection is restored. No targets → nothing.
+void test_place_on_top() {
+  // 1) One target (the cursor target, rule 2): the project gets exactly one
+  // call with [0]; the fake applies the duplication (copy on the new track
+  // 1, same position, unselected; original on track 0 untouched). The
+  // verb selects the target, then restores the original (empty) selection.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A on track 0
+    project.cursor = 2.5;  // inside A; nothing selected
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_PLACE_ON_TOP, GestureKind::Tap));
+    CHECK(sink.commands.empty());  // pure project API, no REAPER commands
+    CHECK(project.duplicate_calls.size() == 1);
+    CHECK(project.duplicate_calls[0].size() == 1);
+    CHECK(project.duplicate_calls[0][0] == 0);
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: place on top");
+    CHECK(project.selected_calls.size() == 2);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);
+    CHECK(project.selected_calls[1].empty());  // original selection restored
+    // The fake applied the duplication: A (the original) shifts down to
+    // track 1, unselected; the copy sits on the NEW track 0 — above the
+    // source track — at the same position, unselected.
+    CHECK(project.items.size() == 2);
+    CHECK(project.items[0].id == 0);
+    CHECK(project.items[0].track == 1);
+    CHECK(project.items[0].pos == 0.0);
+    CHECK(project.items[0].selected == false);
+    CHECK(project.items[1].track == 0);
+    CHECK(project.items[1].pos == 0.0);
+    CHECK(project.items[1].selected == false);
+  }
+
+  // 2) No target (cursor in a gap, nothing selected, no last-touched
+  // track): no duplication, no undo block, no selection churn (the trace
+  // line is `target none`).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.cursor = 5.0;  // in a gap
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_PLACE_ON_TOP, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.duplicate_calls.empty());
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+    CHECK(project.selected_calls.empty());
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -532,5 +593,6 @@ int main() {
   test_timeline_gestures();
   test_cam_takes();
   test_audio_level_and_smth_cut();
+  test_place_on_top();
   return check_failures();
 }

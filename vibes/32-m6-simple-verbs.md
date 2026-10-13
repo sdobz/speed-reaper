@@ -49,7 +49,7 @@ tools/check verbs
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. View buttons: isolate, solo, maximize
 
