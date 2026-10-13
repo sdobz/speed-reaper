@@ -121,3 +121,11 @@ Dead ends:
 
 Next:
 - DONE: job `verify` exited 0 (verbs_test 1/1, -Werror clean, WINDOWS ORACLE PASS static, ORACLE PASS host); line 52 ticked.
+
+Result: exit 0; done; log: logs/32-m6-simple-verbs-L52-a4-1791873390532.log
+
+### Done — 2026-10-13 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
