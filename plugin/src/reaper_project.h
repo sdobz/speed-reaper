@@ -15,7 +15,7 @@ class ReaperProject final : public IProject {
   // list (GetSet_Loc). Call once from ReaperPluginEntry after
   // REAPERAPI_LoadAPI; methods whose API resolved to nullptr degrade safely
   // (HasTimeSelection reports false — the oracle host lacks the export).
-  static void Init(void (*GetFunc)(const char *name));
+  static void Init(void *(*GetFunc)(const char *name));
 
   std::vector<ItemInfo> Items() override;
   std::vector<int> SelectedTracks() override;

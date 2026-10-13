@@ -1,10 +1,11 @@
 // ReaperProject: IProject over the REAPER host API
 // (docs/plugin-design-m5-m9.md §2). API signatures: docs/reaper-api-subset.md
 // §2 (cursor), §8 (tracks & media items), §9 (undo).
-#include "reaper_project.h"
-
+// SDK/Swell headers: their min/max macros break <algorithm>/<set>
+// (same gotcha as main.cpp — include STL before the macros land).
 #include <algorithm>
 #include <set>
+#include "reaper_project.h"
 
 // REAPERAPI_WANT for every listed host API this TU calls. REAPERAPI_MINIMAL
 // here makes a missing mirror in main.cpp's list (which owns
@@ -47,9 +48,9 @@ double (*g_GetSet_Loc)(ReaProject *proj, int which, double *getnew,
 // Track-list index of a track (master excluded); -1 if null / not found.
 int TrackIndex(MediaTrack *track) {
   if (!track) return -1;
-  const int n = REAPERAPI_CountTracks(nullptr);
+  const int n = CountTracks(nullptr);
   for (int i = 0; i < n; i++)
-    if (REAPERAPI_GetTrack(nullptr, i) == track) return i;
+    if (GetTrack(nullptr, i) == track) return i;
   return -1;
 }
 
@@ -62,14 +63,14 @@ std::vector<MediaItem *> EnumerateItems() {
     double pos;
   };
   std::vector<Entry> entries;
-  const int n = REAPERAPI_CountMediaItems(nullptr);
+  const int n = CountMediaItems(nullptr);
   entries.reserve(n);
   for (int i = 0; i < n; i++) {
-    MediaItem *item = REAPERAPI_GetMediaItem(nullptr, i);
+    MediaItem *item = GetMediaItem(nullptr, i);
     if (!item) continue;
     entries.push_back(
-        {item, TrackIndex(REAPERAPI_GetMediaItem_Track(item)),
-         REAPERAPI_GetMediaItemInfo_Value(item, "D_POSITION")});
+        {item, TrackIndex(GetMediaItem_Track(item)),
+         GetMediaItemInfo_Value(item, "D_POSITION")});
   }
   std::stable_sort(entries.begin(), entries.end(),
                    [](const Entry &a, const Entry &b) {
@@ -84,7 +85,7 @@ std::vector<MediaItem *> EnumerateItems() {
 
 }  // namespace
 
-void ReaperProject::Init(void (*GetFunc)(const char *name)) {
+void ReaperProject::Init(void *(*GetFunc)(const char *name)) {
   g_GetSet_Loc = (double (*)(ReaProject *, int, double *, bool))GetFunc(
       "GetSet_Loc");
 }
@@ -97,10 +98,10 @@ std::vector<ItemInfo> ReaperProject::Items() {
     MediaItem *item = items[i];
     ItemInfo info;
     info.id = static_cast<int>(i);  // index in Items() order (design §2)
-    info.track = TrackIndex(REAPERAPI_GetMediaItem_Track(item));
-    info.pos = REAPERAPI_GetMediaItemInfo_Value(item, "D_POSITION");
-    info.len = REAPERAPI_GetMediaItemInfo_Value(item, "D_LENGTH");
-    info.selected = REAPERAPI_IsMediaItemSelected(item);
+    info.track = TrackIndex(GetMediaItem_Track(item));
+    info.pos = GetMediaItemInfo_Value(item, "D_POSITION");
+    info.len = GetMediaItemInfo_Value(item, "D_LENGTH");
+    info.selected = IsMediaItemSelected(item);
     out.push_back(info);
   }
   return out;
@@ -108,20 +109,20 @@ std::vector<ItemInfo> ReaperProject::Items() {
 
 std::vector<int> ReaperProject::SelectedTracks() {
   std::vector<int> out;
-  const int n = REAPERAPI_CountTracks(nullptr);
+  const int n = CountTracks(nullptr);
   for (int i = 0; i < n; i++) {
-    MediaTrack *tr = REAPERAPI_GetTrack(nullptr, i);
-    if (tr && REAPERAPI_GetMediaTrackInfo_Value(tr, "B_SELECTED"))
+    MediaTrack *tr = GetTrack(nullptr, i);
+    if (tr && GetMediaTrackInfo_Value(tr, "B_SELECTED"))
       out.push_back(i);
   }
   return out;
 }
 
 int ReaperProject::LastTouchedTrack() {
-  return TrackIndex(REAPERAPI_GetLastTouchedTrack(nullptr));
+  return TrackIndex(GetLastTouchedTrack());  // SDK: no proj parameter
 }
 
-double ReaperProject::CursorPos() { return REAPERAPI_GetCursorPosition(); }
+double ReaperProject::CursorPos() { return GetCursorPosition(); }
 
 bool ReaperProject::HasTimeSelection() {
   if (!g_GetSet_Loc) return false;  // oracle host: export not listed
@@ -135,20 +136,20 @@ void ReaperProject::SetSelectedItems(const std::vector<int> &ids) {
   const std::vector<MediaItem *> items = EnumerateItems();  // id == index
   std::set<int> want(ids.begin(), ids.end());
   for (size_t i = 0; i < items.size(); i++)
-    REAPERAPI_SetMediaItemSelected(items[i],
+    SetMediaItemSelected(items[i],
                                    want.count(static_cast<int>(i)) != 0);
 }
 
 int ReaperProject::RippleMode() {
-  if (REAPERAPI_GetToggleCommandState(kRipplePerTrack)) return 1;
-  if (REAPERAPI_GetToggleCommandState(kRippleAll)) return 2;
+  if (GetToggleCommandState(kRipplePerTrack)) return 1;
+  if (GetToggleCommandState(kRippleAll)) return 2;
   return 0;
 }
 
 void ReaperProject::Undo_Begin() {
-  REAPERAPI_Undo_BeginBlock2(nullptr);
+  Undo_BeginBlock2(nullptr);
 }
 
 void ReaperProject::Undo_End(const char *label) {
-  REAPERAPI_Undo_EndBlock2(nullptr, label, -1);
+  Undo_EndBlock2(nullptr, label, -1);
 }

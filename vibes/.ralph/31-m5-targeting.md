@@ -37,3 +37,15 @@ Files:
 M vibes/31-m5-targeting.md
 ?? vibes/.ralph/31-m5-targeting.md
 ```
+
+## Task: 2. `ReaperProject` (REAPER-backed `IProject`)
+
+### Attempt 2 — 2026-10-13T01:07:56Z — budget 1800s
+Facts:
+- Attempt 1 left no code; starting fresh.
+- `plugin/src/project.h` (IProject) already exists from task 1; test fake at `plugin/test/fake_project.h`.
+- `GetTrackAt`/`GetTrackIndex`/`GetSetLastTouchedTrack`/`GetSet_Loc` are NOT in the vendored `reaper_plugin_functions.h` (no `reaper.h` vendored). Subset doc §8 instead has `GetTrack(proj, idx)`, `CountTracks`, `GetLastTouchedTrack` — all also in `oracle/reaper_api_names.txt` (874 names, the host oracle's export list).
+- `GetSet_Loc` is in NEITHER the subset doc NOR `reaper_api_names.txt` → resolve it via a manual `GetFunc("GetSet_Loc")` in a `ReaperProject::Init(void(*GetFunc)(const char*))` called from the entry after `REAPERAPI_LoadAPI`; oracle returns nullptr → `HasTimeSelection()` safely false. LOC_TSELSTART=0x20, LOC_TSELEND=0x21 (SDK reaper.h constants; could not verify online — web_search returned nothing, docs.reaper.com unreachable; step 5's oracle will exercise it).
+- REAPERAPI pattern: main.cpp has `REAPERAPI_IMPLEMENT`+`REAPERAPI_MINIMAL`; reaper_project.cpp will define its own WANT set (mirrored in main.cpp) so a missing mirror is a link error on `REAPERAPI_<name>`.
+- `tools/check` also runs `tools/reaper-oracle --layer host` (plugin_host + api names list) — all 12 new WANT names verified present in the list before adding them.
+Next: write reaper_project.h/.cpp, add 12 WANT lines + Init call in main.cpp, add .cpp to plugin target in CMakeLists (NOT PLUGIN_PURE_SOURCES), commit, tools/check.
