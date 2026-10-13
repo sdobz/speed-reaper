@@ -51,7 +51,7 @@ tools/check verbs
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. TIMELINE select verbs
 

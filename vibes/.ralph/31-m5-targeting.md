@@ -84,3 +84,25 @@ Files:
 ```
 M vibes/.ralph/31-m5-targeting.md
 ```
+
+## Task: 4. RIPL DEL composite
+
+### Attempt 4 — 2026-10-13T01:25:02Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- `tools/check verbs` green on prior attempts; prior `verbscheck*` logs were from earlier tasks, not partial task-4 work (tree was clean).
+- Implemented: removed `{KEY_RIPL_DEL, Tap, 40006}` id row; added `RiplDel` composite (time sel → 40201; empty `TargetItems` → `Trace("target none")` + nothing; else one undo block, ripple off → 40310/40006/40309, ripple on → 40006, label "Speed Reaper: delete"). Undo label not specified by task/design — chose "Speed Reaper: delete" to mirror "Speed Reaper: trim".
+- `verbs.cpp` now includes `trace.h` (REAPER-free, already in PLUGIN_PURE_SOURCES so it links into verbs_test).
+- `verbs_test.cpp`: new `test_ripl_del_composite` — 5 scenarios (time sel → [40201] no churn; ripple off → [40310,40006,40309] + restore; ripple=1 → [40006]; no items → no commands/no churn; pre-selection → single restore call).
+- Committed `98c55ea` before running check (windows-oracle sees only tracked files).
+Next: DONE — `tools/check verbs` green (job `check-m5t4`: verbs_test 1/1, WINDOWS ORACLE PASS static, ORACLE PASS host). Line 54 ticked; code committed as `98c55ea`.
+
+Result: exit 0; done; 3 files changed, 13 insertions(+), 4 deletions(-); log: logs/31-m5-targeting-L54-a4-1791854702946.log
+
+### Done — 2026-10-13 — 4 attempt(s)
+Files:
+```
+D docs/ReaperUserGuide781c/ReaperUserGuide781c.pdf:Zone.Identifier
+ M vibes/.ralph/31-m5-targeting.md
+ M vibes/31-m5-targeting.md
+```
