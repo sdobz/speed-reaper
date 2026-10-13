@@ -147,3 +147,21 @@ Files:
 ```
 M vibes/.ralph/32-m6-simple-verbs.md
 ```
+
+## Task: 6. Oracle scenario: `simple_verbs`
+
+### Attempt 6 — 2026-10-13T06:50:43Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: scenario files written: oracle/fake/simple_verbs.txt (CAM2 0x34 @400, AUDL 0x2C x2 @800/950, PLACE ON TOP 0x05 @1400, SMTH CUT 0x11 @1900, AUDIO_ONLY 0x26 x2 @2300/2550, VIDEO_ONLY 0x25 x2 @2950/3250, FULL VIEW 0x2D @3800) + oracle/scenarios/simple_verbs.env + simple_verbs.lua. Script clock = device - ~40 ms.
+- Facts: per reaper-nvim action list (fetched): 40346 = "Toggle fullscreen" (exists, toggleable), 40916 = "Item: Crossfade items within time selection" (= design's SMTH CUT), 40157 = "Markers: Insert marker at current position". No table fixes expected; will confirm by running.
+- Facts: device order has PLACE ON TOP BEFORE SMTH CUT on purpose — the [1,2] time sel must overlap A and C (A's copy) at once. Time sel [1,2] is set by the lua script at ~1600 ms (no Speed Editor button sets an arbitrary range).
+- Facts: setup names the tracks "A"/"B" (SetMediaTrackInfo_String "NAME") so the assertions find A's/B's track after PLACE ON TOP shifts indices (the new copy track is unnamed). A gets a 2nd take via AddEmptyTake(itemA, true). SetTrackLastTouched(trackA) makes A the implicit target with no selection.
+- Facts: no plugin source changes this task, so `tools/reaper-oracle --layer reaper` uses the existing build/plugin .so (fresh from task 5's tools/check).
+
+Result: exit 0; progress; 2 files changed, 14 insertions(+), 2 deletions(-); log: logs/32-m6-simple-verbs-L75-a6-1791874243614.log
+
+### Replan (depth 0) — SPIKE → "Spike: settle the SMTH CUT command (does 40916 crossfade?) — findings to docs/notes/m5-observations.md" then finish parent
+Trigger: 6 attempt(s), last: exit 0, progress
+Why: Attempt 6 wrote all artifacts and got the scenario running (9/18 checks pass; FULL VIEW id 40346 confirmed), then hit one real open question — 40916 measured as a no-op on overlapping A/C, so it's unclear whether the SMTH CUT id is wrong or a config was untested — plus four small Lua-binding bugs whose diagnoses live only in the attempt log, not the record the next worker can see.
+Rejected: SPLIT: subtask 2 would just be the auto finish step and still branch on the id finding. BUDGET: the blocker is a research question, not time; a longer run re-discovers the same quirks. REWRITE: task and Verify are fine. BLOCK: the id question is answerable empirically with the oracle and the action list.
+Log: logs/32-m6-simple-verbs-L75-replan-1791875721550.log

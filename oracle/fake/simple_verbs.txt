@@ -1,0 +1,28 @@
+# simple_verbs scenario (vibes/32-m6-simple-verbs.md task 6).
+# 400-450 ms between steps; a key tap = down + up 50 ms apart.
+# Order: CAM2 0x34, AUDIO LEVEL 0x2C double-tap, PLACE ON TOP 0x05,
+# SMTH CUT 0x11, AUDIO_ONLY 0x26 x2, VIDEO_ONLY 0x25 x2, FULL VIEW 0x2D.
+# SMTH CUT comes AFTER PLACE ON TOP on purpose: the time selection [1,2]
+# must overlap A and C (A's copy on the new top track) at the same time.
+# Double-tap: press 2 starts 100 ms after press 1's release
+# (window 300 ms: double_tap_ms in plugin/src/gesture.h).
+at 400 key 0x34 down   # CAM 2 tap -> target item I_CURTAKE = 1
+at 450 key 0x34 up
+at 800 key 0x2C down   # AUDIO LEVEL double-tap, press 1
+at 850 key 0x2C up
+at 950 key 0x2C down   # AUDIO LEVEL double-tap, press 2 (100 ms after release)
+at 1000 key 0x2C up
+at 1400 key 0x05 down  # PLACE ON TOP tap -> duplicate target onto a new track above
+at 1450 key 0x05 up
+at 1900 key 0x11 down  # SMTH CUT tap -> 40916 within time selection [1,2]
+at 1950 key 0x11 up
+at 2300 key 0x26 down  # AUDIO_ONLY tap 1 -> solo target track
+at 2350 key 0x26 up
+at 2550 key 0x26 down  # AUDIO_ONLY tap 2 -> solo restored
+at 2600 key 0x26 up
+at 2950 key 0x25 down  # VIDEO_ONLY tap 1 -> isolate target track (hide the rest)
+at 3000 key 0x25 up
+at 3250 key 0x25 down  # VIDEO_ONLY tap 2 -> visibility restored
+at 3300 key 0x25 up
+at 3800 key 0x2D down  # FULL VIEW tap -> 40346 (toggle fullscreen)
+at 3850 key 0x2D up
