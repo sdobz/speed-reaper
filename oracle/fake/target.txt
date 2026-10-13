@@ -1,0 +1,30 @@
+# target scenario (vibes/31-m5-targeting.md task 6).
+# 400 ms between steps; a key tap = down + up 50 ms apart.
+# Order: RIPL DEL 0x2B, ESC 0x31 double-tap (undo), IN 0x07, OUT 0x08,
+# RIPL DEL, TRIM IN 0x09, TIMELINE 0x1B tap x2, TIMELINE double-tap.
+# Double-tap: press 2 starts 100 ms after press 1's release
+# (window 300 ms: double_tap_ms in plugin/src/gesture.h).
+# Taps on double-tap-set keys (IN/OUT/ESC/TIMELINE) are deferred 300 ms
+# after release; RIPL DEL / TRIM IN fire at release.
+at 400 key 0x2B down   # RIPL DEL tap -> A deleted, gap closed, ripple restored off
+at 450 key 0x2B up
+at 1600 key 0x31 down  # ESC double-tap, press 1 (undo after window)
+at 1650 key 0x31 up
+at 1750 key 0x31 down  # ESC double-tap, press 2 (100 ms after release)
+at 1800 key 0x31 up
+at 2800 key 0x07 down  # IN tap (deferred) -> tsel start -> cursor 1.0 (script moves it)
+at 2850 key 0x07 up
+at 3400 key 0x08 down  # OUT tap (deferred) -> tsel end -> cursor 2.0 (script moves it)
+at 3450 key 0x08 up
+at 4000 key 0x2B down  # RIPL DEL tap -> time sel [1,2] removed, gap closed (B shifts -1)
+at 4050 key 0x2B up
+at 4600 key 0x09 down  # TRIM IN tap -> A left edge -> cursor 0.5 (script moves it)
+at 4650 key 0x09 up
+at 5200 key 0x1B down  # TIMELINE tap 1 (deferred) -> A selected exclusively
+at 5250 key 0x1B up
+at 5900 key 0x1B down  # TIMELINE tap 2 (deferred) -> sole selection -> deselect all
+at 5950 key 0x1B up
+at 6600 key 0x1B down  # TIMELINE double-tap, press 1
+at 6650 key 0x1B up
+at 6750 key 0x1B down  # TIMELINE double-tap, press 2 (100 ms after release)
+at 6800 key 0x1B up
