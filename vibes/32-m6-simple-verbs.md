@@ -37,7 +37,7 @@ tools/check verbs
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. PLACE ON TOP
 

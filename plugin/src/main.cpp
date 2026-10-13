@@ -214,6 +214,11 @@ class ReaperActionSink : public IActionSink {
     CSurf_OnPlayRateChange(1.0);
     last_rate_ = 1.0;
   }
+  // One-line user message (M6, AUDIO LEVEL read-out): REAPER console.
+  void Message(const char *msg) override {
+    Trace("message %s", msg);
+    ShowConsoleMsg(msg);
+  }
 
  private:
   double last_rate_ = 1.0; // trace dedup: the Router re-applies every tick

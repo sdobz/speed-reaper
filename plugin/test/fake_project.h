@@ -34,6 +34,10 @@ class FakeProject final : public IProject {
   // SetItemActiveTake calls in order (id, take).
   std::vector<std::pair<int, int>> set_take_calls;
 
+  // Volumes: index-aligned with items; a valid id with no entry is a plain
+  // item at default volume (1.0 = 0 dB). An out-of-range id reports 0.0.
+  std::vector<double> item_volumes;
+
   std::vector<ItemInfo> Items() override { return items; }
   std::vector<int> SelectedTracks() override { return tracks; }
   int LastTouchedTrack() override { return last_touched; }
@@ -62,6 +66,10 @@ class FakeProject final : public IProject {
     if (id >= static_cast<int>(active_takes.size()))
       active_takes.resize(id + 1, 0);
     active_takes[id] = take;
+  }
+  double ItemVolume(int id) override {
+    if (id < 0 || id >= static_cast<int>(items.size())) return 0.0;
+    return id < static_cast<int>(item_volumes.size()) ? item_volumes[id] : 1.0;
   }
 };
 

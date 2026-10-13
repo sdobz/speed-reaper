@@ -28,6 +28,9 @@ class IActionSink {
   // STOP/PLAY hand-off). REAPER: OnStopButton + CSurf_OnPlayRateChange(1.0)
   // — never Main_OnCommand(40045), which blocks headless (M4 task 3).
   virtual void HardStop() = 0;
+  // Show a one-line message to the user (M6, AUDIO LEVEL read-out). REAPER:
+  // ShowConsoleMsg. Unit tests record the text instead.
+  virtual void Message(const char *msg) = 0;
 };
 
 #endif  // SPEED_REAPER_ACTION_SINK_H

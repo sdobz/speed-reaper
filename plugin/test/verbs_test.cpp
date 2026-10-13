@@ -2,6 +2,7 @@
 // Time is not involved: gestures come in pre-recognized, via a fake
 // IActionSink and a FakeProject.
 #include <algorithm>  // std::find (ApplyLastSelection)
+#include <string>     // std::string (FakeSink::Message recording)
 
 #include "verbs.h"
 
@@ -18,8 +19,10 @@ class FakeSink : public IActionSink {
   void ScrollBySeconds(double dt) override { (void)dt; }
   void ApplyShuttleRate(double rate) override { (void)rate; }
   void HardStop() override {}
+  void Message(const char *msg) override { messages.push_back(msg); }
 
   std::vector<int> commands;
+  std::vector<std::string> messages;
 };
 
 Gesture G(std::uint16_t key, GestureKind kind, std::int32_t delta = 0) {
@@ -61,6 +64,11 @@ void test_mapped_gestures() {
   r.OnGesture(G(KEY_IN, GestureKind::DoubleTap));  // IN DoubleTap → 40635
   CHECK(sink.commands.size() == 5);
   CHECK(sink.commands[4] == 40635);
+
+  r.OnGesture(G(KEY_AUDIO_LEVEL, GestureKind::DoubleTap));  // M6: → 40157 (insert marker)
+  CHECK(sink.commands.size() == 6);
+  CHECK(sink.commands[5] == 40157);
+  CHECK(sink.messages.empty());  // read-out is the Tap composite, not the DoubleTap
 }
 
 void test_unmapped_gestures_do_nothing() {
@@ -232,11 +240,12 @@ void test_ripl_del_composite() {
 
 void test_double_tap_keys() {
   auto keys = VerbDoubleTapKeys();
-  CHECK(keys.size() == 4);
+  CHECK(keys.size() == 5);
   CHECK(keys[0] == KEY_IN);
   CHECK(keys[1] == KEY_OUT);
   CHECK(keys[2] == KEY_ESC);
   CHECK(keys[3] == KEY_TIMELINE);
+  CHECK(keys[4] == KEY_AUDIO_LEVEL);
 }
 
 // M5 design §1.2: TIMELINE explicit-select composites. The FakeProject does
@@ -419,6 +428,99 @@ void test_cam_takes() {
   }
 }
 
+// M6 design §3: AUDIO LEVEL Tap is a pure read-out of the first target
+// item's volume (`Volume: <x.x> dB`, 20*log10(D_VOL)) via IActionSink::
+// Message; no commands, no selection churn, no undo block. SMTH CUT Tap is
+// 40916 with a time selection and nothing (trace `no time selection`
+// otherwise).
+void test_audio_level_and_smth_cut() {
+  // 1) AUDIO LEVEL Tap: D_VOL 0.5 → "Volume: -6.0 dB" on the first target
+  // item (cursor target, rule 2); the second item's volume is ignored.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: D_VOL 0.5
+    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, false});  // B: D_VOL 2.0
+    project.item_volumes = {0.5, 2.0};
+    project.cursor = 2.5;  // inside A
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_AUDIO_LEVEL, GestureKind::Tap));
+    CHECK(sink.commands.empty());  // pure read-out, no REAPER commands
+    CHECK(sink.messages.size() == 1);
+    CHECK(sink.messages[0] == "Volume: -6.0 dB");
+    CHECK(project.selected_calls.empty());
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+  }
+
+  // 2) AUDIO LEVEL Tap with an existing selection: the first SELECTED item
+  // (rule 1) is read out — D_VOL 1.0 → "Volume: 0.0 dB".
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, true});  // B selected
+    project.item_volumes = {0.5, 1.0};
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_AUDIO_LEVEL, GestureKind::Tap));
+    CHECK(sink.messages.size() == 1);
+    CHECK(sink.messages[0] == "Volume: 0.0 dB");
+    CHECK(project.selected_calls.empty());  // read-out never touches the selection
+  }
+
+  // 3) AUDIO LEVEL Tap with no target: no message, no commands (trace
+  // `target none`).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.cursor = 5.0;  // in a gap
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_AUDIO_LEVEL, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(sink.messages.empty());
+    CHECK(project.selected_calls.empty());
+  }
+
+  // 4) SMTH CUT Tap with a time selection: exactly [40916].
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.time_sel = true;
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_SMTH_CUT, GestureKind::Tap));
+    CHECK(sink.commands.size() == 1);
+    CHECK(sink.commands[0] == 40916);
+    CHECK(project.selected_calls.empty());
+    CHECK(project.undo_begins == 0);
+  }
+
+  // 5) SMTH CUT Tap without a time selection: no commands (trace `no time
+  // selection`).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.time_sel = false;
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_SMTH_CUT, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.selected_calls.empty());
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -429,5 +531,6 @@ int main() {
   test_double_tap_keys();
   test_timeline_gestures();
   test_cam_takes();
+  test_audio_level_and_smth_cut();
   return check_failures();
 }

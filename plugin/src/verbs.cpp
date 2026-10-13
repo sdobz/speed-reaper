@@ -1,7 +1,8 @@
 #include "verbs.h"
 
 #include <algorithm>  // std::clamp (TIMELINE select stepping)
-#include <cstdio>     // std::snprintf (CAM undo labels)
+#include <cmath>      // std::log10 (AUDIO LEVEL read-out)
+#include <cstdio>     // std::snprintf (CAM undo labels, AUDIO LEVEL message)
 
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
 #include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
@@ -28,6 +29,7 @@ constexpr VerbRow kVerbTable[] = {
     {KEY_SNAP,     GestureKind::Tap,       1157},   // Options: Toggle snapping
     {KEY_ESC,      GestureKind::Tap,       40635},  // Time selection: Remove (unselect) time selection
     {KEY_ESC,      GestureKind::DoubleTap, 40029},  // Edit: Undo
+    {KEY_AUDIO_LEVEL, GestureKind::DoubleTap, 40157},  // Insert: Insert marker at edit cursor
 };
 
 // Command id for a (key, kind) pair, or -1 when the gesture is unmapped
@@ -131,6 +133,35 @@ void CamSetTake(VerbRouter &, IActionSink &, IProject &project, const Gesture &g
   project.Undo_End(label);
 }
 
+// AUDIO LEVEL Tap (M6 design §3): read out the first target item's volume
+// as `Volume: <x.x> dB` (20*log10(D_VOL)) via IActionSink::Message
+// (REAPER: ShowConsoleMsg). No targets → trace `target none` and do
+// nothing. Selection untouched (pure read-out, no undo block).
+void AudioLevelTap(VerbRouter &, IActionSink &sink, IProject &project,
+                   const Gesture &) {
+  const std::vector<int> targets = TargetItems(project);
+  if (targets.empty()) {
+    Trace("target none");
+    return;
+  }
+  char msg[64];
+  std::snprintf(msg, sizeof msg, "Volume: %.1f dB",
+                20.0 * std::log10(project.ItemVolume(targets.front())));
+  sink.Message(msg);
+}
+
+// SMTH CUT Tap (M6 design §3): 40916, but only with a time selection —
+// the verb has nothing to smooth-cut without one, so trace `no time
+// selection` and do nothing.
+void SmthCutTap(VerbRouter &, IActionSink &sink, IProject &project,
+                const Gesture &) {
+  if (project.HasTimeSelection()) {
+    sink.RunCommand(40916);
+    return;
+  }
+  Trace("no time selection");
+}
+
 // One hold+rotate step: move the selection to the next (dir>0) / previous
 // (dir<0) item on the target track, clamped at the ends; the cursor does
 // not move. No selection on the track: + selects the first item, - the
@@ -182,6 +213,8 @@ const std::vector<CompositeRow> &CompositeRows() {
     for (int n = 1; n <= 9; ++n)
       r.push_back({static_cast<std::uint16_t>(KEY_CAM1 + n - 1), GestureKind::Tap,
                    CamSetTake});  // M6: active take N on the targets
+    r.push_back({KEY_AUDIO_LEVEL, GestureKind::Tap, AudioLevelTap});  // M6: volume read-out
+    r.push_back({KEY_SMTH_CUT, GestureKind::Tap, SmthCutTap});  // M6: 40916 if time sel
     return r;
   }();
   return rows;
@@ -208,5 +241,5 @@ void VerbRouter::OnGesture(const Gesture &g) {
 }
 
 std::vector<std::uint16_t> VerbDoubleTapKeys() {
-  return {KEY_IN, KEY_OUT, KEY_ESC, KEY_TIMELINE};
+  return {KEY_IN, KEY_OUT, KEY_ESC, KEY_TIMELINE, KEY_AUDIO_LEVEL};
 }

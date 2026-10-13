@@ -32,6 +32,7 @@ class IProject {
   virtual int ItemTakeCount(int id) = 0;  // CountTakes
   virtual int ItemActiveTake(int id) = 0;  // 0-based (I_CURTAKE); -1 if none
   virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
+  virtual double ItemVolume(int id) = 0;  // D_VOL, linear (1.0 = 0 dB)
 };
 
 #endif  // SPEED_REAPER_PROJECT_H

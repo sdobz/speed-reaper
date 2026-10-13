@@ -63,3 +63,39 @@ Files:
 ```
 M vibes/.ralph/32-m6-simple-verbs.md
 ```
+
+## Task: 3. MARK, level read-out, SMTH CUT
+
+### Attempt 3 — 2026-10-13T06:31:55Z — budget 1800s
+
+Facts:
+- Three rows implemented in plugin/src/verbs.cpp: (a) kVerbTable row {KEY_AUDIO_LEVEL, DoubleTap, 40157} (Insert marker at edit cursor) + KEY_AUDIO_LEVEL appended to VerbDoubleTapKeys(); (b) composite AudioLevelTap: TargetItems(project).front(), message `Volume: %.1f dB` of 20*log10(project.ItemVolume(id)) via new IActionSink::Message (REAPER: ShowConsoleMsg, already in main.cpp WANT list); no targets → Trace("target none"); pure read-out, no selection churn/undo; (c) composite SmthCutTap: HasTimeSelection → RunCommand(40916), else Trace("no time selection").
+- IProject::ItemVolume(id) = GetMediaItemInfo_Value(item, "D_VOL") (linear; 1.0 = 0 dB), out-of-range id → 0.0; no new REAPER API needed (GetMediaItemInfo_Value already WANTED in both TUs).
+- FakeProject: item_volumes vector index-aligned (missing entry = 1.0, out-of-range = 0.0), mirroring the take arrays.
+- IActionSink gained pure virtual Message(const char*); implementers touched: ReaperActionSink (main.cpp: Trace + ShowConsoleMsg), FakeSinks in router_test.cpp and verbs_test.cpp (verbs one records messages).
+- Tests: verbs_test.cpp — 40157 row in test_mapped_gestures, VerbDoubleTapKeys size 5, new test_audio_level_and_smth_cut (D_VOL 0.5 → "Volume: -6.0 dB"; selection-first target → "Volume: 0.0 dB"; no target → silent; SMTH CUT with/without time sel).
+- Local: plugin -Werror build clean, verbs_test passes 1/1.
+
+Dead ends:
+- First build failed: ItemVolume declared in reaper_project.h was forgotten (ReaperProject final → pure-virtual error). One-line fix.
+
+Next:
+- DONE: job `m6-verify` exited 0 (verbs_test passed, -Werror clean, WINDOWS ORACLE PASS static, ORACLE PASS host); line 40 ticked.
+
+Result: exit 0; done; 11 files changed, 182 insertions(+), 4 deletions(-); log: logs/32-m6-simple-verbs-L40-a3-1791873115527.log
+
+### Done — 2026-10-13 — 3 attempt(s)
+Files:
+```
+M plugin/src/action_sink.h
+ M plugin/src/main.cpp
+ M plugin/src/project.h
+ M plugin/src/reaper_project.cpp
+ M plugin/src/reaper_project.h
+ M plugin/src/verbs.cpp
+ M plugin/test/fake_project.h
+ M plugin/test/router_test.cpp
+ M plugin/test/verbs_test.cpp
+ M vibes/.ralph/32-m6-simple-verbs.md
+ M vibes/32-m6-simple-verbs.md
+```

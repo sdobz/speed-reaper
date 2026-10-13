@@ -169,3 +169,8 @@ void ReaperProject::SetItemActiveTake(int id, int take) {
   SetMediaItemInfo_Value(item, "I_CURTAKE", static_cast<double>(take));
   UpdateItemInProject(item);
 }
+
+double ReaperProject::ItemVolume(int id) {
+  MediaItem *item = ItemById(id);
+  return item ? GetMediaItemInfo_Value(item, "D_VOL") : 0.0;
+}

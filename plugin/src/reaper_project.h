@@ -28,6 +28,7 @@ class ReaperProject final : public IProject {
   int ItemTakeCount(int id) override;
   int ItemActiveTake(int id) override;
   void SetItemActiveTake(int id, int take) override;
+  double ItemVolume(int id) override;
 };
 
 #endif  // SPEED_REAPER_REAPER_PROJECT_H

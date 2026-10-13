@@ -26,6 +26,7 @@ class FakeSink : public IActionSink {
     last_rate = rate;
   }
   void HardStop() override { ++hard_stops; }
+  void Message(const char *msg) override { (void)msg; }
 
   int command_count = 0;
   int last_command = 0;
