@@ -122,3 +122,11 @@ Dead ends:
 Facts (final):
 - `tools/check verbs` green (job `check-m5t5c`): verbs_test 1/1, WINDOWS ORACLE PASS static, ORACLE PASS host, rc=0. Line 66 ticked; commits: `49cb928` (TIMELINE select verbs), `select_delta_ public`, test apply-selection fix.
 - Design decisions for task 6/7: TIMELINE tap with no cursor target traces `target none` and does nothing; hold+rotate from an empty selection steps from an end (+ → first item, - → last item); multiple selected items on the track step from the leftmost.
+
+Result: exit 0; done; log: logs/31-m5-targeting-L66-a5-1791854890180.log
+
+### Done — 2026-10-13 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/31-m5-targeting.md
+```
