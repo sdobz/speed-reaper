@@ -1,7 +1,9 @@
-// verbs.h — recognized gesture → REAPER command id (design §7).
+// verbs.h — recognized gesture → REAPER command id (design §7), plus
+// composite verbs that need the project (M5 design §2).
 //
-// Pure: VerbRouter holds an IActionSink (REAPER-free interface) and maps
-// (key, kind) pairs through the single table at the top of verbs.cpp.
+// Pure: VerbRouter holds an IActionSink and an IProject (both REAPER-free
+// interfaces) and maps (key, kind) pairs through the tables at the top of
+// verbs.cpp; composite rows win over id rows for the same (key, kind).
 // Unmapped gestures do nothing. main.cpp pops gestures from the
 // GestureEngine and hands each to OnGesture.
 
@@ -12,17 +14,20 @@
 
 #include "action_sink.h"
 #include "gesture.h"
+#include "project.h"
 
 class VerbRouter {
  public:
-  explicit VerbRouter(IActionSink &sink) : sink_(sink) {}
+  VerbRouter(IActionSink &sink, IProject &project) : sink_(sink), project_(project) {}
 
-  // Run the gesture's REAPER command, if the (key, kind) pair is in the
-  // table. Unmapped pairs (e.g. HoldRotate, HoldStart, HoldEnd) are no-ops.
+  // Run the gesture's verb, if the (key, kind) pair is in a table: composite
+  // rows win over id rows. Unmapped pairs (e.g. HoldRotate, HoldStart,
+  // HoldEnd) are no-ops.
   void OnGesture(const Gesture &g);
 
  private:
   IActionSink &sink_;
+  IProject &project_;
 };
 
 // The keys whose tap waits for a second press (design §7: IN, OUT, ESC).

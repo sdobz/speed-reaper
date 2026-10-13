@@ -220,7 +220,8 @@ DemoWheelSource g_demo_source; // synthetic wheel; demos the pipeline with no de
 HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
 ReaperActionSink g_action_sink;
 Router g_router(g_action_sink); // owns the wheel mode (Jog/Scrl) from HID buttons
-VerbRouter g_verb_router(g_action_sink); // recognized gestures → REAPER commands (design §7)
+ReaperProject g_project; // IProject over the REAPER API (M5 design §2)
+VerbRouter g_verb_router(g_action_sink, g_project); // gestures → verbs (design §7; M5 composites)
 GestureEngine g_gestures; // tap / double-tap / hold recognition (design §7)
 ModeGatedSource g_gated_source(g_hid, g_router); // HID delta: pass-through in Jog, scroll in Scrl
 SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);

@@ -1,8 +1,8 @@
 // REAPER-backed IProject (docs/plugin-design-m5-m9.md §2).
 //
 // Not in PLUGIN_PURE_SOURCES: it calls the REAPER host API, so it is linked
-// into the plugin target only (plugin/CMakeLists.txt). Not wired into
-// VerbRouter yet (M5 step 5).
+// into the plugin target only (plugin/CMakeLists.txt). main.cpp constructs
+// the global g_project and hands it to VerbRouter (M5 step 3).
 #ifndef SPEED_REAPER_REAPER_PROJECT_H
 #define SPEED_REAPER_REAPER_PROJECT_H
 

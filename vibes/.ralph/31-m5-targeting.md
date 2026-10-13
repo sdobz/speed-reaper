@@ -64,3 +64,15 @@ Files:
 M vibes/.ralph/31-m5-targeting.md
  M vibes/31-m5-targeting.md
 ```
+
+## Task: 3. `VerbRouter` takes `IProject`; composite rows
+
+### Attempt 3 — 2026-10-13T01:21:53Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- `VerbRouter` is now `VerbRouter(IActionSink&, IProject&)`; `verbs.h` includes `project.h`. `verbs.cpp` has `kCompositeTable` (rows `{key, kind, void(*)(IActionSink&, IProject&)}`) next to `kVerbTable`; `OnGesture` checks the composite table first (composite rows win).
+- TRIM IN/OUT removed from the id table; `TrimIn`/`TrimOut` composites do `Undo_Begin(); WithTargetSelected(p, [run 40511/40512]); Undo_End("Speed Reaper: trim")`. WithTargetSelected is header-only (template), so no new link deps.
+- `main.cpp`: global `ReaperProject g_project;` defined just before `g_verb_router(g_action_sink, g_project)` (order-safe: ReaperProject has no ctor, methods only touch REAPER API at call time, post-Init).
+- `verbs_test.cpp` now uses `fake_project.h`; existing tests unchanged in meaning (just an added `FakeProject` arg). New `test_trim_composites` covers: no selection → selects target `[0]` then restores `[]` (selected_calls `[[0],[]]`), undo block labelled `Speed Reaper: trim`; existing selection → single restore call, no extra selection.
+- `tools/check verbs` green: verbs_test 1/1, WINDOWS ORACLE PASS static, ORACLE PASS host. (Remember: git-add before check — windows build only sees tracked files.)
+Next: DONE — line 41 ticked, committed.
