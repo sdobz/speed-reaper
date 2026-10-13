@@ -263,3 +263,37 @@ Trigger: worker marked it blocked: 17/18 checks pass, but the SMTH CUT >0-fade c
 Why: The one failing check is a setup/behavior mismatch, now fully measured: 40916 (the correct id, per design) only crossfades at an item boundary strictly inside the tsel where an item ends (L3 0.99/0.99, L4 3.0 in probe_probe_sv4.json), and the prescribed all-[0,5] A/B/C layout has no such boundary (sv5 no-op) — so the scenario setup must change, not the plugin.
 Rejected: BLOCK — the (a) setup vs (b) verb change is a planner call: (b) means a new IProject API + rebuild + product-design change while the check already accepts 'the crossfade the build produces'; (a) only edits our own scenario. SPIKE — all needed measurements already exist in ## M6 and the probe JSONs. SPLIT — it is one file change plus one text line, splitting just adds a 30-min turn. BUDGET — prior attempts finished in time; the blocker was the setup, not duration.
 Log: logs/32-m6-simple-verbs-L88-replan-1791883157669.log
+
+## Task: Make simple_verbs pass: put a meeting A/C boundary at 1.5 (inside tsel [1,2]) with tone sources — the proven 40916 patte
+
+### Attempt 1 — 2026-10-13T09:28:51Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: simple_verbs.lua now: fast single-write tone WAV (`simple_verbs_tone.wav` in GetResourcePath(), block:rep of an 8192-sample sine chunk) + PCM source on A's 2 takes and B's take at setup; in the st 1500-1850 window (with the tsel set) it resizes A's item D_LENGTH=1.5 and C's (unnamed track's) first item D_POSITION=1.5 and re-sets C's take sources.
+- Facts: oracle scenario timeout is 20 s (SCENARIO_TIMEOUT default; the "within 60 s" in the FAIL message is a stale string). On timeout the harness re-runs the scenario under gdb + LD_DEBUG, appending 2 more sessions to trace_<name>.txt — one PASSING run leaves a single session in the trace.
+- Dead ends: per-sample WAV writing (`f:write` per sample, probe_sv4 style) in the `start("device")` body blocks REAPER's main thread for seconds: the body's target-pinning (B_SELECTED + 40914) lands AFTER the 400 ms CAM 2 gesture → trace shows `target none` on CAM2/PLACE-ON-TOP/AUDIO_ONLY and `no time selection` on SMTH CUT, and finish() never lands before the 20 s timeout → no probe.json. Fix: build the whole 529 KB payload in memory (one sine chunk + string.rep) and write it in ONE f:write (~ms).
+- Next: re-run `tools/reaper-oracle --layer reaper --scenario simple_verbs`; expect all 18 checks; check probe_simple_verbs.json smth_cut_* records.
+
+Result: exit 0; progress; 3 files changed, 165 insertions(+), 3 deletions(-); log: logs/32-m6-simple-verbs-L88-a1-1791883731531.log
+
+### Attempt 2 — 2026-10-13T09:57:32Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: attempt-1 run left 13/18: SMTH CUT fade 0, AUDIO_ONLY solo 0, VIDEO_ONLY 0 (rest green; layout dump confirms A [0,1.5], C [1.5,6.5], B [0,5], tsel set, 3 items selected, tone sources attached).
+- Facts: target rule (plugin/src/target.h): target track = first selected track ELSE last-touched track; rule-2 item must cover the edit cursor. After PLACE ON TOP all three tracks are selected (InsertTrackAtIndex(idx, true) selects), so target track = C (index 0); its item moved to [1.5,6.5] no longer covers cursor 1.0 -> `target none` on AUDIO_ONLY/VIDEO_ONLY (the 17/18-era layout passed only because C's [0,5] covered the cursor).
+- Fixes applied: (a) B moved to [3,8] in the window branch so 40717 selects only the A/C meeting pair (probe_sv4 L4 shape, the only proven pattern); (b) deselect window now runs 40289 (items) AND 40297 (tracks) -> target falls back to last-touched = A (pinned via 40914 at setup; first selected track then = A since both A,B are insert-selected), item [0,1.5] covers cursor 1.0.
+- Next: job `sv-run3` running `tools/reaper-oracle --layer reaper --scenario simple_verbs`; then update the stale setup sentence in vibes/32-m6-simple-verbs.md and tick line 88.
+
+Result: timeout after 180s without tool use (monologuing/stalled); progress; 3 files changed, 190 insertions(+), 3 deletions(-); log: logs/32-m6-simple-verbs-L88-a2-1791885452890.log
+
+### Attempt 3 — 2026-10-13T10:21:45Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: last simple_verbs run (job sv-run3, 03:06): 15/18. Layout at SMTH time is CORRECT per post_window dump (C [1.5,6.5] t0, A [0,1.5] t1, B [3,8] t2, tsel set, A+C items selected, tone sources on) yet 40916 still no-op (maxauto=0) — probe_sv5 (no-internal-end-boundary) does NOT explain it; the remaining diff vs the working probe_sv4 L3/L4 is A's 2 takes (CAM 2 switched I_CURTAKE=1) and the duplicated C item (SetItemStateChunk).
+- Facts: pre_audonly dump shows ALL tracks still sel=1 after the deselect window (40289 worked: selitems=0; 40297 did NOT clear tracks) and GetTrackLastTouched == nil for every track (lt=-) even though setup ran 40914. So even with tracks deselected, TargetTrack would be -1 → "target none". The window's direct SetMediaTrackInfo_Value(trackC2, B_SELECTED, 0) ALSO left sel=1 — track B_SELECTED writes may be no-ops in this build (like item B_SELECTED).
+- Next: job sv7 = probe_sv7 (P4 track-select mechanics 40296/40297/40505/40940 + P5 scenario-order geometry 1 take after RemoveMediaItemTake). Wrote oracle/scenarios/probe_sv8.lua (X1 1-take / X2 2-takes / X3 drop-take / X4 B-spanning, exact C-top geometry) — run it after sv7: `tools/reaper-oracle --layer reaper --scenario probe_sv8`. Fix plan: SMTH — whatever X1..X4 isolates; target — after SMTH, make A the ONLY selected track via commands (40297 or per-track 40296-free mechanics per P4) + 40914 re-pin, verify with a pre_audonly dump before AUDIO_ONLY.
+- Dead ends: probe_sv7 and probe_sv8 both "scenario timeout" under the oracle (20 s). Root cause: uncaught Lua error in a DEFERRED callback kills the defer chain silently (no probe.json, no stderr, REAPER keeps running) — sv7 had the per-sample WAV write; sv8's X3 called possibly-nil reaper.RemoveMediaItemTake in a defer. Errors in the start() BODY are caught by oracle.run (probe.json gets the "scenario error" check) — errors in defers are not. Guard every API call in defer chains.
+- Facts: manual oracle-less reaper run works for debugging: /tmp/sv8man.sh (nix develop) replicates tools/reaper-oracle's reaper layer with 45 s timeout + stderr capture; probe.json lands in build/oracle/probe.json. A settled-mode probe scenario takes >20 s if its chain stalls — the oracle's SCENARIO_TIMEOUT is 20 s regardless of mode.
+- Facts: probe_sv4 control run PASSES now (03:32) — env/harness healthy; failures are in the probe scripts themselves.
+- Next (v2): job sv8man2 = manual sv8 (guarded RemoveMediaItemTake); read build/oracle/probe.json X1..X4 fades. Then fix simple_verbs.lua: (a) SMTH per X results; (b) target: in the post-SMTH window do 40289 (unselect items) + 40296 (select all tracks, deterministic) + 40914 (pin first selected = C as last-touched) + SetEditCurPos(2.0) so C's item [1.5,6.5] covers the cursor — target = C's item regardless of whether 40297/track B_SELECTED writes work; AUDIO_ONLY/VIDEO_ONLY assertions are track-agnostic (solo sum, bshowB).
+
+Result: exit 0; progress; 3 files changed, 202 insertions(+), 3 deletions(-); log: logs/32-m6-simple-verbs-L88-a3-1791886905506.log
+
+### Blocked — replan budget exhausted (3 attempt(s), last: exit 0, progress)

@@ -67,7 +67,7 @@ tools/check verbs
 
 ### 6. Oracle scenario: `simple_verbs`
 
-- Add `oracle/fake/simple_verbs.txt` + `.env` + `simple_verbs.lua`. Setup: track 1 with item A [0,5] holding two takes, track 2 with item B [0,5] one take, nothing selected, cursor 1. Assertions: CAM2 → A's `I_CURTAKE`==1, B's 0; AUDIO LEVEL double-tap → marker count +1 at cursor; time selection [1,2] on overlapping A/C + SMTH CUT → `GetMediaItemInfo_Value(C,"D_FADEINLEN_AUTO")` or the crossfade the build produces is >0 (record what you measure); PLACE ON TOP → track count +1 and item count +1; AUDIO_ONLY twice → solo flag set then cleared; VIDEO_ONLY twice → track 2 hidden then shown; FULL VIEW → trace `cmd 40346` and the command exists (`GetToggleCommandState` not -1). Fix wrong ids in the tables and record them in `docs/notes/m5-observations.md`; do not loosen checks. Add to the default oracle run.
+- Add `oracle/fake/simple_verbs.txt` + `.env` + `simple_verbs.lua`. Setup: track 1 "A" with item A [0,5] holding two takes, track 2 "B" with item B [0,5] one take, all takes with tone PCM sources, nothing selected, cursor 1; after PLACE ON TOP the script resizes to the real SMTH scenario — A [0,1.5], C (A's copy) [1.5,5] meeting at 1.5, strictly inside tsel [1,2] (the proven 40916 pattern; the .lua is authoritative). Assertions: CAM2 → A's `I_CURTAKE`==1, B's 0; AUDIO LEVEL double-tap → marker count +1 at cursor; time selection [1,2] on the meeting A/C boundary + SMTH CUT → `GetMediaItemInfo_Value(C,"D_FADEINLEN_AUTO")` or the crossfade the build produces is >0 (record what you measure); PLACE ON TOP → track count +1 and item count +1; AUDIO_ONLY twice → solo flag set then cleared; VIDEO_ONLY twice → track 2 hidden then shown; FULL VIEW → trace `cmd 40346` and the command exists (`GetToggleCommandState` not -1). Fix wrong ids in the tables and record them in `docs/notes/m5-observations.md`; do not loosen checks. Add to the default oracle run.
 
 **Verify**
 ```bash
@@ -85,7 +85,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
     4. Facts: `CountMediaItems(nil,tr)` returns the PROJECT total; this Lua build lacks `reaper.Main_NewProject`, `GetSetEditCurPos`, `GetCommandLabel`; do not reset the project.
     Do not touch simple_verbs.lua/.env, oracle/fake/, plugin source, or any Verify; probe_smth.lua is throwaway (may delete it after the note is written).
     Verify: `grep -q '^## M6' docs/notes/m5-observations.md && grep -qi 'smth cut' docs/notes/m5-observations.md && grep -qi 'enumprojectmarkers' docs/notes/m5-observations.md && grep -qi 'track name' docs/notes/m5-observations.md`
-  - [ ] Make simple_verbs pass: put a meeting A/C boundary at 1.5 (inside tsel [1,2]) with tone sources — the proven 40916 pattern
+  - [!] Make simple_verbs pass: put a meeting A/C boundary at 1.5 (inside tsel [1,2]) with tone sources — the proven 40916 pattern
     <!-- ralph: replanned=1 -->
     Facts (docs/notes/m5-observations.md ## M6 CORRECTION + build/oracle/probe_probe_sv4.json, do NOT re-probe, do NOT touch plugin source): 40916 sets auto-fades only at an item boundary strictly inside the tsel where an item ENDS — meeting [1,1.5]+[1.5,2] tsel[1,2] gave D_FADEOUTLEN_AUTO=0.99 / D_FADEINLEN_AUTO=0.99, meeting [0,2.5]+[2.5,5] tsel[1,4] gave 3.0; spans without an internal end-boundary no-op (probe_sv5). All working probes used tone PCM sources; the empty-take spike no-oped even with a good boundary.
     1. In oracle/scenarios/simple_verbs.lua, in the existing st 1500-1850 window (tsel [1,2] is set there; it runs after PLACE ON TOP ~1440 ms and before SMTH CUT ~1910 ms): C's track = the track whose P_NAME is neither 'A' nor 'B' (index 0 after duplication), A's track = name 'A'. Set A's item D_LENGTH=1.5 and C's first item D_POSITION=1.5 → A [0,1.5] meets C [1.5,5] at 1.5, strictly inside tsel [1,2].
@@ -93,6 +93,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
     3. Update the stale setup sentence in this block of vibes/32-m6-simple-verbs.md ('Setup: track 1 with item A [0,5] ... overlapping A/C') to the real scenario: A [0,1.5], C [1.5,5] meeting at 1.5 inside tsel [1,2], tone sources; the .lua is authoritative.
     4. Keep every check as-is (the SMTH assertion already accepts any crossfade field >0 via maxauto; if the fade lands on A's D_FADEOUTLEN_AUTO instead of C's fadein that is fine — record('smth_cut_max_fadein_auto') / record('smth_cut_max_fadeinlen_auto') stay and record what was measured). Do not touch oracle/fake/, other scenarios, tools/reaper-oracle, or any Verify.
     Verify: `tools/reaper-oracle --layer reaper --scenario simple_verbs`
+    BLOCKED: still failing after a replan (3 attempt(s), last: exit 0, progress); see vibes/.ralph/32-m6-simple-verbs.md
 
 ### 7. SMOKE-TEST.md: "M6 — takes, marker, view"
 
