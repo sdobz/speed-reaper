@@ -130,3 +130,20 @@ Files:
 ```
 M vibes/.ralph/31-m5-targeting.md
 ```
+
+## Task: 6. Oracle scenario: `target` (proves the ids and the behavior)
+
+### Attempt 6 — 2026-10-13T01:34:40Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Tree was clean. KEY codes (src/speed_editor/key_map.h): TIMELINE=0x1B, RIPL DEL=0x2B; IN=0x07, OUT=0x08, TRIM IN=0x09, ESC=0x31. Taps on double-tap-set keys {IN,OUT,ESC,TIMELINE} are deferred 300 ms after release; RIPL DEL/TRIM IN fire at release.
+- RiplDel composite (ripple off): 40310, 40006, 40309; tsel present: 40201 only. RippleMode uses GetToggleCommandState(40310/40311); setup guarantees off via Main_OnCommand(40309). Clear tsel via 40635.
+- Created oracle/fake/target.txt + oracle/scenarios/target.env + target.lua (shape of verbs.*). Timeline (device ms): RIPL DEL 400, ESC x2 1600-1800, IN 2800, OUT 3400, RIPL DEL 4000, TRIM IN 4600, TIMELINE tap 5200/5900, TIMELINE x2 6600-6800; script clock = device - ~40 ms; script moves edit cursor to 1.0/2.0/0.5 before IN/OUT/TRIM IN. Added `target` to default suite in tools/reaper-oracle (list + header comment).
+- Committed files before running (windows-oracle gotcha).
+Next: run `tools/reaper-oracle --layer reaper --scenario target` (bg job), fix any failing step (record id corrections in docs/notes/m5-observations.md — note that file does NOT exist yet, create if needed).
+
+Result: exit 0; progress; 4 files changed, 17 insertions(+), 20 deletions(-); log: logs/31-m5-targeting-L78-a6-1791855280919.log
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 6 attempt(s), last: exit 0, progress
+Log: logs/31-m5-targeting-L78-replan-1791856776597.log

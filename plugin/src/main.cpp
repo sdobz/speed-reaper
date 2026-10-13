@@ -68,6 +68,7 @@
 #define REAPERAPI_WANT_Undo_EndBlock2 // ReaperProject::Undo_End
 #define REAPERAPI_WANT_GetCursorPosition // ReaperProject::CursorPos
 #define REAPERAPI_WANT_GetToggleCommandState // already above; ripple read (40310/40311)
+#define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -447,7 +448,6 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   int missing = REAPERAPI_LoadAPI(rec->GetFunc);
   Trace("loadapi missing=%d", missing);
   if (missing != 0) return done(0);
-  ReaperProject::Init(rec->GetFunc); // resolves GetSet_Loc (not in the REAPERAPI list)
   g_register = (plugin_register_variadic)rec->Register;
 
   rec->Register("ext_name", (void *)"Speed Reaper");

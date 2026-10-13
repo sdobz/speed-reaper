@@ -26,6 +26,7 @@
 #define REAPERAPI_WANT_Undo_EndBlock2
 #define REAPERAPI_WANT_GetCursorPosition
 #define REAPERAPI_WANT_GetToggleCommandState
+#define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
 #include "reaper_plugin_functions.h"
 
 namespace {
@@ -34,16 +35,6 @@ namespace {
 // 40311 = "Ripple items (all tracks)".
 constexpr int kRipplePerTrack = 40310;
 constexpr int kRippleAll = 40311;
-
-// GetSet_Loc is not in the vendored reaper_plugin_functions.h, so it is
-// resolved manually by ReaperProject::Init (real REAPER exports it; the
-// oracle host does not, and then HasTimeSelection reports false).
-// "which" constants from the SDK reaper.h (not vendored):
-// LOC_TSELSTART / LOC_TSELEND.
-constexpr int kLocTselStart = 0x20;
-constexpr int kLocTselEnd = 0x21;
-double (*g_GetSet_Loc)(ReaProject *proj, int which, double *getnew,
-                       bool is_set) = nullptr;
 
 // Track-list index of a track (master excluded); -1 if null / not found.
 int TrackIndex(MediaTrack *track) {
@@ -85,11 +76,6 @@ std::vector<MediaItem *> EnumerateItems() {
 
 }  // namespace
 
-void ReaperProject::Init(void *(*GetFunc)(const char *name)) {
-  g_GetSet_Loc = (double (*)(ReaProject *, int, double *, bool))GetFunc(
-      "GetSet_Loc");
-}
-
 std::vector<ItemInfo> ReaperProject::Items() {
   const std::vector<MediaItem *> items = EnumerateItems();
   std::vector<ItemInfo> out;
@@ -125,10 +111,11 @@ int ReaperProject::LastTouchedTrack() {
 double ReaperProject::CursorPos() { return GetCursorPosition(); }
 
 bool ReaperProject::HasTimeSelection() {
-  if (!g_GetSet_Loc) return false;  // oracle host: export not listed
+  // GetSet_LoopTimeRange2 isSet=false reads the current time selection into
+  // *start/*end (docs/notes/m5-observations.md: the "GetSet_Loc" name does
+  // not exist — real REAPER 7.81 exports GetSet_LoopTimeRange2 instead).
   double t0 = 0.0, t1 = 0.0;
-  g_GetSet_Loc(nullptr, kLocTselStart, &t0, false);
-  g_GetSet_Loc(nullptr, kLocTselEnd, &t1, false);
+  GetSet_LoopTimeRange2(nullptr, false, false, &t0, &t1, false);
   return t1 > t0;
 }
 
