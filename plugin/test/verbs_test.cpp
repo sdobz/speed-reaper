@@ -112,6 +112,111 @@ void test_trim_composites() {
   CHECK(project2.selected_calls[0][0] == 0);
 }
 
+// M5 design §3: RIPL DEL — time selection present → exactly [40201]; else
+// T (one undo block): ripple off → [40310, 40006, 40309], ripple on →
+// [40006]; no targets → trace `target none`, do nothing. The selection is
+// restored after every call.
+void test_ripl_del_composite() {
+  // 1) Time selection present: exactly [40201]; no target/selection churn,
+  // no undo block.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 1.0, 2.0, false});
+    project.time_sel = true;
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_RIPL_DEL, GestureKind::Tap));
+    CHECK(sink.commands.size() == 1);
+    CHECK(sink.commands[0] == 40201);
+    CHECK(project.selected_calls.empty());
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+  }
+
+  // 2) Ripple off + one target: [40310, 40006, 40309] inside one undo block;
+  // target selected, then the original (empty) selection restored.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 2.5;  // inside item 0; nothing selected
+    project.last_touched = 0;
+    project.ripple = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_RIPL_DEL, GestureKind::Tap));
+    CHECK(sink.commands.size() == 3);
+    CHECK(sink.commands[0] == 40310);
+    CHECK(sink.commands[1] == 40006);
+    CHECK(sink.commands[2] == 40309);
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.selected_calls.size() == 2);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);
+    CHECK(project.selected_calls[1].empty());  // selection restored
+  }
+
+  // 3) Ripple per-track: just [40006]; selection restored the same way.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    project.ripple = 1;  // per-track
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_RIPL_DEL, GestureKind::Tap));
+    CHECK(sink.commands.size() == 1);
+    CHECK(sink.commands[0] == 40006);
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.selected_calls.size() == 2);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);
+    CHECK(project.selected_calls[1].empty());
+  }
+
+  // 4) No targets and no time selection: no commands, no selection churn,
+  // no undo block (the trace line is greppable via SPEED_REAPER_TRACE).
+  {
+    FakeSink sink;
+    FakeProject project;  // no items at all
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_RIPL_DEL, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.selected_calls.empty());
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+  }
+
+  // 5) An existing selection wins and is restored unchanged (single
+  // snapshot-restore call, no temporary select of the implicit target).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, true});
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    project.ripple = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_RIPL_DEL, GestureKind::Tap));
+    CHECK(sink.commands.size() == 3);
+    CHECK(sink.commands[0] == 40310);
+    CHECK(sink.commands[1] == 40006);
+    CHECK(sink.commands[2] == 40309);
+    CHECK(project.selected_calls.size() == 1);  // snapshot restore only
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 0);
+  }
+}
+
 void test_double_tap_keys() {
   auto keys = VerbDoubleTapKeys();
   CHECK(keys.size() == 3);
@@ -126,6 +231,7 @@ int main() {
   test_mapped_gestures();
   test_unmapped_gestures_do_nothing();
   test_trim_composites();
+  test_ripl_del_composite();
   test_double_tap_keys();
   return check_failures();
 }

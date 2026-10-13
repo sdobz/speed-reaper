@@ -1,7 +1,8 @@
 #include "verbs.h"
 
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
-#include "target.h"                // WithTargetSelected (M5 design §1.1)
+#include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
+#include "trace.h"                 // Trace (no-target diagnostics)
 
 namespace {
 
@@ -17,7 +18,6 @@ struct VerbRow {
 
 constexpr VerbRow kVerbTable[] = {
     {KEY_SPLIT,    GestureKind::Tap,       40012},  // Item: Split items at edit cursor
-    {KEY_RIPL_DEL, GestureKind::Tap,       40006},  // Item: Remove items
     {KEY_IN,       GestureKind::Tap,       40625},  // Time selection: Set start point
     {KEY_OUT,      GestureKind::Tap,       40626},  // Time selection: Set end point
     {KEY_IN,       GestureKind::DoubleTap, 40635},  // Time selection: Remove (unselect) time selection
@@ -59,9 +59,34 @@ void TrimOut(IActionSink &sink, IProject &project) {
   project.Undo_End("Speed Reaper: trim");
 }
 
+// RIPL DEL (M5 design §3): with a time selection, remove its contents and
+// close the gap on all tracks (40201). Else T: remove the target items AND
+// close the gap — if ripple is off, switch to per-track (40310), remove
+// (40006), restore (40309); else just 40006. No targets → trace
+// `target none` and do nothing.
+void RiplDel(IActionSink &sink, IProject &project) {
+  if (project.HasTimeSelection()) {
+    sink.RunCommand(40201);
+    return;
+  }
+  if (TargetItems(project).empty()) {
+    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    return;
+  }
+  const bool ripple_off = project.RippleMode() == 0;
+  project.Undo_Begin();
+  WithTargetSelected(project, [&sink, ripple_off] {
+    if (ripple_off) sink.RunCommand(40310);  // Options: Toggle ripple edit (per-track)
+    sink.RunCommand(40006);                  // Item: Remove items
+    if (ripple_off) sink.RunCommand(40309);  // restore ripple: off
+  });
+  project.Undo_End("Speed Reaper: delete");
+}
+
 constexpr CompositeRow kCompositeTable[] = {
     {KEY_TRIM_IN,  GestureKind::Tap, TrimIn},  // Item: Trim items left of edit cursor
     {KEY_TRIM_OUT, GestureKind::Tap, TrimOut},  // Item: Trim items right of edit cursor
+    {KEY_RIPL_DEL, GestureKind::Tap, RiplDel},  // remove targets (+close gap) / time sel
 };
 
 // Composite row for a (key, kind) pair, or nullptr when none (the id table
