@@ -53,6 +53,21 @@
 #define REAPERAPI_WANT_Master_GetPlayRate // spike actions + shuttle read-back (M4)
 #define REAPERAPI_WANT_OnStopButton // spike reset + shuttle HardStop (40045 blocks headless, M4 task 3)
 #define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek (M4 decision)
+// ReaperProject (reaper_project.cpp; M5 design §2) — keep in sync with that file's list.
+#define REAPERAPI_WANT_CountMediaItems // ReaperProject::Items/SetSelectedItems
+#define REAPERAPI_WANT_GetMediaItem // ReaperProject::Items/SetSelectedItems
+#define REAPERAPI_WANT_GetMediaItem_Track // ReaperProject::Items
+#define REAPERAPI_WANT_GetMediaItemInfo_Value // ReaperProject::Items
+#define REAPERAPI_WANT_IsMediaItemSelected // ReaperProject::Items
+#define REAPERAPI_WANT_SetMediaItemSelected // ReaperProject::SetSelectedItems
+#define REAPERAPI_WANT_CountTracks // ReaperProject::SelectedTracks
+#define REAPERAPI_WANT_GetTrack // ReaperProject::SelectedTracks/LastTouchedTrack
+#define REAPERAPI_WANT_GetMediaTrackInfo_Value // ReaperProject::SelectedTracks
+#define REAPERAPI_WANT_GetLastTouchedTrack // ReaperProject::LastTouchedTrack
+#define REAPERAPI_WANT_Undo_BeginBlock2 // ReaperProject::Undo_Begin
+#define REAPERAPI_WANT_Undo_EndBlock2 // ReaperProject::Undo_End
+#define REAPERAPI_WANT_GetCursorPosition // ReaperProject::CursorPos
+#define REAPERAPI_WANT_GetToggleCommandState // already above; ripple read (40310/40311)
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
@@ -62,6 +77,7 @@
 #include "gesture.h" // GestureEngine, Gesture, GestureKind (design §7)
 #include "verbs.h" // VerbRouter, VerbDoubleTapKeys (design §7)
 #include "led_state.h" // MainLedMask: SNAP LED follows REAPER's snap state
+#include "reaper_project.h" // ReaperProject (M5 design §2; not wired into VerbRouter yet)
 #include "trace.h"
 #include "speed_editor/key_map.h" // KEY_* codes for the router-key split
 
@@ -430,6 +446,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   int missing = REAPERAPI_LoadAPI(rec->GetFunc);
   Trace("loadapi missing=%d", missing);
   if (missing != 0) return done(0);
+  ReaperProject::Init(rec->GetFunc); // resolves GetSet_Loc (not in the REAPERAPI list)
   g_register = (plugin_register_variadic)rec->Register;
 
   rec->Register("ext_name", (void *)"Speed Reaper");
