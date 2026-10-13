@@ -24,10 +24,13 @@
 -- sets an arbitrary range); SMTH CUT only needs it to exist.
 dofile(os.getenv("ORACLE_LIB"))
 
+-- M6 findings (docs/notes/m5-observations.md ## M6): the REAPER 7.x param
+-- is "P_NAME" ("NAME" silently fails) and the Lua binding is 4-arg (no
+-- buf_len); names DO stick, so name-based lookup is safe across PLACE ON
+-- TOP (the copy track is unnamed).
 local function track_name(tr)
-  local buf = string.rep("\0", 128)
-  reaper.GetSetMediaTrackInfo_String(tr, "NAME", buf, #buf, false)
-  return buf:match("^([^\0]*)") or ""
+  local _, buf = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
+  return buf or ""
 end
 
 start("device", function()
@@ -41,8 +44,8 @@ start("device", function()
   -- Track tracks are userdata in REAPER Lua (no .name property): name them
   -- via GetSetMediaTrackInfo_String (set form; SetMediaTrackInfo_String is
   -- not a Lua API).
-  reaper.GetSetMediaTrackInfo_String(trackA, "NAME", "A", 1, true)
-  reaper.GetSetMediaTrackInfo_String(trackB, "NAME", "B", 1, true)
+  reaper.GetSetMediaTrackInfo_String(trackA, "P_NAME", "A", true)
+  reaper.GetSetMediaTrackInfo_String(trackB, "P_NAME", "B", true)
   local itemA = reaper.AddMediaItemToTrack(trackA)
   reaper.SetMediaItemInfo_Value(itemA, "D_POSITION", 0.0)
   reaper.SetMediaItemInfo_Value(itemA, "D_LENGTH", 5.0)
@@ -82,26 +85,53 @@ start("device", function()
   wait_ms(4700, function()
     local st = (reaper.time_precise() - t0) * 1000
     -- Time selection [1,2] once after PLACE ON TOP, before SMTH CUT.
+    -- GetSet_LoopTimeRange does NOT set in this Lua build (verified:
+    -- read-back stayed 0..0); GetSet_LoopTimeRange2(ctx, isSet, bSetLoop,
+    -- start, end, bSetPlay) with isSet=true, bSetLoop=false SETS the time
+    -- selection — the same call the plugin's HasTimeSelection reads.
     if not tsel_set and st > 1500 and st < 1850 then
       tsel_set = true
-      reaper.GetSet_LoopTimeRange(true, true, 1.0, 2.0, true)
+      reaper.GetSet_LoopTimeRange2(nil, true, false, 1.0, 2.0, false)
     end
     local s = { t = st, tracks = reaper.CountTracks(nil), items = 0,
-                solo = 0, bshowB = nil, maxauto = 0,
-                markers = reaper.EnumProjectMarkers(0) }
+                solo = 0, bshowB = nil, maxauto = 0, maxfin_a = 0,
+                -- M6: EnumProjectMarkers(0)'s first return is retval, not a
+                -- count; count markers with GetNumRegionsOrMarkers(nil).
+                markers = reaper.GetNumRegionsOrMarkers(nil),
+                curta = nil, curtb = nil }
+    -- I_CURTAKE must be sampled IN-WINDOW, before PLACE ON TOP (~1440 ms)
+    -- splits/moves A's item: post-gesture reads at assertion time hit the
+    -- duplicated track and the post-SMTH-CUT item list.
+    if st < 1350 then
+      local t0tr = reaper.GetTrack(nil, 0)
+      local t1tr = reaper.GetTrack(nil, 1)
+      local i0 = t0tr and reaper.GetTrackMediaItem(t0tr, 0)
+      local i1 = t1tr and reaper.GetTrackMediaItem(t1tr, 0)
+      if i0 then s.curta = reaper.GetMediaItemInfo_Value(i0, "I_CURTAKE") end
+      if i1 then s.curtb = reaper.GetMediaItemInfo_Value(i1, "I_CURTAKE") end
+    end
     for t = 0, s.tracks - 1 do
       local tr = reaper.GetTrack(nil, t)
       s.solo = s.solo + reaper.GetMediaTrackInfo_Value(tr, "I_SOLO")
       if track_name(tr):find("B") then
         s.bshowB = reaper.GetMediaTrackInfo_Value(tr, "B_SHOWINTCP")
       end
-      local n = reaper.CountMediaItems(nil, tr)
-      s.items = s.items + n
-      for i = 0, n - 1 do
-        local it = reaper.GetTrackMediaItem(tr, i)
-        if it then
-          local fa = reaper.GetMediaItemInfo_Value(it, "D_FADEINLEN_AUTO")
-          if fa > s.maxauto then s.maxauto = fa end
+      -- M6: CountMediaItems(nil, tr) returns the PROJECT total; count per
+      -- track by looping GetTrackMediaItem until nil.
+      local n = 0
+      while true do
+        local it = reaper.GetTrackMediaItem(tr, n)
+        if not it then break end
+        n = n + 1
+        s.items = s.items + 1
+        local fa = reaper.GetMediaItemInfo_Value(it, "D_FADEINLEN_AUTO")
+        if fa > s.maxfin_a then s.maxfin_a = fa end
+        -- The build's crossfade: any of the auto/crossfade lengths (fresh
+        -- items are all 0 until SMTH CUT runs).
+        for _, k in ipairs({ "D_FADEINLEN_AUTO", "D_FADEOUTLEN_AUTO",
+                             "D_CROSSFADELEN", "D_CROSSFADENEXT" }) do
+          local v = reaper.GetMediaItemInfo_Value(it, k)
+          if v > s.maxauto then s.maxauto = v end
         end
       end
     end
@@ -131,34 +161,27 @@ start("device", function()
       return -1, nil
     end
 
-    -- CAM 2 (I_CURTAKE = 1 on target A; B keeps take 0). Sampled before
-    -- PLACE ON TOP, when A is on its original track.
+    -- CAM 2 (~450 ms): I_CURTAKE = 1 on target A (2-take item), B keeps
+    -- take 0. Sampled in-window pre-PLACE-ON-TOP (track 0 = A, track 1 = B).
     local i1 = mid(500, 800)
-    -- Track names survive PLACE ON TOP (only an UNNAMED copy track is
-    -- inserted), so A and B are found by name at assertion time; all of
-    -- A's post-SMTH-CUT pieces share its I_CURTAKE.
-    local _, a_track = track_by_name("A")
-    local _, b_track = track_by_name("B")
-    local itemA0 = a_track and reaper.GetTrackMediaItem(a_track, 0)
-    local itemB0 = b_track and reaper.GetTrackMediaItem(b_track, 0)
-    local curta, curtb = nil, nil
-    if itemA0 then curta = reaper.GetMediaItemInfo_Value(itemA0, "I_CURTAKE") end
-    if itemB0 then curtb = reaper.GetMediaItemInfo_Value(itemB0, "I_CURTAKE") end
     check("CAM 2: A's I_CURTAKE == 1 (2-take item, pre-duplicate)",
-          i1 ~= 0 and curta == 1,
-          string.format("i1=%d curta=%s", i1, tostring(curta)))
+          i1 ~= 0 and at(i1, "curta") == 1,
+          string.format("i1=%d curta=%s", i1, tostring(at(i1, "curta"))))
     check("CAM 2: B's I_CURTAKE still 0",
-          i1 ~= 0 and curtb == 0,
-          string.format("i1=%d curtb=%s", i1, tostring(curtb)))
+          i1 ~= 0 and at(i1, "curtb") == 0,
+          string.format("i1=%d curtb=%s", i1, tostring(at(i1, "curtb"))))
 
     -- AUDIO LEVEL double-tap (cmd 40157 ~910 ms): marker at cursor 1.
     local mp = mid(500, 800)  -- before the double-tap
     local ma = mid(1050, 1350)  -- after it, before PLACE ON TOP
+    -- M6: EnumProjectMarkers is 0-based; return order is
+    -- (retval, isrgn, pos, rgnend, name, markrgnindexnumber), so pos is
+    -- return #3.
     local mpos = {}
     local mcount = at(ma, "markers") or 0
-    for i = 1, mcount do
-      local _, idx, pos = reaper.EnumProjectMarkers(i)
-      table.insert(mpos, pos)
+    for i = 0, mcount - 1 do
+      local _, _, pos = reaper.EnumProjectMarkers(i)
+      if pos then table.insert(mpos, pos) end
     end
     local at_cursor
     for _, p in ipairs(mpos) do
@@ -199,6 +222,8 @@ start("device", function()
           string.format("before=%s after=%s",
                         tostring(cf_before), tostring(cf_after)))
     record("smth_cut_max_fadein_auto", string.format("%g", cf_after))
+    record("smth_cut_max_fadeinlen_auto", string.format("%g",
+          at(ic, "maxfin_a") or 0))
 
     -- AUDIO_ONLY x2 (~2310/~2560 ms): solo set then cleared.
     local is0 = mid(2100, 2250)
@@ -263,20 +288,21 @@ start("device", function()
             .. "AUDONLY x2, VIDONLY x2, FULL)",
             gest_ok, string.format("n=%d [%s]", #gest, gest_dump))
 
-      -- 2) The cmd lines: exactly 40916 then 40346, in order.
+      -- 2) The cmd lines: 40157 (AUDIO LEVEL double-tap), 40916 (SMTH CUT)
+      --    then 40346 (FULL VIEW), in script order.
       local cmds = {}
       for _, l in ipairs(lines) do
         local c = l:match(" cmd (%d+)$")
         if c then table.insert(cmds, tonumber(c)) end
       end
-      local want_cmds = { 40916, 40346 }
+      local want_cmds = { 40157, 40916, 40346 }
       local cmd_ok = #cmds == #want_cmds
       for i = 1, #want_cmds do
         if cmds[i] ~= want_cmds[i] then cmd_ok = false end
       end
       local cmd_dump = ""
       for _, c in ipairs(cmds) do cmd_dump = cmd_dump .. c .. " " end
-      check("trace: cmd lines are 40916 then 40346 (SMTH CUT, FULL VIEW)",
+      check("trace: cmd lines are 40157, 40916, 40346 (AUDL, SMTH, FULL)",
             cmd_ok, string.format("n=%d [%s]", #cmds, cmd_dump))
 
       -- 3) FULL VIEW's `cmd 40346` line is present (the task's trace check).
