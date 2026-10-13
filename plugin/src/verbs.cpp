@@ -1,6 +1,7 @@
 #include "verbs.h"
 
 #include <algorithm>  // std::clamp (TIMELINE select stepping)
+#include <cstdio>     // std::snprintf (CAM undo labels)
 
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
 #include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
@@ -108,6 +109,28 @@ void TimelineDoubleTap(VerbRouter &, IActionSink &sink, IProject &, const Gestur
   sink.RunCommand(40289);  // deselect all items
 }
 
+// CAM 1–9 (M6 design §3): set the active take N (I_CURTAKE = N-1) on each
+// target item; items with fewer than N takes keep theirs. N is derived from
+// the key (KEY_CAM1..KEY_CAM9 are contiguous), so one function serves all
+// nine rows. No targets → trace `target none` and do nothing.
+void CamSetTake(VerbRouter &, IActionSink &, IProject &project, const Gesture &g) {
+  const int n = static_cast<int>(g.key - KEY_CAM1) + 1;  // 1..9
+  const std::vector<int> targets = TargetItems(project);
+  if (targets.empty()) {
+    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    return;
+  }
+  project.Undo_Begin();
+  WithTargetSelected(project, [&project, &targets, n] {
+    for (const int id : targets)
+      if (project.ItemTakeCount(id) >= n)  // fewer than N takes → keep theirs
+        project.SetItemActiveTake(id, n - 1);
+  });
+  char label[32];
+  std::snprintf(label, sizeof label, "Speed Reaper: take %d", n);
+  project.Undo_End(label);
+}
+
 // One hold+rotate step: move the selection to the next (dir>0) / previous
 // (dir<0) item on the target track, clamped at the ends; the cursor does
 // not move. No selection on the track: + selects the first item, - the
@@ -143,19 +166,31 @@ void TimelineHoldRotate(VerbRouter &router, IActionSink &,
   }
 }
 
-constexpr CompositeRow kCompositeTable[] = {
-    {KEY_TRIM_IN,  GestureKind::Tap, TrimIn},  // Item: Trim items left of edit cursor
-    {KEY_TRIM_OUT, GestureKind::Tap, TrimOut},  // Item: Trim items right of edit cursor
-    {KEY_RIPL_DEL, GestureKind::Tap, RiplDel},  // remove targets (+close gap) / time sel
-    {KEY_TIMELINE, GestureKind::Tap, TimelineTap},  // select cursor target exclusively
-    {KEY_TIMELINE, GestureKind::DoubleTap, TimelineDoubleTap},  // deselect all (40289)
-    {KEY_TIMELINE, GestureKind::HoldRotate, TimelineHoldRotate},  // step selection
-};
+// The composite rows (M5 design §2/§3), built at first use: the M5 verbs
+// plus CAM 1–9 generated as a loop — the keys are contiguous
+// (KEY_CAM1..KEY_CAM9) and CamSetTake derives the take number from the key,
+// so no nine-row copy-paste.
+const std::vector<CompositeRow> &CompositeRows() {
+  static const std::vector<CompositeRow> rows = [] {
+    std::vector<CompositeRow> r;
+    r.push_back({KEY_TRIM_IN,  GestureKind::Tap, TrimIn});  // trim left of cursor
+    r.push_back({KEY_TRIM_OUT, GestureKind::Tap, TrimOut});  // trim right of cursor
+    r.push_back({KEY_RIPL_DEL, GestureKind::Tap, RiplDel});  // remove targets / time sel
+    r.push_back({KEY_TIMELINE, GestureKind::Tap, TimelineTap});  // select cursor target
+    r.push_back({KEY_TIMELINE, GestureKind::DoubleTap, TimelineDoubleTap});  // deselect all
+    r.push_back({KEY_TIMELINE, GestureKind::HoldRotate, TimelineHoldRotate});  // step selection
+    for (int n = 1; n <= 9; ++n)
+      r.push_back({static_cast<std::uint16_t>(KEY_CAM1 + n - 1), GestureKind::Tap,
+                   CamSetTake});  // M6: active take N on the targets
+    return r;
+  }();
+  return rows;
+}
 
 // Composite row for a (key, kind) pair, or nullptr when none (the id table
 // then decides).
 const CompositeRow *CompositeFor(std::uint16_t key, GestureKind kind) {
-  for (const auto &row : kCompositeTable)
+  for (const auto &row : CompositeRows())
     if (row.key == key && row.kind == kind) return &row;
   return nullptr;
 }

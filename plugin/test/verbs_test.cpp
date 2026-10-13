@@ -369,6 +369,56 @@ void test_timeline_gestures() {
   }
 }
 
+// M6 design §3: CAM 1–9 set the active take N (I_CURTAKE = N-1) on each
+// target item; items with fewer than N takes keep theirs. One undo block
+// labelled "Speed Reaper: take N"; the selection is restored (rule 1).
+void test_cam_takes() {
+  // 1) CAM2 with two targets (the existing selection, rule 1): the 3-take
+  // item is set to index 1; the 1-take item is untouched.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, true});  // A, selected, 3 takes
+    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, true});  // B, selected, 1 take
+    project.take_counts = {3, 1};
+    project.active_takes = {0, 0};
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_CAM2, GestureKind::Tap));
+    CHECK(sink.commands.empty());  // pure project API, no REAPER commands
+    CHECK(project.set_take_calls.size() == 1);
+    CHECK(project.set_take_calls[0].first == 0);  // item A
+    CHECK(project.set_take_calls[0].second == 1);  // take 2 → index 1
+    CHECK(project.active_takes[0] == 1);
+    CHECK(project.active_takes[1] == 0);  // fewer than 2 takes: untouched
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: take 2");
+    // Rule 1: existing selection — snapshot restore only, no temp select.
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 2);
+  }
+
+  // 2) CAM1 with no target (cursor in a gap, nothing selected, no
+  // last-touched track): nothing happens — no take set, no undo block, no
+  // selection churn (the trace line is `target none`).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 10.0;  // after the item
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_CAM1, GestureKind::Tap));
+    CHECK(sink.commands.empty());
+    CHECK(project.set_take_calls.empty());
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+    CHECK(project.selected_calls.empty());
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -378,5 +428,6 @@ int main() {
   test_ripl_del_composite();
   test_double_tap_keys();
   test_timeline_gestures();
+  test_cam_takes();
   return check_failures();
 }
