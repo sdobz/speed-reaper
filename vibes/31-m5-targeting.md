@@ -75,8 +75,7 @@ tools/check verbs
 tools/reaper-oracle --layer reaper --scenario target
 ```
 
-- [!] Done
-  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/31-m5-targeting.md
+- [x] Done
 
 ### 7. SMOKE-TEST.md: "M5 — targeting"
 

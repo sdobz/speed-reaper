@@ -52,21 +52,24 @@ start("device", function()
   reaper.SetMediaItemSelected(b, false)
   reaper.SetEditCurPos(2.5, false, false)
   reaper.UpdateArrange()
+  -- API-added items have no undo point: without this, undo rolls back to an empty project.
+  reaper.Undo_OnStateChange("setup")
 
   local function snap()
     local n = reaper.CountMediaItems(nil, track)
-    local p0, l0, p1, l1, s0, s1 = -1, -1, -1, -1, -1, -1
+    local p0, l0, p1, l1, s0, s1, p2 = -1, -1, -1, -1, -1, -1, -1
     for i = 0, n - 1 do
       local it = reaper.GetTrackMediaItem(track, i)
       local p = reaper.GetMediaItemInfo_Value(it, "D_POSITION")
       local l = reaper.GetMediaItemInfo_Value(it, "D_LENGTH")
-      local sel = reaper.GetMediaItemInfo_Value(it, "B_SELECTED") ~= 0 and 1 or 0
+      local sel = reaper.GetMediaItemInfo_Value(it, "B_UISEL") ~= 0 and 1 or 0
       if i == 0 then p0, l0, s0 = p, l, sel
-      elseif i == 1 then p1, l1, s1 = p, l, sel end
+      elseif i == 1 then p1, l1, s1 = p, l, sel
+      elseif i == 2 then p2 = p end
     end
     local t0, t1 = reaper.GetSet_LoopTimeRange(false, false, 0.0, 0.0, false)
     return {
-      n = n, p0 = p0, l0 = l0, p1 = p1, l1 = l1,
+      n = n, p0 = p0, l0 = l0, p1 = p1, l1 = l1, p2 = p2,
       s0 = s0, s1 = s1,
       tsel0 = t0, tsel1 = t1,
       rip = reaper.GetToggleCommandState(40310) +
@@ -145,9 +148,9 @@ start("device", function()
           string.format("s1=%s n=%s", tostring(s1 and s1.t),
                         tostring(s1 and s1.n)))
     check("RIPL DEL: B moved to 0 (gap closed, ripple was off)",
-          s1 and math.abs(s1.p0 - 0.0) < 1e-6 and math.abs(s1.l0 - 10.0) < 1e-6,
-          string.format("p0=%s l0=%s", tostring(s1 and s1.p0),
-                        tostring(s1 and s1.l0)))
+          s1 and math.abs(s1.p0 - 0.0) < 1e-6 and math.abs(s1.l0 - 5.0) < 1e-6,
+          string.format("p0=%.17g l0=%.17g", s1 and s1.p0 or -1,
+                        s1 and s1.l0 or -1))
     check("RIPL DEL: ripple mode back to off", s1 and s1.rip == 0,
           string.format("rip=%s", tostring(s1 and s1.rip)))
     check("RIPL DEL: selection unchanged (none)", s1 and s1.s0 == 0,
@@ -178,21 +181,25 @@ start("device", function()
                         tostring(s3 and s3.tsel0),
                         tostring(s3 and s3.tsel1)))
 
-    -- RIPL DEL on the time selection (~4010 ms): tsel removed, gap closed —
-    -- A [0,5] -> [0,1], B 5 -> 4 (shifted by 1).
+    -- RIPL DEL on the time selection (~4010 ms): tsel removed, gap closed.
+    -- [1,2] lies inside A [0,5], so A splits: A [0,1], A' [1,4] (was
+    -- [2,5], shifted by 1), and B 5 -> 4 (shifted by 1).
     local s4 = mid(4100, 4550)
     check("RIPL DEL (tsel): time selection removed (zero-length range)",
           s4 and math.abs(s4.tsel1 - s4.tsel0) < 1e-6,
           string.format("tsel0=%s tsel1=%s",
                         tostring(s4 and s4.tsel0),
                         tostring(s4 and s4.tsel1)))
-    check("RIPL DEL (tsel): A trimmed to [0,1] and B shifted by 1 (pos 4)",
-          s4 and s4.n == 2 and math.abs(s4.p0) < 1e-6
+    check("RIPL DEL (tsel): A [0,1], A' [1,4], B shifted by 1 (pos 4)",
+          s4 and s4.n == 3 and math.abs(s4.p0) < 1e-6
               and math.abs(s4.l0 - 1.0) < 1e-6
-              and math.abs(s4.p1 - 4.0) < 1e-6,
-          string.format("n=%s p0=%s l0=%s p1=%s",
+              and math.abs(s4.p1 - 1.0) < 1e-6
+              and math.abs(s4.l1 - 3.0) < 1e-6
+              and math.abs(s4.p2 - 4.0) < 1e-6,
+          string.format("n=%s p0=%s l0=%s p1=%s l1=%s p2=%s",
                         tostring(s4 and s4.n), tostring(s4 and s4.p0),
-                        tostring(s4 and s4.l0), tostring(s4 and s4.p1)))
+                        tostring(s4 and s4.l0), tostring(s4 and s4.p1),
+                        tostring(s4 and s4.l1), tostring(s4 and s4.p2)))
 
     -- TRIM IN tap (~4610 ms), nothing selected: A's left edge -> cursor 0.5,
     -- selection restored (none).
