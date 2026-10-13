@@ -52,6 +52,7 @@ set(PLUGIN_PURE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/led_state.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/router.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/shuttle.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/target.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/verbs.cpp
 )
