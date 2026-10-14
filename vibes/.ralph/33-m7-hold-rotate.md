@@ -71,3 +71,11 @@ M plugin/src/main.cpp
  M vibes/.ralph/33-m7-hold-rotate.md
  M vibes/33-m7-hold-rotate.md
 ```
+
+## Task: 3. Pure nudge math
+
+### Attempt 1 — 2026-10-14T05:44:14Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: design §4 table is in `docs/plugin-design-m5-m9.md` §4 (SPLIT=move pos; TRIM IN pos/len/startoffs*s*playrate; TRIM OUT len; SLIP SRC startoffs+=s*playrate; SLIP DEST pos+=s, startoffs-=s*playrate; AUDIO LEVEL 0.5 dB/step clamped 0…+12 dB). `ItemGeom.vol` is linear (1.0 = 0 dB) — NudgeVolume converts via 20*log10/pow.
+- Facts: created `plugin/src/nudge.h/.cpp` (free functions, delta constrained to a [lo,hi] interval; conflicting clamps → no-op) + `plugin/test/nudge_test.cpp`; added `nudge.cpp` to `PLUGIN_PURE_SOURCES` (alphabetical, after led_state); git-added all four files. Native build with -Werror clean, `build/plugin/test/nudge_test` passes.
+- Facts: `tools/check nudge` passed rc=0 (job `check-nudge`): ctest nudge_test + hold_nudge_test pass, Windows cross-build PASS, oracle host PASS. Line 49 ticked; task done.
