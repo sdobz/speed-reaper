@@ -392,3 +392,16 @@ Files:
 ```
 M vibes/.ralph/32-m6-simple-verbs.md
 ```
+
+## Task: 7. SMOKE-TEST.md: "M6 — takes, marker, view"
+
+### Attempt 5 — 2026-10-14T05:21:30Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- E6/E8 are the worked examples in docs/reaper-plugin-workflow.md §8 (E6 = comp takes CAM 1–3, E8 = marker via AUDIO LEVEL double-tap = MARK).
+- Appended `## M6 — takes, marker, view` to SMOKE-TEST.md after the M4 section: 7 steps (E6 takes, E8 MARK, AUDIO LEVEL read-out, SMTH CUT, PLACE ON TOP, view re-tap, FULL VIEW) each with Expected + pass/fail box, matching the M5/M4 section style.
+- Key expectations sourced from plugin/src/verbs.cpp + oracle scenarios: CAM N = I_CURTAKE=N-1 on targets (fewer takes untouched, implicit cursor target when nothing selected, undo label "Speed Reaper: take N"); MARK = 40157 at cursor; SMTH CUT = 40916 only with time selection, fades only at boundaries strictly inside it; PLACE ON TOP = new track above + same-position copy, selection restored, one undo step; VIDEO_ONLY/AUDIO_ONLY = isolate/solo toggle, re-tap restores, no undo entries; FULL VIEW = 40346 "Toggle fullscreen" (whole window), not "maximize arrange" (no such action in docs/reaper-actions.tsv).
+- CAM LEDs noted as "not yet wired (M8)" in step 1 per task instruction.
+
+Next: task complete — verify grep passes, tick line 141 in vibes/32-m6-simple-verbs.md.

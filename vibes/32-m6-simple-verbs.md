@@ -138,4 +138,4 @@ tools/reaper-oracle --layer reaper --scenario view_solo && tools/reaper-oracle -
 grep -q '^## M6 — takes' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done

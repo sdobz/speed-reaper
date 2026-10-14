@@ -484,3 +484,53 @@ sets the rate with no coast, center is silent and stays silent, reverse
 moves the playhead backwards, and both hand-offs (JOG tap, STOP/PLAY exit)
 behave in step 5 — with the feel answers in `docs/notes/m4-observations.md`
 stating numbers.
+
+## M6 — takes, marker, view
+
+Automated equivalents: `tools/reaper-oracle --layer reaper --scenario simple_verbs` (CAM 2, MARK, FULL VIEW), `--scenario smth_cut` (SMTH CUT), `--scenario place_on_top` (PLACE ON TOP), `--scenario view_solo` (VIDEO_ONLY / AUDIO_ONLY) — these hand tests add real hardware and the audio the oracle cannot judge.
+
+Setup: M1 state (device plugged in, plugin connected). In REAPER: a project with **one item that has three takes** (drop the same file three times into the item's take lanes), **one other item with a single take** on the same track, and a second track with an item on it (for the view buttons). Ripple editing **off**.
+
+1. **CAM 2 / CAM 3 on a three-take item (E6)**: select the three-take item (single click), put the edit cursor inside it. Tap **CAM 2**; listen. Tap **CAM 3**; listen. Then click empty arrange space so **nothing is selected**, move the cursor (JOG) so it is inside the three-take item again, and tap **CAM 1**.
+
+   **Expected:** with the item selected, CAM 2 switches its active take to take 2 and CAM 3 to take 3 — the take lane highlights move and the auditioned/played content is the new take; each tap is one undo step (ESC double-tap goes back one take switch). With **nothing** selected the verb still works: it acts on the item under the edit cursor (the implicit target) — CAM 1 brings take 1 back. The single-take item is **untouched** by any CAM tap (targets with fewer than N takes keep theirs — no error, no change). Undo labels are `Speed Reaper: take 2` / `take 3` / `take 1`. Note: **the CAM LEDs are not yet wired (M8)** — do not expect the CAM 2/CAM 3 panel LEDs to light; the take-lane highlight in REAPER is the truth to check.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+2. **MARK without leaving the device (E8)**: in JOG, turn the wheel to a point you can identify (e.g. a beat), then **double-tap AUDIO LEVEL** (the button's 2nd label is MARK).
+
+   **Expected:** a **project marker is inserted at the edit cursor** (`cmd 40157`, "Markers: Insert marker at current position") — a marker appears on REAPER's marker track exactly at the cursor; the cursor itself does not move. Double-tapping several times places one marker per tap at whatever the cursor currently is. (AUDIO LEVEL taps are deferred ~300 ms like IN/OUT — the double-tap window; a single tap is a volume read-out, next step.)
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+3. **AUDIO LEVEL single tap — volume read-out**: with an item under the cursor (selected or not), tap **AUDIO LEVEL** once.
+
+   **Expected:** after the ~300 ms double-tap window REAPER's console shows `Volume: <x.x> dB` for the first target item (e.g. an item whose volume is at −6.0 dB prints `Volume: -6.0 dB`). No marker is inserted, no selection change, no undo entry — it is a pure read-out.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+4. **SMTH CUT over a jump cut**: set up two items that **meet at a hard boundary** (a jump cut: second item starts exactly where the first ends, same track, audible content difference at the edge). Jog to a position before the boundary; tap **IN**, jog so the cursor is past the boundary, tap **OUT** — a time selection that **contains the boundary**. Tap **SMTH CUT**.
+
+   **Expected:** REAPER's *Crossfade items within time selection* runs (`cmd 40916`): the two meeting items get **auto-fades at the boundary** — a short crossfade appears (fades visible in the item corners in the arrange) and the hard cut plays as a smooth blend. Then clear the time selection (single **ESC** tap) and tap **SMTH CUT** again with **no time selection**: **nothing happens** (console trace `no time selection`) — the verb refuses to guess. Note: the crossfade only appears at item boundaries that lie **strictly inside** the time selection — a selection that starts or ends exactly on the boundary (or spans items with no boundary inside it) produces no fade; widen the selection around the cut.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+5. **PLACE ON TOP**: select one item (single click). Tap **PLACE ON TOP**.
+
+   **Expected:** a **new track is inserted directly above** the item's track and a **copy of the item** lands on it at the **same position** (same length, same take, same source) — the original item stays where it was. The selection goes back to the original item(s), not the copy. It is one undo step: ESC double-tap removes the new track and copy together (`Speed Reaper: place on top`). With nothing under the cursor and nothing selected, the tap is a no-op (trace `target none`).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+6. **VIDEO_ONLY / AUDIO_ONLY — re-tap restores**: with an item on the first track as the target (selected or under the cursor), make sure no tracks are soloed and all tracks are visible. Tap **VIDEO_ONLY**. Tap it **again**. Then tap **AUDIO_ONLY**; tap it **again**.
+
+   **Expected (VIDEO_ONLY):** first tap — **isolate view**: every track except the target's track is hidden in the arrange (hidden rows collapse/gray out, only the target track remains visible). Second tap — **exactly the previous per-track visibility is restored** (all tracks visible again). **Expected (AUDIO_ONLY):** first tap — the target's track is **soloed** (SOLO lit on that track; everything else silent while playing). Second tap — the **previous solo flags are restored** (solo off again). The saved state lives in plugin memory only: the taps create **no undo entries** — ESC double-tap does not restore the view/solo state, only the re-tap does. (Track-solo/isolate LED mapping on the device is M8.)
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+7. **FULL VIEW**: tap **FULL VIEW**. Look at the REAPER window; tap it again.
+
+   **Expected:** `cmd 40346` is REAPER's **"Toggle fullscreen"** — the **entire REAPER window** goes fullscreen (all panels, menu bar hidden, window fills the screen) and the second tap returns to the normal window. This is **not** "maximize arrange": REAPER 7.82 has **no such action** (`docs/reaper-actions.tsv` has no "maximize arrange" entry — the design doc's candidate name was settled to Toggle fullscreen by the `simple_verbs` oracle scenario). If you want arrange-maximized behavior, that would be a different action to map in a later milestone — record whether fullscreen is a usable substitute for your review workflow.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+Pass bar: CAM 2/3 switch the active take on selected items *and* on the cursor item with nothing selected (fewer-take items untouched, CAM LEDs still off — M8), MARK double-tap drops a project marker at the cursor and a single tap prints the item's volume, SMTH CUT crossfades a boundary that lies inside the time selection and no-ops without one, PLACE ON TOP duplicates the target onto a new track above in one undo step, VIDEO_ONLY/AUDIO_ONLY isolate/solo on tap and fully restore on re-tap (no undo entries), and FULL VIEW toggles REAPER's fullscreen window.
