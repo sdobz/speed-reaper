@@ -65,9 +65,16 @@ tools/check verbs
 
 - [x] Done
 
-### 6. Oracle scenario: `simple_verbs`
+### 6. Oracle scenarios for M6 (split into 6a–6d)
 
-- Add `oracle/fake/simple_verbs.txt` + `.env` + `simple_verbs.lua`. Setup: track 1 "A" with item A [0,5] holding two takes, track 2 "B" with item B [0,5] one take, all takes with tone PCM sources, nothing selected, cursor 1; after PLACE ON TOP the script resizes to the real SMTH scenario — A [0,1.5], C (A's copy) [1.5,5] meeting at 1.5, strictly inside tsel [1,2] (the proven 40916 pattern; the .lua is authoritative). Assertions: CAM2 → A's `I_CURTAKE`==1, B's 0; AUDIO LEVEL double-tap → marker count +1 at cursor; time selection [1,2] on the meeting A/C boundary + SMTH CUT → `GetMediaItemInfo_Value(C,"D_FADEINLEN_AUTO")` or the crossfade the build produces is >0 (record what you measure); PLACE ON TOP → track count +1 and item count +1; AUDIO_ONLY twice → solo flag set then cleared; VIDEO_ONLY twice → track 2 hidden then shown; FULL VIEW → trace `cmd 40346` and the command exists (`GetToggleCommandState` not -1). Fix wrong ids in the tables and record them in `docs/notes/m5-observations.md`; do not loosen checks. Add to the default oracle run.
+One scenario per behaviour. Shared rules for every 6x task: `docs/notes/m6-oracle-rules.md` (read it first).
+
+#### 6a. Scenario `simple_verbs`: CAM 2, AUDIO LEVEL double-tap, FULL VIEW
+
+- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- Rewrite `oracle/scenarios/simple_verbs.lua` and `oracle/fake/simple_verbs.txt` down to three gestures: CAM 2 `0x34` tap, AUDIO LEVEL `0x2C` double-tap, FULL VIEW `0x2D` tap. Drop PLACE ON TOP, SMTH CUT, AUDIO_ONLY, VIDEO_ONLY from both files (they get their own scenarios).
+- Setup: track "A" with item A [0,5] holding two takes, track "B" with item B [0,5] one take, cursor 1, A's track pinned as last-touched (as in the current file). No tone sources needed.
+- Checks: A `I_CURTAKE`==1 and B's 0; marker count +1 at cursor 1; `GetToggleCommandState(40346) ~= -1`; trace gestures are CAM2, AUDL double-tap, FULL; trace cmd lines are `40157`, `40346`.
 
 **Verify**
 ```bash
@@ -75,25 +82,52 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 ```
 
 - [ ] Done
-  <!-- ralph: replanned=1 op=AND -->
-  - [x] Spike: settle the SMTH CUT command (does 40916 crossfade? fallback candidate `41059`) — findings to docs/notes/m5-observations.md
-    <!-- ralph: replanned=1 -->
-    oracle/scenarios/probe_smth.lua is ALREADY WRITTEN (configs A–F: 40916 and 41059 on meeting/overlapping items on one or two tracks; plus marker and track-name probes) — do not rewrite it; only fix the exact line if a run reports a Lua error in the output.
-    1. Run: `tools/reaper-oracle --layer reaper --scenario probe_smth` (it re-execs into the nix dev shell itself).
-    2. Read `build/oracle/probe_probe_smth.json` → `info`: keys `A_before/A_after_40916`, `B_…`, `E_…` (40916), `C_…/D_…/F_…` (41059), `marker_count`, `marker_ret1` (the 8 EnumProjectMarkers returns, |-joined in order), `name_set_len1`, `name_read_len1`, `name_setB_len1`.
-    3. Append to `docs/notes/m5-observations.md` under a new `## M6` heading, exactly three bullets: `- SMTH CUT: <id> works — config <X>, measured finA/foutA/xf = <values>` (any non-zero fade = works; if all six configs show all-zero fades: `- SMTH CUT: no id works — 40916 and 41059 both no-op in configs A–F, all fades 0`); `- Marker: EnumProjectMarkers return #<n> is the position (marker at 1.0) — order: <marker_ret1 values>`; `- Track name: <sticks|does not stick> — which set/read calls and buf_len work, with the read-back values`.
-    4. Facts: `CountMediaItems(nil,tr)` returns the PROJECT total; this Lua build lacks `reaper.Main_NewProject`, `GetSetEditCurPos`, `GetCommandLabel`; do not reset the project.
-    Do not touch simple_verbs.lua/.env, oracle/fake/, plugin source, or any Verify; probe_smth.lua is throwaway (may delete it after the note is written).
-    Verify: `grep -q '^## M6' docs/notes/m5-observations.md && grep -qi 'smth cut' docs/notes/m5-observations.md && grep -qi 'enumprojectmarkers' docs/notes/m5-observations.md && grep -qi 'track name' docs/notes/m5-observations.md`
-  - [!] Make simple_verbs pass: put a meeting A/C boundary at 1.5 (inside tsel [1,2]) with tone sources — the proven 40916 pattern
-    <!-- ralph: replanned=1 -->
-    Facts (docs/notes/m5-observations.md ## M6 CORRECTION + build/oracle/probe_probe_sv4.json, do NOT re-probe, do NOT touch plugin source): 40916 sets auto-fades only at an item boundary strictly inside the tsel where an item ENDS — meeting [1,1.5]+[1.5,2] tsel[1,2] gave D_FADEOUTLEN_AUTO=0.99 / D_FADEINLEN_AUTO=0.99, meeting [0,2.5]+[2.5,5] tsel[1,4] gave 3.0; spans without an internal end-boundary no-op (probe_sv5). All working probes used tone PCM sources; the empty-take spike no-oped even with a good boundary.
-    1. In oracle/scenarios/simple_verbs.lua, in the existing st 1500-1850 window (tsel [1,2] is set there; it runs after PLACE ON TOP ~1440 ms and before SMTH CUT ~1910 ms): C's track = the track whose P_NAME is neither 'A' nor 'B' (index 0 after duplication), A's track = name 'A'. Set A's item D_LENGTH=1.5 and C's first item D_POSITION=1.5 → A [0,1.5] meets C [1.5,5] at 1.5, strictly inside tsel [1,2].
-    2. Tone sources: copy le16/le32/write_tone from oracle/scenarios/probe_sv4.lua (write a WAV under a distinct name in GetResourcePath()), create the PCM source once, set it on A's takes 0 AND 1 (CAM2 switches I_CURTAKE to 1) and B's take at setup, and on C's takes in the 1500-1850 window in case duplication drops sources (SetMediaItemTake_Source on GetMediaItemTake(it, n)).
-    3. Update the stale setup sentence in this block of vibes/32-m6-simple-verbs.md ('Setup: track 1 with item A [0,5] ... overlapping A/C') to the real scenario: A [0,1.5], C [1.5,5] meeting at 1.5 inside tsel [1,2], tone sources; the .lua is authoritative.
-    4. Keep every check as-is (the SMTH assertion already accepts any crossfade field >0 via maxauto; if the fade lands on A's D_FADEOUTLEN_AUTO instead of C's fadein that is fine — record('smth_cut_max_fadein_auto') / record('smth_cut_max_fadeinlen_auto') stay and record what was measured). Do not touch oracle/fake/, other scenarios, tools/reaper-oracle, or any Verify.
-    Verify: `tools/reaper-oracle --layer reaper --scenario simple_verbs`
-    BLOCKED: still failing after a replan (3 attempt(s), last: exit 0, progress); see vibes/.ralph/32-m6-simple-verbs.md
+
+#### 6b. Scenario `smth_cut`: SMTH CUT crossfades a meeting boundary
+
+- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- New scenario, one gesture: SMTH CUT `0x11` tap (cmd `40916`).
+- Setup directly through the API, no PLACE ON TOP: one track, item A [0,1.5] and item C [1.5,5] meeting at 1.5, tone PCM sources on both (copy `le16`/`le32`/`write_tone` from `oracle/scenarios/probe_sv4.lua`), both items selected via 40717 as in probe_sv4, time selection [1,2]. This is the proven working layout: it gave `D_FADEOUTLEN_AUTO`/`D_FADEINLEN_AUTO` ≈ 0.99.
+- Check: after the gesture some item's `D_FADEINLEN_AUTO` or `D_FADEOUTLEN_AUTO` > 0 (record the value), and the trace has `cmd 40916`.
+- Then delete `oracle/scenarios/probe_*.lua` files that are no longer referenced by any doc, and add `smth_cut` to `REAPER_SCENARIOS` in `tools/reaper-oracle`.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario smth_cut
+```
+
+- [ ] Done
+
+#### 6c. Scenario `place_on_top`: PLACE ON TOP duplicates the target
+
+- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- New scenario, one gesture: PLACE ON TOP `0x05` tap.
+- Setup: reuse the target setup from `oracle/scenarios/target.lua` (an item that resolves as the target). No tone sources, no time selection.
+- Checks: track count +1 and item count +1 after the gesture (count items by looping `GetTrackMediaItem`), and the trace shows the PLACE ON TOP gesture.
+- Add `place_on_top` to `REAPER_SCENARIOS`.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario place_on_top
+```
+
+- [ ] Done
+
+#### 6d. Scenario `view_solo`: AUDIO_ONLY and VIDEO_ONLY re-tap restores
+
+- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- New scenario, four gestures: AUDIO_ONLY `0x26` twice, then VIDEO_ONLY `0x25` twice.
+- Setup: two tracks with one item each, target as in `target.lua`. Track selection via `B_SELECTED` writes is unreliable in this build; use the commands from `target.lua` to make the target, and make the assertions independent of WHICH track is the target:
+  - AUDIO_ONLY: sum of `I_SOLO` over tracks is 0 → ≥1 → 0.
+  - VIDEO_ONLY: number of tracks with `B_SHOWINTCP`==1 goes N → fewer → N.
+- Add `view_solo` to `REAPER_SCENARIOS`. Then run the whole suite once to confirm nothing else regressed.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario view_solo && tools/reaper-oracle --layer reaper
+```
+
+- [ ] Done
 
 ### 7. SMOKE-TEST.md: "M6 — takes, marker, view"
 
