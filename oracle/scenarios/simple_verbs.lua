@@ -1,6 +1,7 @@
--- oracle/scenarios/simple_verbs.lua — M6 simple verbs end-to-end
--- (vibes/32-m6-simple-verbs.md task 6). Validates the M6 verb rows in
--- plugin/src/verbs.cpp against REAPER-visible effects.
+-- oracle/scenarios/simple_verbs.lua — M6 simple verbs (vibes/32-m6-simple-verbs.md
+-- task 6a). Validates the three simple verb rows in plugin/src/verbs.cpp
+-- against REAPER-visible effects. The other M6 verbs (PLACE ON TOP, SMTH
+-- CUT, AUDIO_ONLY, VIDEO_ONLY) have their own scenarios.
 --
 -- The harness sources oracle/scenarios/simple_verbs.env, which points
 -- SPEED_REAPER_FAKE_DEVICE at oracle/fake/simple_verbs.txt (device clock;
@@ -8,26 +9,18 @@
 -- time - ~40 ms, same offset the verbs scenario relies on):
 --   ~410         CAM 2 tap 0x34            -> I_CURTAKE=1 on target A
 --   ~910         AUDIO LEVEL 0x2C x2       -> cmd 40157, marker at cursor 1
---   ~1410        PLACE ON TOP 0x05         -> A duplicated onto new track (C)
---   ~1910        SMTH CUT 0x11             -> cmd 40916 within time sel [1,2]
---   ~2310/2560   AUDIO_ONLY 0x26 x2        -> solo set then restored
---   ~2960/3260   VIDEO_ONLY 0x25 x2        -> tracks hidden then restored
---   ~3810        FULL VIEW 0x2D            -> cmd 40346 (toggle fullscreen)
+--   ~1410        FULL VIEW 0x2D            -> cmd 40346 (toggle fullscreen)
 --
 -- Setup: track 1 "A" with item A [0,5] holding TWO takes, track 2 "B" with
 -- item B [0,5] one take, nothing selected, edit cursor at 1 s, last-touched
 -- track = A's track (so the implicit-target rule resolves A with no
--- selection). PLACE ON TOP runs before SMTH CUT so the time selection [1,2]
--- overlaps both A and C (A's copy) at the cut.
---
--- The time selection [1,2] is set by THIS script (no Speed Editor button
--- sets an arbitrary range); SMTH CUT only needs it to exist.
+-- selection). No tone sources needed: these three verbs never touch item
+-- audio (unlike SMTH CUT, which has its own scenario).
 dofile(os.getenv("ORACLE_LIB"))
 
 -- M6 findings (docs/notes/m5-observations.md ## M6): the REAPER 7.x param
 -- is "P_NAME" ("NAME" silently fails) and the Lua binding is 4-arg (no
--- buf_len); names DO stick, so name-based lookup is safe across PLACE ON
--- TOP (the copy track is unnamed).
+-- buf_len).
 local function track_name(tr)
   local _, buf = reaper.GetSetMediaTrackInfo_String(tr, "P_NAME", "", false)
   return buf or ""
@@ -66,7 +59,6 @@ start("device", function()
 
   check("setup: no item selected",
         reaper.GetSelectedMediaItem(nil, 0) == nil, "")
-
   check("setup: two tracks", reaper.CountTracks(nil) == 2,
         "tracks=" .. reaper.CountTracks(nil))
   check("setup: A has 2 takes, B has 1",
@@ -77,65 +69,24 @@ start("device", function()
         math.abs(reaper.GetCursorPosition() - 1.0) < 1e-6,
         "GetCursorPosition=" .. tostring(reaper.GetCursorPosition()))
 
-  -- Snapshot every defer cycle for ~4.7 s (last effect lands ~3.81 s in).
-  local samples = {} -- {t, tracks, items, solo, bshowB, maxauto, markers}
+  -- Snapshot every defer cycle for ~2 s (last effect lands ~1.45 s in).
+  local samples = {} -- {t, markers, curta, curtb}
   local t0 = reaper.time_precise()
-  local tsel_set = false
 
-  wait_ms(4700, function()
+  wait_ms(2000, function()
     local st = (reaper.time_precise() - t0) * 1000
-    -- Time selection [1,2] once after PLACE ON TOP, before SMTH CUT.
-    -- GetSet_LoopTimeRange does NOT set in this Lua build (verified:
-    -- read-back stayed 0..0); GetSet_LoopTimeRange2(ctx, isSet, bSetLoop,
-    -- start, end, bSetPlay) with isSet=true, bSetLoop=false SETS the time
-    -- selection — the same call the plugin's HasTimeSelection reads.
-    if not tsel_set and st > 1500 and st < 1850 then
-      tsel_set = true
-      reaper.GetSet_LoopTimeRange2(nil, true, false, 1.0, 2.0, false)
-    end
-    local s = { t = st, tracks = reaper.CountTracks(nil), items = 0,
-                solo = 0, bshowB = nil, maxauto = 0, maxfin_a = 0,
-                -- M6: EnumProjectMarkers(0)'s first return is retval, not a
-                -- count; count markers with GetNumRegionsOrMarkers(nil).
-                markers = reaper.GetNumRegionsOrMarkers(nil),
-                curta = nil, curtb = nil }
-    -- I_CURTAKE must be sampled IN-WINDOW, before PLACE ON TOP (~1440 ms)
-    -- splits/moves A's item: post-gesture reads at assertion time hit the
-    -- duplicated track and the post-SMTH-CUT item list.
-    if st < 1350 then
-      local t0tr = reaper.GetTrack(nil, 0)
-      local t1tr = reaper.GetTrack(nil, 1)
-      local i0 = t0tr and reaper.GetTrackMediaItem(t0tr, 0)
-      local i1 = t1tr and reaper.GetTrackMediaItem(t1tr, 0)
-      if i0 then s.curta = reaper.GetMediaItemInfo_Value(i0, "I_CURTAKE") end
-      if i1 then s.curtb = reaper.GetMediaItemInfo_Value(i1, "I_CURTAKE") end
-    end
-    for t = 0, s.tracks - 1 do
-      local tr = reaper.GetTrack(nil, t)
-      s.solo = s.solo + reaper.GetMediaTrackInfo_Value(tr, "I_SOLO")
-      if track_name(tr):find("B") then
-        s.bshowB = reaper.GetMediaTrackInfo_Value(tr, "B_SHOWINTCP")
-      end
-      -- M6: CountMediaItems(nil, tr) returns the PROJECT total; count per
-      -- track by looping GetTrackMediaItem until nil.
-      local n = 0
-      while true do
-        local it = reaper.GetTrackMediaItem(tr, n)
-        if not it then break end
-        n = n + 1
-        s.items = s.items + 1
-        local fa = reaper.GetMediaItemInfo_Value(it, "D_FADEINLEN_AUTO")
-        if fa > s.maxfin_a then s.maxfin_a = fa end
-        -- The build's crossfade: any of the auto/crossfade lengths (fresh
-        -- items are all 0 until SMTH CUT runs).
-        for _, k in ipairs({ "D_FADEINLEN_AUTO", "D_FADEOUTLEN_AUTO",
-                             "D_CROSSFADELEN", "D_CROSSFADENEXT" }) do
-          local v = reaper.GetMediaItemInfo_Value(it, k)
-          if v > s.maxauto then s.maxauto = v end
-        end
-      end
-    end
-    table.insert(samples, s)
+    -- M6: EnumProjectMarkers(0)'s first return is retval, not a count;
+    -- count markers with GetNumRegionsOrMarkers(nil).
+    local t0tr = reaper.GetTrack(nil, 0)
+    local t1tr = reaper.GetTrack(nil, 1)
+    local i0 = t0tr and reaper.GetTrackMediaItem(t0tr, 0)
+    local i1 = t1tr and reaper.GetTrackMediaItem(t1tr, 0)
+    table.insert(samples, {
+      t = st,
+      markers = reaper.GetNumRegionsOrMarkers(nil),
+      curta = i0 and reaper.GetMediaItemInfo_Value(i0, "I_CURTAKE") or nil,
+      curtb = i1 and reaper.GetMediaItemInfo_Value(i1, "I_CURTAKE") or nil,
+    })
   end, function()
     local n = #samples
     if n < 2 then
@@ -153,127 +104,61 @@ start("device", function()
     end
     local function at(i, k) return samples[i] and samples[i][k] or nil end
 
-    local function track_by_name(name)
-      for t = 0, reaper.CountTracks(nil) - 1 do
-        local tr = reaper.GetTrack(nil, t)
-        if track_name(tr):find(name) then return t, tr end
-      end
-      return -1, nil
-    end
-
     -- CAM 2 (~450 ms): I_CURTAKE = 1 on target A (2-take item), B keeps
-    -- take 0. Sampled in-window pre-PLACE-ON-TOP (track 0 = A, track 1 = B).
-    local i1 = mid(500, 800)
-    check("CAM 2: A's I_CURTAKE == 1 (2-take item, pre-duplicate)",
+    -- take 0. Sampled after the tap, before the double-tap resolves.
+    local i1 = mid(500, 750)
+    check("CAM 2: A's I_CURTAKE == 1 (2-take item)",
           i1 ~= 0 and at(i1, "curta") == 1,
           string.format("i1=%d curta=%s", i1, tostring(at(i1, "curta"))))
     check("CAM 2: B's I_CURTAKE still 0",
           i1 ~= 0 and at(i1, "curtb") == 0,
           string.format("i1=%d curtb=%s", i1, tostring(at(i1, "curtb"))))
+    -- Final state: still 1 / 0 after all gestures (none of the other two
+    -- verbs touches takes).
+    check("final: A's I_CURTAKE == 1, B's 0",
+          at(n, "curta") == 1 and at(n, "curtb") == 0,
+          string.format("curta=%s curtb=%s", tostring(at(n, "curta")),
+                        tostring(at(n, "curtb"))))
 
-    -- AUDIO LEVEL double-tap (cmd 40157 ~910 ms): marker at cursor 1.
-    local mp = mid(500, 800)  -- before the double-tap
-    local ma = mid(1050, 1350)  -- after it, before PLACE ON TOP
-    -- M6: EnumProjectMarkers is 0-based; return order is
+    -- AUDIO LEVEL double-tap (cmd 40157 ~910 ms): marker count +1, at
+    -- cursor 1. M6: EnumProjectMarkers is 0-based; return order is
     -- (retval, isrgn, pos, rgnend, name, markrgnindexnumber), so pos is
     -- return #3.
-    local mpos = {}
-    local mcount = at(ma, "markers") or 0
+    local mp = mid(500, 750)   -- before the double-tap resolves
+    local ma = mid(1050, 1300) -- after it, before FULL VIEW
+    check("AUDIO LEVEL x2: marker count +1",
+          mp ~= 0 and ma ~= 0
+              and at(ma, "markers") == at(mp, "markers") + 1,
+          string.format("before=%s after=%s",
+                        tostring(at(mp, "markers")),
+                        tostring(at(ma, "markers"))))
+    local at_cursor
+    local mcount = reaper.GetNumRegionsOrMarkers(nil)
     for i = 0, mcount - 1 do
       local _, _, pos = reaper.EnumProjectMarkers(i)
-      if pos then table.insert(mpos, pos) end
+      if pos and math.abs(pos - 1.0) < 0.1 then at_cursor = true end
     end
-    local at_cursor
-    for _, p in ipairs(mpos) do
-      if p and math.abs(p - 1.0) < 0.1 then at_cursor = true end
-    end
-    check("AUDIO LEVEL x2: marker count +1 at cursor 1",
-          mp ~= 0 and ma ~= 0
-              and at(ma, "markers") == at(mp, "markers") + 1
-              and at_cursor,
-          string.format("before=%s after=%s pos=%s",
-                        tostring(at(mp, "markers")), tostring(mcount),
-                        table.concat(mpos, ",")))
+    check("AUDIO LEVEL x2: marker at cursor 1",
+          at_cursor ~= nil,
+          string.format("count=%d", mcount))
 
-    -- PLACE ON TOP (~1410 ms): track count +1 and item count +1.
-    local ip1 = mid(1200, 1350)
-    local ip2 = mid(1500, 1800)
-    check("PLACE ON TOP: track count +1",
-          ip1 ~= 0 and ip2 ~= 0
-              and at(ip2, "tracks") == at(ip1, "tracks") + 1,
-          string.format("before=%s after=%s",
-                        tostring(at(ip1, "tracks")),
-                        tostring(at(ip2, "tracks"))))
-    check("PLACE ON TOP: item count +1",
-          ip1 ~= 0 and ip2 ~= 0
-              and at(ip2, "items") == at(ip1, "items") + 1,
-          string.format("before=%s after=%s",
-                        tostring(at(ip1, "items")),
-                        tostring(at(ip2, "items"))))
-
-    -- SMTH CUT (cmd 40916 ~1910 ms) within [1,2] over overlapping A/C:
-    -- the build produces a fade — assert D_FADEINLEN_AUTO > 0 on some
-    -- item and record what was measured.
-    local ic = mid(2000, 2250)
-    local cf_before = at(ip2, "maxauto") or 0
-    local cf_after = at(ic, "maxauto") or 0
-    check("SMTH CUT: D_FADEINLEN_AUTO > 0 after cut in [1,2]",
-          ic ~= 0 and cf_after > 0,
-          string.format("before=%s after=%s",
-                        tostring(cf_before), tostring(cf_after)))
-    record("smth_cut_max_fadein_auto", string.format("%g", cf_after))
-    record("smth_cut_max_fadeinlen_auto", string.format("%g",
-          at(ic, "maxfin_a") or 0))
-
-    -- AUDIO_ONLY x2 (~2310/~2560 ms): solo set then cleared.
-    local is0 = mid(2100, 2250)
-    local is1 = mid(2350, 2500)
-    local is2 = mid(2650, 2900)
-    check("AUDIO_ONLY: solo flag set then cleared",
-          is0 ~= 0 and is1 ~= 0 and is2 ~= 0
-              and at(is0, "solo") == 0 and at(is1, "solo") == 1
-              and at(is2, "solo") == 0,
-          string.format("before=%s mid=%s after=%s",
-                        tostring(at(is0, "solo")),
-                        tostring(at(is1, "solo")),
-                        tostring(at(is2, "solo"))))
-
-    -- VIDEO_ONLY x2 (~2960/~3260 ms): track B hidden then shown again
-    -- (isolate hides every track except the target's).
-    local iv0 = mid(2700, 2900)
-    local iv1 = mid(3050, 3200)
-    local iv2 = mid(3350, 3700)
-    check("VIDEO_ONLY: track B hidden then shown",
-          iv0 ~= 0 and iv1 ~= 0 and iv2 ~= 0
-              and at(iv0, "bshowB") == 1 and at(iv1, "bshowB") == 0
-              and at(iv2, "bshowB") == 1,
-          string.format("before=%s mid=%s after=%s",
-                        tostring(at(iv0, "bshowB")),
-                        tostring(at(iv1, "bshowB")),
-                        tostring(at(iv2, "bshowB"))))
-
-    -- FULL VIEW (~3810 ms): the command exists (toggle state, not -1).
-    local iv3 = mid(3900, 4500)
+    -- FULL VIEW (~1450 ms): the command exists (toggle state, not -1).
+    local iv = mid(1500, 1900)
     local fv = reaper.GetToggleCommandState(40346)
     check("FULL VIEW: 40346 exists (GetToggleCommandState ~= -1)",
-          iv3 ~= 0 and fv ~= -1,
+          iv ~= 0 and fv ~= -1,
           string.format("toggle_state=%s", tostring(fv)))
 
     -- Trace checks (build/oracle/trace_simple_verbs.txt, "<ms> <msg>").
     local lines = read_trace()
     if lines then
-      -- 1) The 9 gesture lines, in script order. Composites and id rows
-      --    trace the gesture; only SMTH CUT (40916) and FULL VIEW (40346)
-      --    also trace a cmd line.
+      -- 1) The 3 gesture lines, in script order.
       local gest = {}
       for _, l in ipairs(lines) do
         local k, kind = l:match(" gesture ([0-9a-f]+) ([a-z_]+)$")
         if k then table.insert(gest, { k, kind }) end
       end
       local want = { { "0034", "tap" }, { "002c", "double_tap" },
-                     { "0005", "tap" }, { "0011", "tap" },
-                     { "0026", "tap" }, { "0026", "tap" },
-                     { "0025", "tap" }, { "0025", "tap" },
                      { "002d", "tap" } }
       local gest_ok = #gest == #want
       for i = 1, #want do
@@ -284,30 +169,25 @@ start("device", function()
       for i = 1, math.min(#gest, 12) do
         gest_dump = gest_dump .. gest[i][1] .. "/" .. gest[i][2] .. " "
       end
-      check("trace: 9 gestures in script order (CAM2, AUDL x2, POT, SMTH, "
-            .. "AUDONLY x2, VIDONLY x2, FULL)",
+      check("trace: gestures are CAM2 tap, AUDL double-tap, FULL tap",
             gest_ok, string.format("n=%d [%s]", #gest, gest_dump))
 
-      -- 2) The cmd lines: 40157 (AUDIO LEVEL double-tap), 40916 (SMTH CUT)
-      --    then 40346 (FULL VIEW), in script order.
+      -- 2) The cmd lines: 40157 (AUDIO LEVEL double-tap) then 40346
+      --    (FULL VIEW), in script order.
       local cmds = {}
       for _, l in ipairs(lines) do
         local c = l:match(" cmd (%d+)$")
         if c then table.insert(cmds, tonumber(c)) end
       end
-      local want_cmds = { 40157, 40916, 40346 }
+      local want_cmds = { 40157, 40346 }
       local cmd_ok = #cmds == #want_cmds
       for i = 1, #want_cmds do
         if cmds[i] ~= want_cmds[i] then cmd_ok = false end
       end
       local cmd_dump = ""
       for _, c in ipairs(cmds) do cmd_dump = cmd_dump .. c .. " " end
-      check("trace: cmd lines are 40157, 40916, 40346 (AUDL, SMTH, FULL)",
+      check("trace: cmd lines are 40157, 40346 (AUDL, FULL)",
             cmd_ok, string.format("n=%d [%s]", #cmds, cmd_dump))
-
-      -- 3) FULL VIEW's `cmd 40346` line is present (the task's trace check).
-      check("trace: `cmd 40346` traced for FULL VIEW",
-            find_line(lines, "cmd 40346") > 0, "")
     end
 
     finish()

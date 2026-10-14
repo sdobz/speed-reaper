@@ -297,3 +297,22 @@ Result: timeout after 180s without tool use (monologuing/stalled); progress; 3 f
 Result: exit 0; progress; 3 files changed, 202 insertions(+), 3 deletions(-); log: logs/32-m6-simple-verbs-L88-a3-1791886905506.log
 
 ### Blocked — replan budget exhausted (3 attempt(s), last: exit 0, progress)
+
+## Task: 6a. Scenario `simple_verbs`: CAM 2, AUDIO LEVEL double-tap, FULL VIEW
+
+### Attempt 1 — 2026-10-14T04:47:46Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: working tree was clean (no prior partial work). Rewrote `oracle/scenarios/simple_verbs.lua` (3 gestures: CAM2 0x34 tap @400, AUDL 0x2C double-tap @800/950, FULL 0x2D tap @1400, wait 2 s) and `oracle/fake/simple_verbs.txt`; setup unchanged (tracks A/B, items [0,5], 2/1 takes, cursor 1, 40914 pin). Checks: mid-window I_CURTAKE samples (500-750 ms) + final, marker count +1 with pos-1.0 existence via EnumProjectMarkers, GetToggleCommandState(40346) ~= -1, trace gestures CAM2 tap/AUDL double_tap/FULL tap, cmds 40157+40346. `tools/reaper-oracle` picks up the scenario by filename — no tool edit needed for 6a.
+- Next: run `tools/reaper-oracle --layer reaper --scenario simple_verbs`; on pass, tick line 84.
+- Facts: verify passed on the first run (`ORACLE PASS reaper/simple_verbs`); line 84 ticked. 6a done.
+
+Result: exit 0; done; 4 files changed, 73 insertions(+), 198 deletions(-); log: logs/32-m6-simple-verbs-L84-a1-1791953266903.log
+
+### Done — 2026-10-14 — 1 attempt(s)
+Files:
+```
+M oracle/fake/simple_verbs.txt
+ M oracle/scenarios/simple_verbs.lua
+ M vibes/.ralph/32-m6-simple-verbs.md
+ M vibes/32-m6-simple-verbs.md
+```

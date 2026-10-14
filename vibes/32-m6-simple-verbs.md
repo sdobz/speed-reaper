@@ -81,7 +81,7 @@ One scenario per behaviour. Shared rules for every 6x task: `docs/notes/oracle-s
 tools/reaper-oracle --layer reaper --scenario simple_verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 6b. Scenario `smth_cut`: SMTH CUT crossfades a meeting boundary
 
