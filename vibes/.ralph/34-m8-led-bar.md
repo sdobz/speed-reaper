@@ -83,3 +83,11 @@ M plugin/src/main.cpp
 - Dead ends: comparing calibrated absolute trace times vs step times relative to body start — must store step times as `st + off`.
 - Facts (final, PASS): measured masks in order 0x20 (off, snap ON) → 0x22 (CUT) → 0x24 (DIS) → 0x224 (DIS+LIVE_OWR=0x200); each `led main=` line lands 200–850 ms after its Main_OnCommand step (poll = every 31 timer ticks). All 9 checks pass; verify `tools/reaper-oracle --layer reaper --scenario leds_ripple` → ORACLE PASS.
 - Done: added oracle/fake/leds_ripple.txt (ESC single tap 0x31 @400 ms), oracle/scenarios/leds_ripple.env, oracle/scenarios/leds_ripple.lua; added `leds_ripple` to REAPER_SCENARIOS in tools/reaper-oracle (suite list).
+
+Result: exit 0; done; log: logs/34-m8-led-bar-L56-a4-1791960058153.log
+
+### Done — 2026-10-14 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/34-m8-led-bar.md
+```
