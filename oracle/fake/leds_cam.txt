@@ -1,0 +1,12 @@
+# leds_cam scenario (vibes/34-m8-led-bar.md task 4b).
+#
+# The scenario's state changes are driven by Lua (media-item creation +
+# I_CURTAKE via the REAPER Lua API, spaced >= 1.5 s apart), not by buttons:
+# the CAM1..CAM9 buttons (CamSetTake) would themselves change active takes
+# and race the Lua steps. This script taps the one button the scenario
+# needs for device-path coverage — ESC (0x31) single tap -> cmd 40635
+# (time selection removed), which touches no selected item, take, or
+# main-panel LED bit — then idles; Lua's steps land in the >= 1.5 s idle
+# gaps, so each step's `led main=` trace line is attributable to its step.
+at 400 key 0x31 down   # ESC tap -> cmd 40635 (no LED effect; no press 2 = no double-tap)
+at 450 key 0x31 up

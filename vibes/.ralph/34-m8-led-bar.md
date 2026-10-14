@@ -91,3 +91,16 @@ Files:
 ```
 M vibes/.ralph/34-m8-led-bar.md
 ```
+
+## Task: 4b. Scenario `leds_cam`: CAM take bit
+
+### Attempt 5 — 2026-10-14T06:51:06Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: LED_CAM2 = bit 15 (src/speed_editor/key_map.h) → CAM2 mask = 0x8000. ReadLedState (reaper_project.cpp:175): active_take = 1-based I_CURTAKE shared by ALL selected items, else 0 (mixed → 0 → no CAM bit). No plugin source changed → no tools/check rebuild needed.
+- Facts: device taps ESC (0x31, cmd 40635, no LED effect) for device-path coverage; CAM1..9 buttons deliberately NOT used — CamSetTake (verbs.cpp:122) would change active takes itself and race the Lua steps. Lua: `InsertTrackAtIndex(-1)` + `AddMediaItemToTrack` + 3×`AddEmptyTake` + `I_CURTAKE` (0-based: take 2 = 1) + `B_SELECTED` + `UpdateItemInProject`; empty takes are fine (only I_CURTAKE + selection read).
+- Facts: steps: ~0 baseline (nothing selected → snap-only mask, CAM2 must be absent from every line up to 1 s); 1600 ms 3-take item take-2 selected → 0x8020; 3200 ms second 3-take item take-1 also selected (mixed) → back to 0x20 (mask *does* change vs 0x8020 so a new `led main=` line is traced even though the value equals the baseline). wait_ms(5200); pattern copied from leds_ripple.lua (calibrate on `log connected`, `led main=` within [step-300, step+1500]).
+- Facts: added `leds_cam` to REAPER_SCENARIOS suite list in tools/reaper-oracle; files oracle/fake/leds_cam.txt, oracle/scenarios/leds_cam.env, oracle/scenarios/leds_cam.lua written. Baseline v0 check passed on run 1 (fresh profile: snap ON → 0x20, no CAM bit).
+- Dead ends: `reaper.InsertTrackAtIndex(-1)` — the `isFolder` bool is a required 2nd arg ("bad argument #2 ... boolean expected").
+- Dead ends: `InsertTrackAtIndex` returns **bool**, not a MediaTrack (REAPER 7.81 lua; same as hold_move_trim.lua:28) — the track must be fetched with `reaper.GetTrack(nil, 0)`; `AddMediaItemToTrack(nil)` → "MediaTrack expected". Also switched selection to `SetMediaItemSelected`/`IsMediaItemSelected` (pattern in hold_move_trim.lua) + `UpdateArrange()` after item creation.
+- Dead ends: `reaper.AddEmptyTake` is NOT exposed in this REAPER 7.81 lua env — use `reaper.AddTakeToMediaItem(item, true)` (3× for a 3-take item; items start with 0 takes — pattern from simple_verbs.lua:45-46, no source needed, plugin only reads I_CURTAKE/selection). The first two failed runs were my own Lua API misuses (the scenario's checks never even ran); the two-attempt rule starts counting once a check actually fails.
+- Facts (final, PASS run 4, job `ledscam4`, log vibes/.ralph/logs/ledscam4.log): all 9 checks green — baseline `led main=20` (snap ON, nothing selected, no CAM); step 1 (3-take item, take 2 selected) → `led main=8020` ~687 ms after the step; step 2 (second 3-take item take 1 also selected, mixed) → `led main=20` ~170 ms after; order + take/selection readbacks all pass. `leds_cam` added to the REAPER_SCENARIOS suite list (after leds_ripple). Task 4b ticked; done.

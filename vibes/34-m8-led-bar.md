@@ -66,7 +66,7 @@ tools/reaper-oracle --layer reaper --scenario leds_ripple
 tools/reaper-oracle --layer reaper --scenario leds_cam
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. SMOKE-TEST.md: "M8 — LED bar"
 
