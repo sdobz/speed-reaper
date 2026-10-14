@@ -104,3 +104,11 @@ M vibes/.ralph/34-m8-led-bar.md
 - Dead ends: `InsertTrackAtIndex` returns **bool**, not a MediaTrack (REAPER 7.81 lua; same as hold_move_trim.lua:28) — the track must be fetched with `reaper.GetTrack(nil, 0)`; `AddMediaItemToTrack(nil)` → "MediaTrack expected". Also switched selection to `SetMediaItemSelected`/`IsMediaItemSelected` (pattern in hold_move_trim.lua) + `UpdateArrange()` after item creation.
 - Dead ends: `reaper.AddEmptyTake` is NOT exposed in this REAPER 7.81 lua env — use `reaper.AddTakeToMediaItem(item, true)` (3× for a 3-take item; items start with 0 takes — pattern from simple_verbs.lua:45-46, no source needed, plugin only reads I_CURTAKE/selection). The first two failed runs were my own Lua API misuses (the scenario's checks never even ran); the two-attempt rule starts counting once a check actually fails.
 - Facts (final, PASS run 4, job `ledscam4`, log vibes/.ralph/logs/ledscam4.log): all 9 checks green — baseline `led main=20` (snap ON, nothing selected, no CAM); step 1 (3-take item, take 2 selected) → `led main=8020` ~687 ms after the step; step 2 (second 3-take item take 1 also selected, mixed) → `led main=20` ~170 ms after; order + take/selection readbacks all pass. `leds_cam` added to the REAPER_SCENARIOS suite list (after leds_ripple). Task 4b ticked; done.
+
+Result: exit 0; done; log: logs/34-m8-led-bar-L69-a5-1791960666547.log
+
+### Done — 2026-10-14 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/34-m8-led-bar.md
+```
