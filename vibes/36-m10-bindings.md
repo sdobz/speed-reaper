@@ -54,6 +54,7 @@ tools/check && strings build/plugin/reaper_speed_reaper.so | grep -q speed_reape
 
 ### 5. Oracle scenario: `bindings`
 
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
 - Add `oracle/scenarios/bindings.lua` + fake device script + `.env`: Lua sets `SetExtState("SpeedEditor","APPND.tap","40157",true)` and `("CLOSE_UP.tap","T:40006",true)`, runs the reload action (`NamedCommandLookup`), then the fake presses APPND (marker count +1), CLOSE UP with an unselected item under the cursor (item removed, selection unchanged) and SYNC BIN (unbound → no `cmd` trace).
 
 **Verify**

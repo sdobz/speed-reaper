@@ -40,13 +40,30 @@ tools/check
 
 - [ ] Done
 
-### 4. Oracle scenario: `leds`
+### 4. Oracle scenarios for the LED bar (4a–4b)
 
-- Add `oracle/fake/leds.txt` (+ `.env`, `leds.lua`; a fake device that taps CAM2 and SNAP, and idles ≥ 1.5 s between steps). Lua drives REAPER state and the scenario asserts the traced `led main=` value after each: ripple off → no CUT/DIS; `40310` → CUT; `40311` → DIS; trim-behind on → LIVE_OWR; selecting a 3-take item with take 2 active → CAM2 bit; two selected items with different active takes → no CAM bit. Each change must show in a trace line within 1.5 s.
+#### 4a. Scenario `leds_ripple`: ripple and trim-behind bits
+
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
+- Add `oracle/fake/leds_ripple.txt` + `.env` + `leds_ripple.lua` (a fake device that taps the needed button and idles ≥ 1.5 s between steps) and the name to `REAPER_SCENARIOS`. Lua drives REAPER state; the scenario asserts the traced `led main=` value after each step, which must appear within 1.5 s.
+- Ripple off → no CUT/DIS; `40310` → CUT; `40311` → DIS; trim-behind on → LIVE_OWR.
 
 **Verify**
 ```bash
-tools/reaper-oracle --layer reaper --scenario leds
+tools/reaper-oracle --layer reaper --scenario leds_ripple
+```
+
+- [ ] Done
+
+#### 4b. Scenario `leds_cam`: CAM take bit
+
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
+- Add `oracle/fake/leds_cam.txt` + `.env` + `leds_cam.lua` (a fake device that taps the needed button and idles ≥ 1.5 s between steps) and the name to `REAPER_SCENARIOS`. Lua drives REAPER state; the scenario asserts the traced `led main=` value after each step, which must appear within 1.5 s.
+- Select a 3-take item with take 2 active → CAM2 bit; two selected items with different active takes → no CAM bit.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario leds_cam
 ```
 
 - [ ] Done

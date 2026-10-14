@@ -67,11 +67,11 @@ tools/check verbs
 
 ### 6. Oracle scenarios for M6 (split into 6a–6d)
 
-One scenario per behaviour. Shared rules for every 6x task: `docs/notes/m6-oracle-rules.md` (read it first).
+One scenario per behaviour. Shared rules for every 6x task: `docs/notes/oracle-scenario-rules.md` (read it first).
 
 #### 6a. Scenario `simple_verbs`: CAM 2, AUDIO LEVEL double-tap, FULL VIEW
 
-- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules).
 - Rewrite `oracle/scenarios/simple_verbs.lua` and `oracle/fake/simple_verbs.txt` down to three gestures: CAM 2 `0x34` tap, AUDIO LEVEL `0x2C` double-tap, FULL VIEW `0x2D` tap. Drop PLACE ON TOP, SMTH CUT, AUDIO_ONLY, VIDEO_ONLY from both files (they get their own scenarios).
 - Setup: track "A" with item A [0,5] holding two takes, track "B" with item B [0,5] one take, cursor 1, A's track pinned as last-touched (as in the current file). No tone sources needed.
 - Checks: A `I_CURTAKE`==1 and B's 0; marker count +1 at cursor 1; `GetToggleCommandState(40346) ~= -1`; trace gestures are CAM2, AUDL double-tap, FULL; trace cmd lines are `40157`, `40346`.
@@ -85,7 +85,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 
 #### 6b. Scenario `smth_cut`: SMTH CUT crossfades a meeting boundary
 
-- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules).
 - New scenario, one gesture: SMTH CUT `0x11` tap (cmd `40916`).
 - Setup directly through the API, no PLACE ON TOP: one track, item A [0,1.5] and item C [1.5,5] meeting at 1.5, tone PCM sources on both (copy `le16`/`le32`/`write_tone` from `oracle/scenarios/probe_sv4.lua`), both items selected via 40717 as in probe_sv4, time selection [1,2]. This is the proven working layout: it gave `D_FADEOUTLEN_AUTO`/`D_FADEINLEN_AUTO` ≈ 0.99.
 - Check: after the gesture some item's `D_FADEINLEN_AUTO` or `D_FADEOUTLEN_AUTO` > 0 (record the value), and the trace has `cmd 40916`.
@@ -100,7 +100,7 @@ tools/reaper-oracle --layer reaper --scenario smth_cut
 
 #### 6c. Scenario `place_on_top`: PLACE ON TOP duplicates the target
 
-- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules).
 - New scenario, one gesture: PLACE ON TOP `0x05` tap.
 - Setup: reuse the target setup from `oracle/scenarios/target.lua` (an item that resolves as the target). No tone sources, no time selection.
 - Checks: track count +1 and item count +1 after the gesture (count items by looping `GetTrackMediaItem`), and the trace shows the PLACE ON TOP gesture.
@@ -115,7 +115,7 @@ tools/reaper-oracle --layer reaper --scenario place_on_top
 
 #### 6d. Scenario `view_solo`: AUDIO_ONLY and VIDEO_ONLY re-tap restores
 
-- First read `docs/notes/m6-oracle-rules.md` (shared facts and rules).
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules).
 - New scenario, four gestures: AUDIO_ONLY `0x26` twice, then VIDEO_ONLY `0x25` twice.
 - Setup: two tracks with one item each, target as in `target.lua`. Track selection via `B_SELECTED` writes is unreliable in this build; use the commands from `target.lua` to make the target, and make the assertions independent of WHICH track is the target:
   - AUDIO_ONLY: sum of `I_SOLO` over tracks is 0 → ≥1 → 0.

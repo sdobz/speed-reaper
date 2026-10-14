@@ -1,4 +1,4 @@
-# M6 oracle scenario rules
+# Oracle scenario rules (all milestones)
 
 Each scenario has its own `oracle/fake/<name>.txt` + `oracle/scenarios/<name>.env` + `<name>.lua`, modelled on `verbs.lua` / `target.lua`.
 

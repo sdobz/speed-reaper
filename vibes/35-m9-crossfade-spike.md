@@ -55,6 +55,7 @@ tools/check verbs
 
 ### 5. Oracle scenario: `crossfade`
 
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
 - `oracle/scenarios/crossfade.lua` + fake script + `.env`: overlapping A/B → TRANS yields the fade lengths the design specifies; CUT zeroes them; TRANS DUR hold+rotate changes the length by the expected steps; TRANS DUR double-tap then TRANS uses the saved default; ESC double-tap restores in one step. Fix wrong ids/fields in the design doc and record in `docs/notes/m5-observations.md`; do not loosen checks. Add to the default oracle run.
 
 **Verify**

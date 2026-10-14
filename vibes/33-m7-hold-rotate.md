@@ -54,13 +54,43 @@ tools/check verbs
 
 - [ ] Done
 
-### 5. Oracle scenario: `hold_nudge`
+### 5. Oracle scenarios for hold + rotate (5a–5c)
 
-- Add `oracle/fake/hold_nudge.txt` (+ `.env`, `hold_nudge.lua`). The fake grammar needs wheel events while a key is down; read `oracle/fake/wheel_turn.txt` and `oracle/fake/buttons.txt` for the syntax. Item A [0,5] on a track, nothing selected, cursor 2.5, project 30 fps. Hold SPLIT + 8 ticks → A.pos≈ 2/30; hold TRIM OUT + −8 ticks → A.len reduced by 2/30; hold SLIP SRC + 4 ticks → `D_STARTOFFS`≈ 1/30 with pos/len unchanged; hold AUDIO LEVEL + 4 ticks → `D_VOL`≈ 10^(0.5/20); ESC double-tap after any hold → that item restored in **one** undo step; selection stays empty throughout.
+#### 5a. Scenario `hold_move_trim`: SPLIT and TRIM OUT holds
+
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
+- Item A [0,5] on a track, nothing selected, cursor 2.5, project 30 fps. The fake grammar needs wheel events while a key is down; read `oracle/fake/wheel_turn.txt` and `oracle/fake/buttons.txt` for the syntax. Add `oracle/fake/hold_move_trim.txt` + `.env` + `hold_move_trim.lua` and the name to `REAPER_SCENARIOS` in `tools/reaper-oracle`.
+- Hold SPLIT + 8 ticks → A.pos≈ 2/30; hold TRIM OUT + −8 ticks → A.len reduced by 2/30. Selection stays empty throughout.
 
 **Verify**
 ```bash
-tools/reaper-oracle --layer reaper --scenario hold_nudge
+tools/reaper-oracle --layer reaper --scenario hold_move_trim
+```
+
+- [ ] Done
+
+#### 5b. Scenario `hold_slip_vol`: SLIP SRC and AUDIO LEVEL holds
+
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
+- Item A [0,5] on a track, nothing selected, cursor 2.5, project 30 fps. The fake grammar needs wheel events while a key is down; read `oracle/fake/wheel_turn.txt` and `oracle/fake/buttons.txt` for the syntax. Add `oracle/fake/hold_slip_vol.txt` + `.env` + `hold_slip_vol.lua` and the name to `REAPER_SCENARIOS` in `tools/reaper-oracle`.
+- Hold SLIP SRC + 4 ticks → `D_STARTOFFS`≈ 1/30 with pos/len unchanged; hold AUDIO LEVEL + 4 ticks → `D_VOL`≈ 10^(0.5/20). Selection stays empty.
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario hold_slip_vol
+```
+
+- [ ] Done
+
+#### 5c. Scenario `hold_undo`: ESC restores a hold in one undo step
+
+- First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules: rebuild first, defer errors, two-attempt limit).
+- Item A [0,5] on a track, nothing selected, cursor 2.5, project 30 fps. The fake grammar needs wheel events while a key is down; read `oracle/fake/wheel_turn.txt` and `oracle/fake/buttons.txt` for the syntax. Add `oracle/fake/hold_undo.txt` + `.env` + `hold_undo.lua` and the name to `REAPER_SCENARIOS` in `tools/reaper-oracle`.
+- Hold SPLIT + 8 ticks, then ESC double-tap → A restored to its original pos in **one** undo step (one undo-count change, not eight).
+
+**Verify**
+```bash
+tools/reaper-oracle --layer reaper --scenario hold_undo
 ```
 
 - [ ] Done
