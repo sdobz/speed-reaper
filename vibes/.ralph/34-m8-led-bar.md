@@ -36,3 +36,11 @@ M vibes/.ralph/34-m8-led-bar.md
 - Facts: design §5 mapping: SNAP=snap, CUT=ripple==1, DIS=ripple==2, LIVE_OWR=trim_behind, CAM_n=active_take, VIDEO_ONLY=isolate, AUDIO_ONLY=solo.
 - Facts: rewrote `plugin/src/led_state.h/.cpp` (LedState struct with default-init members, `MainLedMask(const LedState&)`), `plugin/test/led_state_test.cpp` (snap/ripple/trim/take/isolate/solo/combo cases), and the main.cpp call site (builds a LedState with only snap set, no new reads).
 - Facts: running `tools/check led_state` via bgrun job `check_led` (log vibes/.ralph/logs/check_led.log) while writing this. Result: rc=0 — led_state_test passed, Windows static + host oracle pass. Task 2 ticked.
+
+Result: exit 0; done; log: logs/34-m8-led-bar-L29-a2-1791959192497.log
+
+### Done — 2026-10-14 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/34-m8-led-bar.md
+```
