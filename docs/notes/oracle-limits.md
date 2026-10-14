@@ -29,3 +29,11 @@
 - Lua: `reaper.get_time` / `GetSetTransportInfo` do not exist (`time_precise`;
   `GetPlayState`). Scenario bodies run under `run(...)` so Lua runtime errors
   fail fast; a *syntax* error still costs the scenario timeout.
+- **`probe.json` is the finish line.** REAPER is launched with `oracle/run.lua`
+  (which `loadfile`s the scenario, so syntax/top-level errors become a failing
+  `scenario load`/`scenario error` check in ~1 s). `finish()` writes
+  `probe.json` atomically and the harness kills REAPER the moment it appears —
+  Quit dialogs ("REAPER Query" save-changes on a dirty project) no longer
+  matter. A hang (no probe.json within `ORACLE_SCENARIO_TIMEOUT`, default 20 s)
+  gets `hang_bt.txt` (gdb attached to the live process); the gdb/LD_DEBUG
+  re-runs (`bt.txt`) happen only for real crashes (exit >= 128).

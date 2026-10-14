@@ -103,22 +103,23 @@ end
 function oracle.finish()
   local out_dir = os.getenv("ORACLE_OUT")
   if not out_dir then
-    reaper.show("oracle: ORACLE_OUT env not set")
+    reaper.ShowConsoleMsg("oracle: ORACLE_OUT env not set\n")
     return
   end
-  local f = io.open(out_dir .. "/probe.json", "w")
+  -- Write to a temp name then rename: the harness kills REAPER as soon as
+  -- probe.json exists, so it must never see a half-written file.
+  local tmp = out_dir .. "/probe.json.tmp"
+  local f = io.open(tmp, "w")
   if not f then
-    reaper.show("oracle: cannot write " .. out_dir .. "/probe.json")
+    reaper.ShowConsoleMsg("oracle: cannot write " .. tmp .. "\n")
     return
   end
   f:write(encode({ checks = checks, info = info }) .. "\n")
   f:close()
-  -- A scenario that touches the project leaves it dirty, and Quit would then
-  -- block on a "save changes?" dialog until the harness timeout. Save to a
-  -- scratch path (no dialog) first.
-  if reaper.Main_SaveProjectEx then
-    reaper.Main_SaveProjectEx(0, out_dir .. "/scratch.rpp", 0)
-  end
+  os.rename(tmp, out_dir .. "/probe.json")
+  -- The harness kills REAPER once probe.json appears (a dirty project's
+  -- "save changes?" Query would otherwise block Quit). Quit anyway for
+  -- manual runs.
   reaper.Main_OnCommand(40004, 0) -- Quit REAPER
 end
 

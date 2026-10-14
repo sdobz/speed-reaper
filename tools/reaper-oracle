@@ -18,7 +18,8 @@
 #
 # Artifacts (always, in build/oracle/): result.json, trace.txt,
 # reaper.stderr, probe.json (reaper layer);
-# on crash/timeout (reaper exit >=128 or 124): bt.txt (gdb backtrace) and
+# on hang (no probe.json within the timeout): hang_bt.txt (gdb attach to the
+# live process); on crash (reaper exit >=128): bt.txt (gdb backtrace) and
 # reaper.stderr is replaced by the LD_DEBUG=libs loader log (filtered to
 # lines mentioning speed_reaper).
 set -euo pipefail
@@ -157,13 +158,34 @@ run_reaper() {
   # stale file from a previous run would double the checkable lines)
   REAPER_RC=0
   if [[ "$LAYER" == reaper ]]; then rm -f "$OUT/trace.txt"; fi
+  rm -f "$OUT/probe.json.tmp" "$OUT/hang_bt.txt"
   start_dismisser
+  # probe.json (written atomically by finish()) is the finish line: as soon as
+  # it exists REAPER is killed — no waiting on Quit, which a dirty project's
+  # "save changes?" Query can block forever. rc stays 0 in that case.
   HOME="$OUT/home" PATH="$PWD/$OUT/home/bin:$PATH" BROWSER="$PWD/$OUT/home/bin/xdg-open" DBUS_SESSION_BUS_ADDRESS= \
   ORACLE_LIB="$PWD/oracle/lib.lua" \
+  ORACLE_SCENARIO="$PWD/oracle/scenarios/$SCENARIO.lua" \
   ORACLE_OUT="$PWD/$OUT" \
   SPEED_REAPER_TRACE="$PWD/$OUT/trace_$SCENARIO.txt" \
-    timeout "$SCENARIO_TIMEOUT" reaper -newinst -nosplash "oracle/scenarios/$SCENARIO.lua" \
-      2> "$OUT/reaper.stderr" || REAPER_RC=$?
+    reaper -newinst -nosplash oracle/run.lua 2> "$OUT/reaper.stderr" &
+  local pid=$! deadline=$((SECONDS + SCENARIO_TIMEOUT))
+  while kill -0 "$pid" 2>/dev/null; do
+    if [[ -f "$OUT/probe.json" ]]; then
+      kill -KILL "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true
+      stop_dismisser; return 0
+    fi
+    if (( SECONDS >= deadline )); then
+      # Hung: grab a backtrace of the live process (seconds, not a re-run).
+      local elf; elf=$(pgrep -P "$pid" -f reaper-wrapped || true)
+      gdb -batch -p "${elf:-$pid}" -ex 'thread apply all bt' > "$OUT/hang_bt.txt" 2>&1 || true
+      kill -KILL "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true
+      REAPER_RC=124; stop_dismisser; return 0
+    fi
+    sleep 0.05
+  done
+  wait "$pid" || REAPER_RC=$?
+  # exited on its own (e.g. Quit after finish, or a crash)
   stop_dismisser
 }
 
@@ -172,7 +194,8 @@ run_reaper() {
 # under gdb for a backtrace (bt.txt) and under LD_DEBUG=libs, filtered to
 # lines mentioning our plugin, into reaper.stderr.
 run_crash_capture() {
-  local reaper_args=(-newinst -nosplash "oracle/scenarios/$SCENARIO.lua")
+  local reaper_args=(-newinst -nosplash oracle/run.lua)
+  export ORACLE_SCENARIO="$PWD/oracle/scenarios/$SCENARIO.lua"
   local env_file="oracle/scenarios/$SCENARIO.env"
   if [[ -f "$env_file" ]]; then
     # shellcheck disable=SC1090
@@ -227,7 +250,9 @@ if [[ "$LAYER" == reaper || "$LAYER" == all ]]; then
     rm -f "$OUT/probe_$s.json"
     run_reaper || true
     if [[ -f "$OUT/probe.json" ]]; then mv "$OUT/probe.json" "$OUT/probe_$s.json"; fi
-    if [[ $REAPER_RC -ge 128 || $REAPER_RC -eq 124 ]]; then
+    # Re-run under gdb/LD_DEBUG only for a real crash; a hang already got
+    # hang_bt.txt from the live process (re-running costs 2x the timeout).
+    if [[ $REAPER_RC -ge 128 ]]; then
       run_crash_capture || true
     fi
     SCENARIO_RCS+=("$s|$OUT/probe_$s.json|$REAPER_RC")
@@ -277,7 +302,8 @@ if layer in ("reaper", "all"):
             pass
         if not probe.get("checks"):
             if reaper_rc == 124:
-                reason = "scenario timeout (no probe.json within 60 s)"
+                reason = ("scenario timeout (no probe.json within "
+                          + os.environ.get("ORACLE_SCENARIO_TIMEOUT", "20") + " s; see hang_bt.txt)")
             elif reaper_rc >= 128:
                 reason = f"crash (reaper exit {reaper_rc}, no probe.json)"
             else:
