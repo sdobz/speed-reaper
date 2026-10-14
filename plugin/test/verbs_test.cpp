@@ -705,11 +705,141 @@ void test_view_buttons() {
   }
 }
 
+// M7 design §4: hold+rotate. One hold = one undo block; targets resolved
+// once at HoldStart; 4 wheel ticks per step of 1/Fps(); selection
+// snapshotted at HoldStart and restored at HoldEnd.
+void test_hold_rotate() {
+  // 1) SPLIT (MOVE) hold, cursor target, 30 fps: +8 ticks → pos +2 frames
+  // (2/30 s); exactly one Undo_Begin/Undo_End pair; the release restores
+  // the (empty) selection snapshot.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 2.5;  // inside item 0; nothing selected
+    project.last_touched = 0;
+    project.fps = 30.0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldStart));
+    CHECK(project.undo_begins == 1);  // the hold's single undo block
+    CHECK(project.undo_ends == 0);
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldRotate, 3));
+    CHECK(project.items[0].pos == 0.0);  // 3 ticks < one step (4)
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldRotate, 5));  // 8 total → 2 steps
+    CHECK_NEAR(project.items[0].pos, 2.0 / 30.0, 1e-12);  // +2 frames
+    CHECK(project.undo_begins == 1);  // still one block for the whole hold
+    CHECK(project.undo_ends == 0);
+    CHECK(sink.commands.empty());  // pure project API, no REAPER commands
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldEnd));
+    CHECK(project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: move");
+    CHECK(project.selected_calls.size() == 1);  // snapshot restore on release
+    CHECK(project.selected_calls[0].empty());
+
+    // After the hold: a stray HoldRotate/HoldEnd is a no-op.
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldRotate, 8));
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldEnd));
+    CHECK_NEAR(project.items[0].pos, 2.0 / 30.0, 1e-12);  // unchanged
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+  }
+
+  // 2) Hold with no target (cursor in a gap, nothing selected): the whole
+  // HoldStart/Rotate/End sequence does nothing — no undo block, no
+  // selection churn, no geometry change.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.cursor = 5.0;  // in a gap
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldStart));
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldRotate, 8));
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldEnd));
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+    CHECK(project.selected_calls.empty());
+    CHECK(project.items[0].pos == 0.0);
+    CHECK(sink.commands.empty());
+  }
+
+  // 3) TRIM OUT hold with an existing selection (rule 1): each 4-tick step
+  // moves the right edge; the release restores the EXACT selection snapshot
+  // (not the target set, not empty).
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A
+    project.items.push_back(ItemInfo{1, 0, 5.0, 2.0, true});   // B selected
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    project.fps = 30.0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_TRIM_OUT, GestureKind::HoldStart));
+    r.OnGesture(G(KEY_TRIM_OUT, GestureKind::HoldRotate, 4));  // one step
+    CHECK_NEAR(project.items[1].len, 2.0 + 1.0 / 30.0, 1e-12);  // B extended
+    CHECK_NEAR(project.items[0].len, 5.0, 1e-12);  // A untouched (not a target)
+    CHECK(project.selected_calls.empty());  // selection only restored at HoldEnd
+
+    r.OnGesture(G(KEY_TRIM_OUT, GestureKind::HoldEnd));
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: trim out");
+    CHECK(project.selected_calls.size() == 1);
+    CHECK(project.selected_calls[0].size() == 1);
+    CHECK(project.selected_calls[0][0] == 1);  // selection restored: B
+  }
+
+  // 4) Unmapped hold key (ROLL): HoldStart/Rotate/End all do nothing,
+  // even with a target available.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 2.5;
+    project.last_touched = 0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_ROLL, GestureKind::HoldStart));
+    r.OnGesture(G(KEY_ROLL, GestureKind::HoldRotate, 8));
+    r.OnGesture(G(KEY_ROLL, GestureKind::HoldEnd));
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+    CHECK(project.selected_calls.empty());
+    CHECK(project.items[0].pos == 0.0);
+  }
+
+  // 5) Negative ticks: SPLIT hold −4 ticks → pos −1 frame.
+  {
+    FakeSink sink;
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 2.0, 5.0, false});
+    project.cursor = 3.0;
+    project.last_touched = 0;
+    project.fps = 30.0;
+    VerbRouter r(sink, project);
+
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldStart));
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldRotate, -4));  // one step back
+    CHECK_NEAR(project.items[0].pos, 2.0 - 1.0 / 30.0, 1e-12);
+    r.OnGesture(G(KEY_SPLIT, GestureKind::HoldEnd));
+    CHECK(project.undo_ends == 1);
+  }
+}
+
 }  // namespace
 
 int main() {
   test_mapped_gestures();
   test_unmapped_gestures_do_nothing();
+  test_hold_rotate();
   test_trim_composites();
   test_ripl_del_composite();
   test_double_tap_keys();

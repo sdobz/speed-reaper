@@ -4,6 +4,7 @@
 #include <cmath>      // std::log10 (AUDIO LEVEL read-out)
 #include <cstdio>     // std::snprintf (CAM undo labels, AUDIO LEVEL message)
 
+#include "nudge.h"                 // Nudge* hold+rotate math (M7, design §4)
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
 #include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
 #include "trace.h"                 // Trace (no-target diagnostics)
@@ -35,7 +36,8 @@ constexpr VerbRow kVerbTable[] = {
 };
 
 // Command id for a (key, kind) pair, or -1 when the gesture is unmapped
-// (including every Hold* kind: no hold verbs in M3).
+// (including every Hold* kind: the hold+rotate verbs (M7) are handled
+// directly in OnGesture, not through this table).
 int CommandFor(std::uint16_t key, GestureKind kind) {
   for (const auto &row : kVerbTable)
     if (row.key == key && row.kind == kind) return row.command;
@@ -277,9 +279,74 @@ const CompositeRow *CompositeFor(std::uint16_t key, GestureKind kind) {
   return nullptr;
 }
 
+// Hold+rotate verbs (M7, design §4): one hold = one undo block (Undo_Begin
+// at HoldStart, Undo_End at HoldEnd). The target set is resolved ONCE at
+// HoldStart and the selection is snapshotted there, restored at HoldEnd.
+// Each step is one project frame (1/Fps()); 4 wheel ticks per step, the
+// remainder accumulated in HoldNudge (signed, symmetric toward zero).
+struct HoldRow {
+  std::uint16_t key;
+  const char *label;  // Undo_End label: "Speed Reaper: <verb>"
+  ItemGeom (*apply)(const ItemGeom &, int, double);  // nudge.h free function
+};
+
+constexpr HoldRow kHoldRows[] = {
+    {KEY_SPLIT,       "Speed Reaper: move",        NudgeMove},
+    {KEY_TRIM_IN,     "Speed Reaper: trim in",     NudgeTrimIn},
+    {KEY_TRIM_OUT,    "Speed Reaper: trim out",    NudgeTrimOut},
+    {KEY_SLIP_SRC,    "Speed Reaper: slip src",    NudgeSlipSrc},
+    {KEY_SLIP_DEST,   "Speed Reaper: slip dest",   NudgeSlipDest},
+    {KEY_AUDIO_LEVEL, "Speed Reaper: audio level", NudgeVolume},
+};
+
+const HoldRow *HoldRowFor(std::uint16_t key) {
+  for (const auto &row : kHoldRows)
+    if (row.key == key) return &row;
+  return nullptr;
+}
+
 }  // namespace
 
 void VerbRouter::OnGesture(const Gesture &g) {
+  switch (g.kind) {
+    case GestureKind::HoldStart: {
+      const HoldRow *row = HoldRowFor(g.key);
+      if (!row) return;  // unmapped hold key: do nothing
+      const std::vector<int> targets = TargetItems(project_);
+      if (targets.empty()) {
+        Trace("target none");  // no-target hold: do nothing (no undo block)
+        return;
+      }
+      HoldState hold;
+      hold.targets = targets;
+      for (const ItemInfo &item : project_.Items())
+        if (item.selected) hold.selection.push_back(item.id);
+      project_.Undo_Begin();  // one hold = one undo block (design §4)
+      holds_[g.key] = std::move(hold);
+      return;
+    }
+    case GestureKind::HoldRotate: {
+      const auto it = holds_.find(g.key);
+      if (it == holds_.end()) break;  // unmapped / no-target hold: other tables
+      const int steps = it->second.nudge.Add(g.delta);
+      if (steps == 0) return;  // below the 4-tick step threshold
+      const HoldRow &row = *HoldRowFor(g.key);
+      const double step = 1.0 / project_.Fps();  // one project frame
+      for (const int id : it->second.targets)
+        project_.SetGeom(id, row.apply(project_.GetGeom(id), steps, step));
+      return;
+    }
+    case GestureKind::HoldEnd: {
+      const auto it = holds_.find(g.key);
+      if (it == holds_.end()) return;  // no hold active for this key
+      project_.SetSelectedItems(it->second.selection);  // restore snapshot
+      project_.Undo_End(HoldRowFor(g.key)->label);
+      holds_.erase(it);
+      return;
+    }
+    default:
+      break;
+  }
   if (const CompositeRow *row = CompositeFor(g.key, g.kind)) {
     row->run(*this, sink_, project_, g);  // composite rows win over id rows
     return;

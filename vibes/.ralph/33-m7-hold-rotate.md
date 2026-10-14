@@ -87,3 +87,17 @@ Files:
 ```
 M vibes/.ralph/33-m7-hold-rotate.md
 ```
+
+## Task: 4. Hold rows in `VerbRouter`
+
+### Attempt 2 — 2026-10-14T05:49:07Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - `VerbRouter` lives in `plugin/src/verbs.{h,cpp}` (no verb_router file).
+  - Implemented: `kHoldRows` table (SPLIT/MOVE, TRIM IN/OUT, SLIP SRC/DEST, AUDIO LEVEL → nudge.h free fns + labels "Speed Reaper: …"); `VerbRouter::OnGesture` switch on HoldStart (TargetItems once, selection snapshot, Undo_Begin), HoldRotate (per-key `HoldNudge{4}` in `holds_` map; step = 1/Fps(); SetGeom on every target), HoldEnd (restore snapshot, Undo_End, erase). Unmapped keys / no-target holds do nothing. TIMELINE HoldRotate untouched (falls through to its composite row when no M7 hold is active).
+  - main.cpp did NOT feed wheel deltas to `g_gestures` (OnWheel never called). Fix: new `HoldGatedSource` IWheelSource wrapping `g_hid`, inserted before `ModeGatedSource`: while `g_gestures.HoldActive()`, the delta goes to `g_gestures.OnWheel` and is zeroed for the jog/scroll path. `g_gestures` global moved above the wrapper (name lookup in inline member).
+  - Added `test_hold_rotate()` to verbs_test.cpp: SPLIT +8 ticks → pos +2/30 s, one undo pair; no-target hold → nothing; selection snapshot restored at HoldEnd; unmapped ROLL hold → nothing; negative ticks.
+  - No new untracked source files this task (all edits to tracked files), so no `git add` needed for the flake copy.
+  - Plain PATH has no ninja/cmake; `tools/check` self-enters `nix develop`. Running full `tools/check verbs` via bgrun job `verbs-check-2` (log `vibes/.ralph/logs/verbs-check-2.log`).
+- Next:
+  - DONE: `tools/check verbs` green (rc=0; verbs_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host). Line 62 ticked.

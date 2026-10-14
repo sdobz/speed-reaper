@@ -59,7 +59,7 @@ tools/check nudge
 tools/check verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Oracle scenarios for hold + rotate (5a–5c)
 

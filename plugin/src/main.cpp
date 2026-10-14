@@ -239,9 +239,31 @@ HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
 ReaperActionSink g_action_sink;
 Router g_router(g_action_sink); // owns the wheel mode (Jog/Scrl) from HID buttons
 ReaperProject g_project; // IProject over the REAPER API (M5 design §2)
-VerbRouter g_verb_router(g_action_sink, g_project); // gestures → verbs (design §7; M5 composites)
 GestureEngine g_gestures; // tap / double-tap / hold recognition (design §7)
-ModeGatedSource g_gated_source(g_hid, g_router); // HID delta: pass-through in Jog, scroll in Scrl
+VerbRouter g_verb_router(g_action_sink, g_project); // gestures → verbs (design §7; M5 composites)
+
+// Design §7: while any key is held, the HID wheel delta goes to the gesture
+// engine (hold + rotate) — not the jog/scroll path. Held BEFORE the
+// ModeGatedSource so the delta never reaches the Router or the engine's
+// playhead/scroll code while a hold is active.
+class HoldGatedSource : public IWheelSource {
+ public:
+  explicit HoldGatedSource(IWheelSource &hid) : hid_(hid) {}
+  void Tick(WheelSample *out) override {
+    WheelSample s;
+    hid_.Tick(&s);
+    if (g_gestures.HoldActive()) {
+      g_gestures.OnWheel(s.delta, 0);  // now_ms is unused by OnWheel
+      s.delta = 0;  // held key owns the wheel
+    }
+    *out = s;
+  }
+
+ private:
+  IWheelSource &hid_;
+};
+HoldGatedSource g_hold_gated_source(g_hid); // design §7 hold+rotate wheel
+ModeGatedSource g_gated_source(g_hold_gated_source, g_router); // HID delta: pass-through in Jog, scroll in Scrl
 SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
 bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
 int g_snap_mask = -1; // last pushed SNAP-LED mask; -1 = not sent (force send)
