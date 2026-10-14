@@ -1,0 +1,6 @@
+# smth_cut scenario (vibes/32-m6-simple-verbs.md task 6b).
+# One gesture: SMTH CUT 0x11 tap (~410 ms) -> cmd 40916, auto-fades at the
+# item boundary (1.5 s) that lies strictly inside the time selection [1,2].
+# The time selection is set by the Lua setup, not by this device script.
+at 400 key 0x11 down
+at 450 key 0x11 up

@@ -316,3 +316,31 @@ M oracle/fake/simple_verbs.txt
  M vibes/.ralph/32-m6-simple-verbs.md
  M vibes/32-m6-simple-verbs.md
 ```
+
+## Task: 6b. Scenario `smth_cut`: SMTH CUT crossfades a meeting boundary
+
+### Attempt 2 — 2026-10-14T04:50:46Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: KEY_SMTH_CUT=0x11 tap → 40916 only if `project.HasTimeSelection()` (verbs.cpp SmthCutTap, trace `no time selection` otherwise). Probe files referenced by docs (keep): probe_smth/sv2/sv3/sv4/sv5 (m5-observations.md ## M6 + vibes/32); deleted unreferenced: probe_mkr, probe_sv6, probe_undo, probe_xf2, probe_xf3 (+probe_xf3.env). Wrote oracle/scenarios/smth_cut.{lua,env} + oracle/fake/smth_cut.txt (tap 0x11 @400/450); setup: 1 track, A[0,1.5]+C[1.5,5] tone sources, tsel [1,2], 40717 select in a defer (probe_sv4 pattern); wait_ms(1500) then check fades + trace `cmd 40916` / `gesture 0011 tap`. Added smth_cut to REAPER_SCENARIOS in tools/reaper-oracle.
+- Facts: verify job running as `smth_cut` (bgrun); log at vibes/.ralph/logs/smth_cut.log; output in build/oracle/probe_smth_cut.json + trace_smth_cut.txt.
+- Dead ends: `reaper.CountMediaItems(tr)` errors ("ReaProject expected") — Lua signature is `CountMediaItems(project, track)`, use `CountMediaItems(nil, tr)` (per oracle-scenario-rules it is the project total). Fixed; re-running.
+- Next: done. PASS on second run: A fout_auto=1.0, C fin_auto=1.0 (values in build/oracle/probe_smth_cut.json); trace 482 ms: gesture 0011 tap + cmd 40916.
+
+Result: exit 0; done; 9 files changed, 11 insertions(+), 386 deletions(-); log: logs/32-m6-simple-verbs-L99-a2-1791953446627.log
+
+### Done — 2026-10-14 — 2 attempt(s)
+Files:
+```
+D oracle/scenarios/probe_mkr.lua
+ D oracle/scenarios/probe_sv6.lua
+ D oracle/scenarios/probe_undo.lua
+ D oracle/scenarios/probe_xf2.lua
+ D oracle/scenarios/probe_xf3.env
+ D oracle/scenarios/probe_xf3.lua
+ M tools/reaper-oracle
+ M vibes/.ralph/32-m6-simple-verbs.md
+ M vibes/32-m6-simple-verbs.md
+?? oracle/fake/smth_cut.txt
+?? oracle/scenarios/smth_cut.env
+?? oracle/scenarios/smth_cut.lua
+```

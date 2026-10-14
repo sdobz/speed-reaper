@@ -96,7 +96,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 tools/reaper-oracle --layer reaper --scenario smth_cut
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 6c. Scenario `place_on_top`: PLACE ON TOP duplicates the target
 
