@@ -405,3 +405,11 @@ Facts:
 - CAM LEDs noted as "not yet wired (M8)" in step 1 per task instruction.
 
 Next: task complete — verify grep passes, tick line 141 in vibes/32-m6-simple-verbs.md.
+
+Result: exit 0; done; log: logs/32-m6-simple-verbs-L141-a5-1791955290863.log
+
+### Done — 2026-10-14 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
