@@ -77,6 +77,10 @@
 #define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
+#define REAPERAPI_WANT_TimeMap_curFrameRate // ReaperProject::Fps
+#define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
+#define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
+#define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
 #include "reaper_plugin_functions.h"
 #include "jog_engine.h"
 #include "hid_wheel_source.h"

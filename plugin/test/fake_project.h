@@ -39,6 +39,13 @@ class FakeProject final : public IProject {
   // item at default volume (1.0 = 0 dB). An out-of-range id reports 0.0.
   std::vector<double> item_volumes;
 
+  // Geometry (M7): index-aligned with items; a valid id with no entry has
+  // plain values (pos/len from items[id], startoffs 0, playrate 1.0, vol
+  // 1.0). SetGeom writes both geoms[id] and items[id].pos/len; an
+  // out-of-range id is a no-op.
+  std::vector<ItemGeom> geoms;
+  double fps = 30.0;
+
   // DuplicateItemsAbove calls in order (the ids passed).
   std::vector<std::vector<int>> duplicate_calls;
 
@@ -92,6 +99,26 @@ class FakeProject final : public IProject {
   double ItemVolume(int id) override {
     if (id < 0 || id >= static_cast<int>(items.size())) return 0.0;
     return id < static_cast<int>(item_volumes.size()) ? item_volumes[id] : 1.0;
+  }
+  double Fps() override { return fps; }
+  ItemGeom GetGeom(int id) override {
+    ItemGeom g{0.0, 0.0, 0.0, 1.0, 1.0};  // default for a valid id, no entry
+    if (id < 0 || id >= static_cast<int>(items.size())) return g;
+    g.pos = items[id].pos;
+    g.len = items[id].len;
+    if (id < static_cast<int>(geoms.size())) {
+      g.startoffs = geoms[id].startoffs;
+      g.playrate = geoms[id].playrate;
+      g.vol = geoms[id].vol;
+    }
+    return g;
+  }
+  void SetGeom(int id, const ItemGeom &g) override {
+    if (id < 0 || id >= static_cast<int>(items.size())) return;
+    if (id >= static_cast<int>(geoms.size())) geoms.resize(id + 1);
+    geoms[id] = g;
+    items[id].pos = g.pos;
+    items[id].len = g.len;
   }
   // Unique track indices of the valid ids, in order of first appearance.
   std::vector<int> TargetTracksOf(const std::vector<int> &item_ids) const {

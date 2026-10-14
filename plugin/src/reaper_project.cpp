@@ -35,6 +35,10 @@
 #define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
 #define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
+#define REAPERAPI_WANT_TimeMap_curFrameRate // ReaperProject::Fps
+#define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
+#define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
+#define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
 #include "reaper_plugin_functions.h"
 
 namespace {
@@ -192,6 +196,41 @@ void ReaperProject::SetItemActiveTake(int id, int take) {
 double ReaperProject::ItemVolume(int id) {
   MediaItem *item = ItemById(id);
   return item ? GetMediaItemInfo_Value(item, "D_VOL") : 0.0;
+}
+
+double ReaperProject::Fps() {
+  bool drop = false;
+  const double fps = TimeMap_curFrameRate(nullptr, &drop);
+  return fps > 0.0 ? fps : 30.0;
+}
+
+ItemGeom ReaperProject::GetGeom(int id) {
+  ItemGeom g{0.0, 0.0, 0.0, 1.0, 0.0};
+  MediaItem *item = ItemById(id);
+  if (!item) return g;
+  g.pos = GetMediaItemInfo_Value(item, "D_POSITION");
+  g.len = GetMediaItemInfo_Value(item, "D_LENGTH");
+  g.vol = GetMediaItemInfo_Value(item, "D_VOL");
+  MediaItem_Take *take = GetActiveTake(item);
+  if (take) {
+    g.startoffs = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
+    g.playrate = GetMediaItemTakeInfo_Value(take, "D_PLAYRATE");
+  }
+  return g;
+}
+
+void ReaperProject::SetGeom(int id, const ItemGeom &g) {
+  MediaItem *item = ItemById(id);
+  if (!item) return;
+  SetMediaItemInfo_Value(item, "D_POSITION", g.pos);
+  SetMediaItemInfo_Value(item, "D_LENGTH", g.len);
+  SetMediaItemInfo_Value(item, "D_VOL", g.vol);
+  MediaItem_Take *take = GetActiveTake(item);
+  if (take) {
+    SetMediaItemTakeInfo_Value(take, "D_STARTOFFS", g.startoffs);
+    SetMediaItemTakeInfo_Value(take, "D_PLAYRATE", g.playrate);
+  }
+  UpdateItemInProject(item);
 }
 
 // PLACE ON TOP (M6 design §3): one new track above each source track;

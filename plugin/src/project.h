@@ -15,6 +15,17 @@ struct ItemInfo {
   bool selected;
 };
 
+// Item geometry (M7): item-level pos/len/vol plus active-take start offset
+// and play rate. A bad id yields {0, 0, 0, 1, 1} (or zeros on the Reaper
+// side, mirroring ItemVolume's 0.0).
+struct ItemGeom {
+  double pos;        // D_POSITION, seconds
+  double len;        // D_LENGTH, seconds
+  double startoffs;  // active take D_STARTOFFS, seconds
+  double playrate;   // active take D_PLAYRATE, 1.0 = normal speed
+  double vol;        // D_VOL, linear (1.0 = 0 dB)
+};
+
 class IProject {
  public:
   virtual ~IProject() = default;
@@ -33,6 +44,13 @@ class IProject {
   virtual int ItemActiveTake(int id) = 0;  // 0-based (I_CURTAKE); -1 if none
   virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
   virtual double ItemVolume(int id) = 0;  // D_VOL, linear (1.0 = 0 dB)
+  virtual double Fps() = 0;  // TimeMap_curFrameRate; 30.0 if unknown
+  // Item geometry (M7). pos/len/vol are item properties (D_POSITION,
+  // D_LENGTH, D_VOL); startoffs/playrate come from the active take
+  // (D_STARTOFFS, D_PLAYRATE). SetGeom writes all five and calls
+  // UpdateItemInProject; a bad id is a no-op.
+  virtual ItemGeom GetGeom(int id) = 0;
+  virtual void SetGeom(int id, const ItemGeom &g) = 0;
   // PLACE ON TOP (M6): duplicate the given ids onto one new track above
   // each source track, same position; the originals and their selection
   // are left alone. Bad ids are ignored.

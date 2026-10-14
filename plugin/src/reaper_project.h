@@ -31,6 +31,9 @@ class ReaperProject final : public IProject {
   int ItemActiveTake(int id) override;
   void SetItemActiveTake(int id, int take) override;
   double ItemVolume(int id) override;
+  double Fps() override;
+  ItemGeom GetGeom(int id) override;
+  void SetGeom(int id, const ItemGeom &g) override;
   void DuplicateItemsAbove(const std::vector<int> &ids) override;
   void ToggleIsolateTracks(const std::vector<int> &item_ids) override;
   void ToggleSoloTracks(const std::vector<int> &item_ids) override;

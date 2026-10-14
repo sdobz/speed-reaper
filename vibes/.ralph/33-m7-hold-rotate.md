@@ -47,3 +47,27 @@ Trigger: 2 attempt(s), last: timeout after 180s without tool use (monologuing/st
 Why: The worker stalled in a research monologue: it hunted the old REAPER name GetMediaTakeInfo_Value, found it nowhere, and spent 180s deciding whether take properties are even reachable — while the task's real blocker was never naming the 7.x functions (GetMediaItemTakeInfo_Value/SetMediaItemTakeInfo_Value + GetActiveTake) that the vendored SDK header does provide.
 Rejected: SPLIT: any split (fake/interface first, ReaperProject second) breaks the build — a new pure virtual without the ReaperProject override fails tools/check, so no first child can pass its verify. SPIKE: the open question is factual and already answered (functions verified present in vendor/reaper-sdk/sdk/reaper_plugin_functions.h); the facts go straight into the body. BUDGET: record shows zero code progress and the run died at ~3 of 30 min monologuing, not from budget exhaustion. BLOCK: no human decision is needed.
 Log: logs/33-m7-hold-rotate-L30-replan-1791956186691.log
+
+### Attempt 1 — 2026-10-14T05:41:11Z — budget 1800s
+
+Facts:
+- Confirmed in vendor/reaper-sdk/sdk/reaper_plugin_functions.h: `TimeMap_curFrameRate(ReaProject*, bool* dropFrameOut)` (line ~7142), `GetActiveTake(MediaItem*)` (~1478), `GetMediaItemTakeInfo_Value` (~2087), `SetMediaItemTakeInfo_Value` (~6099). All four wired with REAPERAPI_WANT in both reaper_project.cpp and main.cpp.
+- ReaperProject uses nullptr as the project (current project), so Fps() calls `TimeMap_curFrameRate(nullptr, &drop)`.
+- Implemented: ItemGeom + Fps/GetGeom/SetGeom in project.h (pure), reaper_project.h/.cpp, fake_project.h (geoms vector + `double fps = 30.0`). No new files created, so no git add needed.
+- Fake bad-id GetGeom returns {0,0,0,1,1}; valid-id missing-entry also {0,0,0,1,1} with pos/len from items[id]; Reaper bad-id returns {0,0,0,1,0} (vol 0 mirrors ItemVolume).
+
+Result: DONE — `tools/check` exit 0 (job `geom-check`): 12/12 unit tests, Windows oracle DLL build + host oracle pass. Line 30 ticked [x].
+
+Result: exit 0; done; 7 files changed, 102 insertions(+), 1 deletion(-); log: logs/33-m7-hold-rotate-L30-a1-1791956471233.log
+
+### Done — 2026-10-14 — 1 attempt(s)
+Files:
+```
+M plugin/src/main.cpp
+ M plugin/src/project.h
+ M plugin/src/reaper_project.cpp
+ M plugin/src/reaper_project.h
+ M plugin/test/fake_project.h
+ M vibes/.ralph/33-m7-hold-rotate.md
+ M vibes/33-m7-hold-rotate.md
+```
