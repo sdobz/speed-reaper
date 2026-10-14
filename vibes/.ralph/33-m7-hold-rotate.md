@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - `tools/check` cross-builds the Windows plugin via nix, and the flake’s `src = ./.` copy includes only git-tracked files. `git add` any newly created source before relying on `tools/check` (or it fails with “Cannot find source file”).
+- Oracle scenarios: items made with `AddMediaItemToTrack` have **no take** — take-level props (D_STARTOFFS etc.) need `AddTakeToMediaItem(it,true)` + `SetMediaItemTake_Source` (smth_cut layout); `reaper.CountMediaItemTakes` is not in this build’s Lua API.
 
 
 ## Task: 1. `HoldNudge` accumulator (pure)
@@ -130,4 +131,35 @@ Result: exit 0; done; log: logs/33-m7-hold-rotate-L77-a3-1791957440565.log
 Files:
 ```
 M vibes/.ralph/33-m7-hold-rotate.md
+```
+
+## Task: 5b. Scenario `hold_slip_vol`: SLIP SRC and AUDIO LEVEL holds
+
+### Attempt 4 — 2026-10-14T06:05:03Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Keys (src/speed_editor/key_map.h): SLIP SRC = 0x0C, AUDIO LEVEL = 0x2C. NudgeSlipSrc: startoffs += step*playrate (1/30 @ 4 ticks, playrate 1.0), pos/len fixed; NudgeVolume: +0.5 dB/step → vol 1.0 → 10^(0.5/20). ReaperProject::SetGeom writes item D_VOL and active-take D_STARTOFFS/D_PLAYRATE.
+  - Wrote oracle/fake/hold_slip_vol.txt (0x0C down 300, 4×`wheel 1` @700–724, up 1200; 0x2C down 1600, 4×`wheel 1` @2000–2024, up 2500), oracle/scenarios/hold_slip_vol.env + .lua (same setup as 5a; final checks: startoffs≈1/30 ±1ms, pos/len unchanged, vol≈10^(0.5/20) ±1e-4, selection empty every sample, trace 000c/002c start/rotate/end, no cmd lines). Added `hold_slip_vol` to REAPER_SCENARIOS in tools/reaper-oracle.
+  - Plugin unchanged since 5a (which needed no rebuild), so `--layer reaper` runs without tools/check.
+  - Verify running as bgrun job `hsv-verify` (log vibes/.ralph/logs/hsv-verify.log).
+- Dead ends:
+  - First run: all checks passed except startoffs=-1 — `AddMediaItemToTrack` items have **no take** in this REAPER build (probe: `GetMediaItemTake(it,0)` nil, `GetActiveTake` nil), so `SetGeom`'s take branch (D_STARTOFFS) is skipped and the Lua read got nil. vol check passed (item-level D_VOL).
+  - Fix: build the item like `smth_cut.lua` — `AddTakeToMediaItem(it,true)` + `SetMediaItemTake_Source` on a generated tone wav (6 s > item len 5 s). Re-running as job `hsv-verify2`.
+- Facts:
+  - `reaper.CountMediaItemTakes` is NOT in this build's Lua API (nil field). Use `GetMediaItemTake(it,0)`.
+  - `REAPER_SCENARIOS` env var is ignored by tools/reaper-oracle (the script reassigns it); ad-hoc runs need `--scenario <name>` + matching `oracle/scenarios/<name>.lua/.env`. Probe scenario `probe_takes` deleted.
+- Next:
+  - DONE: job `hsv-verify2` → `ORACLE PASS reaper/hold_slip_vol`, rc=0 (startoffs=1/30, vol=10^(0.5/20), selection empty, trace 000c/002c clean). Line 90 ticked [x].
+
+Result: exit 0; done; 3 files changed, 21 insertions(+), 2 deletions(-); log: logs/33-m7-hold-rotate-L90-a4-1791957903885.log
+
+### Done — 2026-10-14 — 4 attempt(s)
+Files:
+```
+M tools/reaper-oracle
+ M vibes/.ralph/33-m7-hold-rotate.md
+ M vibes/33-m7-hold-rotate.md
+?? oracle/fake/hold_slip_vol.txt
+?? oracle/scenarios/hold_slip_vol.env
+?? oracle/scenarios/hold_slip_vol.lua
 ```

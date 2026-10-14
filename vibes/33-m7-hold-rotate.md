@@ -87,7 +87,7 @@ tools/reaper-oracle --layer reaper --scenario hold_move_trim
 tools/reaper-oracle --layer reaper --scenario hold_slip_vol
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 5c. Scenario `hold_undo`: ESC restores a hold in one undo step
 

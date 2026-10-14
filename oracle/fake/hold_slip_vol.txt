@@ -1,0 +1,26 @@
+# hold_slip_vol scenario (vibes/33-m7-hold-rotate.md task 5b).
+#
+# Hold SLIP SRC (0x0C) and rotate the wheel: +4 ticks (4 x `wheel 1`) =
+# 1 step at 4 ticks/step -> A.take.startoffs 0 -> +1/30 (project 30 fps,
+# playrate 1.0), pos/len unchanged.
+# Hold AUDIO LEVEL (0x2C) and rotate: +4 ticks = +1 step of 0.5 dB ->
+# A.vol 1.0 -> 10^(0.5/20).
+#
+# Hold recognition (plugin/src/gesture.cpp): a press stays >= 350 ms
+# (hold_ms) before HoldStart; wheel events while the key is down go to
+# the gesture engine (HoldGatedSource in main.cpp), one HoldRotate per
+# non-zero delta; key-up after a hold emits HoldEnd only (no tap).
+# The wheel delta IS the tick count (design: +/-1 tick per rotation
+# step; hold_nudge.h).
+at 300 key 0x0C down    # SLIP SRC held; HoldStart at ~650
+at 700 wheel 1
+at 708 wheel 1
+at 716 wheel 1
+at 724 wheel 1          # 4 ticks -> 1 step -> A.startoffs +1/30
+at 1200 key 0x0C up     # HoldEnd: selection restored (empty)
+at 1600 key 0x2C down   # AUDIO LEVEL held; HoldStart at ~1950
+at 2000 wheel 1
+at 2008 wheel 1
+at 2016 wheel 1
+at 2024 wheel 1         # 4 ticks -> 1 step -> A.vol * 10^(0.5/20)
+at 2500 key 0x2C up     # HoldEnd
