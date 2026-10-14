@@ -13,6 +13,7 @@ Durable facts every task should know (keep short).
 - REAPER 7.x Lua quirks (verified, see docs/notes/m5-observations.md ## M6): track name param is `P_NAME` ("NAME" silently fails both directions); `GetSetMediaTrackInfo_String` is 4-arg (no buf_len); `EnumProjectMarkers` returns (retval, isrgn, pos, rgnend, name, markrgnindexnumber) 0-based, idx 0's first return is retval not count — count with `GetNumRegionsOrMarkers(nil)`; `InsertTrackAtIndex` returns nothing in Lua (use `GetTrack`); `MediaTrack`/`ProjectMarker` are userdata (no `.name` field).
 - tools/check needs the nix dev shell for cmake (`nix develop --command ...`); it runs: make -C src, plugin build with -Werror + SPEED_REAPER_FAKE_DEVICE=ON, nm export check, ctest, Windows cross build (tools/windows-oracle --layer static), oracle host layer. Set SKIP_WINDOWS=1 / ORACLE_FULL for variants.
 - REAPER 7.81 Lua: `GetSetMediaTrackInfo_String(tr, par, newval, set)` returns a boolean (retval), not the string value — verified in the 6c probe; do not read names from its return.
+- tools/reaper-oracle: `--layer reaper` without --scenario runs ONLY `load`; the full reaper suite is `--layer all` (host layer + every scenario in REAPER_SCENARIOS). Since M5, `--layer all` is red on `verbs`: its want_cmds list (8 ids) predates the RIPL DEL composite and must be {40012,40625,40626,40511,40635,40310,40006,40309,1157,40029} — stale expect, not a regression.
 - "Above" in track order = SMALLER index (track 0 is the arrange top). `InsertTrackInProject(nullptr, idx, flags)` (void) inserts a new track at idx; source track at idx shifts to idx+1. Inserting into several tracks in one pass: process indices DESCENDING so smaller pending indices stay valid. `GetItemStateChunk(item, buf, sz, bool)` (bool ret, C string) / `SetItemStateChunk(item, str, bool)` copy an item's state; `AddMediaItemToTrack(track)` creates the empty item.
 - REAPER crossfade item actions (measured headless, tone sources): `40916` "Crossfade items within time selection" creates auto-fades ONLY at item boundaries (meeting pairs, or lane overlap starts) that lie strictly INSIDE the time selection; overlapping items that span the selection with no internal boundary are untouched (40916 AND `41059` no-op). Selection state does not matter. These are the only two crossfade-CREATING item actions in docs/reaper-actions.tsv. There is no "split items at time selection" action. Item selection can only be set via commands in this Lua build (40717 select-in-tsel; 40289/40297/40769 deselect); `B_SELECTED` writes are no-ops.
 
@@ -366,3 +367,20 @@ M tools/reaper-oracle
 ?? oracle/scenarios/place_on_top.env
 ?? oracle/scenarios/place_on_top.lua
 ```
+
+## Task: 6d. Scenario `view_solo`: AUDIO_ONLY and VIDEO_ONLY re-tap restores
+
+### Attempt 4 — 2026-10-14T05:10:50Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- No partial work from earlier attempts (tree clean); wrote oracle/fake/view_solo.txt, oracle/scenarios/view_solo.{env,lua}, added `view_solo` to REAPER_SCENARIOS in tools/reaper-oracle.
+- Design: two independent taps per verb (500 ms apart > 300 ms double_tap window) at 400/900 (0x26) and 1400/1900 (0x25); fires on release at device-up-40 → ~410/910/1410/1910 script ms; sample 2400 ms.
+- Target: item A selected via SetMediaItemSelected (B_UISEL — reliable per M6 notes; TargetItems rule 1) + cursor 2.5 s inside both items (rule-2 fallback). Assertions use solo SUM and B_SHOWINTCP COUNT, independent of which track is target.
+- Both verbs run no REAPER command (project API only): trace check asserts no ` cmd ` lines and no `target none`.
+- `tools/reaper-oracle --layer reaper` WITHOUT --scenario only runs `load` (the full list applies only to `--layer all`); the full reaper suite is `--layer all` (host + 11 scenarios).
+- view_solo PASSED on first run (job view_solo_one, log vibes/.ralph/logs/view_solo_one.log).
+- Full suite (`--layer all`, job view_solo_all): view_solo PASS; all scenarios pass EXCEPT pre-existing `verbs`: want_cmds {…40006…} (8 ids) predates the M5 RIPL DEL composite — actual trace `40012 40625 40626 40511 40635 40310 40006 40309 1157 40029` is exactly the intended M5 sequence (target.lua verifies the same 40310/40006/40309 wrap). Not caused by this task: I only appended view_solo to REAPER_SCENARIOS; verbs runs in its own REAPER process with its own device file. Left verbs.lua untouched (out of scope); the stale expect should become {40012,40625,40626,40511,40635,40310,40006,40309,1157,40029}.
+- Verify command (`--layer reaper --scenario view_solo && --layer reaper`) passes: view_solo + load both green.
+
+Next: done — checkbox ticked. If a future task runs `--layer all` and hits the red `verbs` check, fix oracle/scenarios/verbs.lua want_cmds per the Facts bullet above (stale since M5, not a regression).

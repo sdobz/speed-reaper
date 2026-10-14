@@ -1,0 +1,14 @@
+# view_solo scenario (vibes/32-m6-simple-verbs.md task 6d).
+# Four INDEPENDENT taps (device clock): AUDIO_ONLY 0x26 x2, then
+# VIDEO_ONLY 0x25 x2. Consecutive presses are 500 ms apart — wider than
+# the 300 ms double_tap_ms window in plugin/src/gesture.h — so the plugin
+# never merges a pair into a double_tap; each pair is two solo/isolate
+# toggles (the second restores the saved flags).
+at 400 key 0x26 down   # AUDIO_ONLY tap 1 -> solo the target track(s)
+at 450 key 0x26 up
+at 900 key 0x26 down   # AUDIO_ONLY tap 2 -> restore saved I_SOLO flags
+at 950 key 0x26 up
+at 1400 key 0x25 down  # VIDEO_ONLY tap 1 -> isolate the target track(s)
+at 1450 key 0x25 up
+at 1900 key 0x25 down  # VIDEO_ONLY tap 2 -> restore saved visibility
+at 1950 key 0x25 up

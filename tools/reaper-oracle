@@ -235,7 +235,7 @@ run_crash_capture() {
 # VIEW — vibes/32-m6-simple-verbs.md task 6).
 REAPER_SCENARIOS=("$SCENARIO")
 if [[ $SCENARIO_EXPLICIT -eq 0 && "$LAYER" == all ]]; then
-  REAPER_SCENARIOS=(load jog_demo hid_wheel buttons verbs ripple_del shuttle target simple_verbs smth_cut place_on_top)
+  REAPER_SCENARIOS=(load jog_demo hid_wheel buttons verbs ripple_del shuttle target simple_verbs smth_cut place_on_top view_solo)
 fi
 
 HOST_RC=0

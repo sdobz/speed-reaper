@@ -127,7 +127,7 @@ tools/reaper-oracle --layer reaper --scenario place_on_top
 tools/reaper-oracle --layer reaper --scenario view_solo && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. SMOKE-TEST.md: "M6 — takes, marker, view"
 
