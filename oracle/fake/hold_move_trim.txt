@@ -1,0 +1,25 @@
+# hold_move_trim scenario (vibes/33-m7-hold-rotate.md task 5a).
+#
+# Hold SPLIT (0x2F) and rotate the wheel: +8 ticks (4 x `wheel 2`) =
+# 2 steps at 4 ticks/step -> A.pos 0 -> +2/30 (project 30 fps).
+# Hold TRIM OUT (0x0A) and rotate: -8 ticks (4 x `wheel -2`) = -2
+# steps -> A.len 5 -> 5 - 2/30.
+#
+# Hold recognition (plugin/src/gesture.cpp): a press stays >= 350 ms
+# (hold_ms) before HoldStart; wheel events while the key is down go to
+# the gesture engine (HoldGatedSource in main.cpp), one HoldRotate per
+# non-zero delta; key-up after a hold emits HoldEnd only (no tap).
+# The wheel delta IS the tick count (design: +/-1 tick per rotation
+# step; hold_nudge.h).
+at 300 key 0x2F down    # SPLIT held; HoldStart at ~650
+at 700 wheel 2
+at 708 wheel 2
+at 716 wheel 2
+at 724 wheel 2          # 8 ticks -> 2 steps -> A.pos +2/30
+at 1200 key 0x2F up     # HoldEnd: selection restored (empty)
+at 1600 key 0x0A down   # TRIM OUT held; HoldStart at ~1950
+at 2000 wheel -2
+at 2008 wheel -2
+at 2016 wheel -2
+at 2024 wheel -2        # -8 ticks -> -2 steps -> A.len -2/30
+at 2500 key 0x0A up     # HoldEnd

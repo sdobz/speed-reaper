@@ -74,7 +74,7 @@ tools/check verbs
 tools/reaper-oracle --layer reaper --scenario hold_move_trim
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 5b. Scenario `hold_slip_vol`: SLIP SRC and AUDIO LEVEL holds
 

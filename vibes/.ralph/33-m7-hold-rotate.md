@@ -109,3 +109,17 @@ Files:
 ```
 M vibes/.ralph/33-m7-hold-rotate.md
 ```
+
+## Task: 5a. Scenario `hold_move_trim`: SPLIT and TRIM OUT holds
+
+### Attempt 3 — 2026-10-14T05:57:20Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Fake grammar: `at <ms> wheel <delta>` / `at <ms> key <hex> down|up`; the wheel delta is the raw tick count passed straight through HoldGatedSource → `GestureEngine::OnWheel` → `HoldNudge::Add` (no scaling), so `wheel 2` = 2 ticks. One `hold_rotate` gesture per non-zero wheel event.
+  - Keys (src/speed_editor/key_map.h): SPLIT 0x2F, TRIM OUT 0x0A. Hold recognition: `hold_ms=350` (gesture.h); key-up after a hold emits HoldEnd only (no tap). TRIM OUT is NOT a double-tap key, so no tap-defer interference.
+  - TargetItems with empty selection = cursor item (target.cpp rule 2): cursor 2.5 inside A [0,5] → A is the hold target; selection is never touched by the hold path.
+  - Wrote oracle/fake/hold_move_trim.txt (SPLIT down 300, 4×`wheel 2` @700–724, up 1200; TRIM OUT down 1600, 4×`wheel -2` @2000–2024, up 2500), oracle/scenarios/hold_move_trim.env + .lua (samples every defer cycle: count==1, B_UISEL==0; final pos≈2/30, len≈5−2/30 with 1 ms tol — covers fps 30 or 29.97; trace: collapsed hold_start/rotate/end per key in order + zero `cmd` lines), added `hold_move_trim` to REAPER_SCENARIOS in tools/reaper-oracle.
+  - Plugin source unchanged since task 4 (which passed tools/check), so `--layer reaper` needs no rebuild.
+  - Verify running as bgrun job `hmt-verify` (log vibes/.ralph/logs/hmt-verify.log).
+- Next:
+  - DONE first try: job `hmt-verify` → `ORACLE PASS reaper/hold_move_trim`, RC=0. Line 77 ticked [x].
