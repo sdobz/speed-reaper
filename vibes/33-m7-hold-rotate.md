@@ -100,7 +100,7 @@ tools/reaper-oracle --layer reaper --scenario hold_slip_vol
 tools/reaper-oracle --layer reaper --scenario hold_undo
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. SMOKE-TEST.md: "M7 — hold + rotate"
 

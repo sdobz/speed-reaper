@@ -1,0 +1,27 @@
+# hold_undo scenario (vibes/33-m7-hold-rotate.md task 5c).
+#
+# Hold SPLIT (0x2F) and rotate the wheel: +8 ticks (4 x `wheel 2`) =
+# 2 steps at 4 ticks/step -> A.pos 0 -> +2/30 (project 30 fps). The
+# whole hold is one undo block (Undo_Begin at HoldStart, Undo_End
+# "Speed Reaper: move" at HoldEnd), so the 8 SetGeom writes land in ONE
+# undo step, not eight.
+# Then ESC (0x31) double-tap -> cmd 40029 (Edit: Undo): A.pos goes back
+# to 0 in that single step.
+#
+# Hold recognition (plugin/src/gesture.cpp): a press stays >= 350 ms
+# (hold_ms) before HoldStart; wheel events while the key is down go to
+# the gesture engine (HoldGatedSource in main.cpp), one HoldRotate per
+# non-zero delta; key-up after a hold emits HoldEnd only (no tap).
+# ESC is a double-tap key (double_tap_ms = 300): the second press
+# inside the window promotes the pair to DoubleTap and suppresses the
+# single Tap.
+at 300 key 0x2F down    # SPLIT held; HoldStart at ~650
+at 700 wheel 2
+at 708 wheel 2
+at 716 wheel 2
+at 724 wheel 2          # 8 ticks -> 2 steps -> A.pos +2/30 (one undo block)
+at 1200 key 0x2F up     # HoldEnd: Undo_End("Speed Reaper: move")
+at 1600 key 0x31 down   # ESC press 1 (deferred: waiting for press 2)
+at 1650 key 0x31 up
+at 1750 key 0x31 down   # ESC press 2 (100 ms after release) -> DoubleTap
+at 1800 key 0x31 up     # cmd 40029 (Edit: Undo) fires at ~1750

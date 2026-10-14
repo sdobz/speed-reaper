@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - `tools/check` cross-builds the Windows plugin via nix, and the flake’s `src = ./.` copy includes only git-tracked files. `git add` any newly created source before relying on `tools/check` (or it fails with “Cannot find source file”).
+- Controller key map (src/speed_editor/key_map.h): ESC = 0x31 (double-tap → cmd 40029 Edit: Undo); 0x1B is TIMELINE. Double-tap pattern in fake device files: down/up 50 ms apart, second press ≤300 ms after release (verbs.txt).
 - Oracle scenarios: items made with `AddMediaItemToTrack` have **no take** — take-level props (D_STARTOFFS etc.) need `AddTakeToMediaItem(it,true)` + `SetMediaItemTake_Source` (smth_cut layout); `reaper.CountMediaItemTakes` is not in this build’s Lua API.
 
 
@@ -162,4 +163,29 @@ M tools/reaper-oracle
 ?? oracle/fake/hold_slip_vol.txt
 ?? oracle/scenarios/hold_slip_vol.env
 ?? oracle/scenarios/hold_slip_vol.lua
+```
+
+## Task: 5c. Scenario `hold_undo`: ESC restores a hold in one undo step
+
+### Attempt 5 — 2026-10-14T06:11:29Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Plugin ESC key on the controller is **0x31** (not 0x1B; 0x1B is TIMELINE). `verbs.cpp`: `{KEY_ESC, Tap, 40635}`, `{KEY_ESC, DoubleTap, 40029}` (Edit: Undo). Double-tap window 300 ms (gesture.h `double_tap_ms`); verbs.txt pattern: down 1600/up 1650/down 1750/up 1800 → fires on press 2 (~1750), tap suppressed.
+  - SPLIT hold undo label is "Speed Reaper: move" (kHoldRows, verbs.cpp line 294). One hold = one Undo_Begin/Undo_End block (task 4).
+  - "One undo step, not eight" is verified **behaviorally**: `U_UNDOCNT` is not confirmed to exist in this Lua build, so the check is that a single cmd 40029 restores A.pos fully to 0 (eight separate blocks would leave pos 1/30) and `Undo_CanUndo2` label returns to the "setup" baseline. Mid-window check (script 1250-1650 ms): pos≈2/30 and label≠"setup".
+  - No `mid`/`at` helpers in lib.lua — defined locally (as verbs.lua does); `window()` returns first/last index or nil.
+  - Wrote oracle/fake/hold_undo.txt, oracle/scenarios/hold_undo.{env,lua}; added `hold_undo` to REAPER_SCENARIOS (tools/reaper-oracle line 239). Plugin unchanged since 5b → no rebuild needed.
+  - DONE first try: bgrun job `hold_undo-verify` (log vibes/.ralph/logs/hold_undo-verify.log) -> ORACLE PASS reaper/hold_undo, rc=0. Line 103 ticked [x].
+
+Result: exit 0; done; 3 files changed, 15 insertions(+), 2 deletions(-); log: logs/33-m7-hold-rotate-L103-a5-1791958289992.log
+
+### Done — 2026-10-14 — 5 attempt(s)
+Files:
+```
+M tools/reaper-oracle
+ M vibes/.ralph/33-m7-hold-rotate.md
+ M vibes/33-m7-hold-rotate.md
+?? oracle/fake/hold_undo.txt
+?? oracle/scenarios/hold_undo.env
+?? oracle/scenarios/hold_undo.lua
 ```
