@@ -26,7 +26,7 @@ tools/reaper-oracle --layer reaper --scenario led_reads && test -s docs/notes/m8
 tools/check led_state
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Read the state in the timer loop
 

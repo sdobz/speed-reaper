@@ -372,7 +372,9 @@ void onTimer() {
   // main-panel mask only when it changes or after a reconnect edge.
   static int snap_tick = 0;
   if (g_snap_mask < 0 || (snap_tick % 31) == 0) {
-    const std::uint32_t mask = MainLedMask(GetToggleCommandState(1157) == 1);
+    LedState led_state;  // M8: only snap is read yet (task 3 adds the rest)
+    led_state.snap = GetToggleCommandState(1157) == 1;
+    const std::uint32_t mask = MainLedMask(led_state);
     if (static_cast<std::uint32_t>(g_snap_mask) != mask) {
       g_snap_mask = static_cast<int>(mask);
       Trace("led main=%x", mask); // oracle greps (M3 edit verbs task 5)

@@ -27,3 +27,12 @@ Files:
 ```
 M vibes/.ralph/34-m8-led-bar.md
 ```
+
+## Task: 2. `LedState` + `MainLedMask` (pure)
+
+### Attempt 2 — 2026-10-14T06:26:32Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: unit tests live in `plugin/test/` (not plugin/tests). `LED_*` bit indexes and `ledForCam(1..9)` (returns -1 out of range) are in `src/speed_editor/key_map.h` — CAM bits are non-contiguous (CAM1=14 … CAM9=8), so use `ledForCam` for `active_take`.
+- Facts: design §5 mapping: SNAP=snap, CUT=ripple==1, DIS=ripple==2, LIVE_OWR=trim_behind, CAM_n=active_take, VIDEO_ONLY=isolate, AUDIO_ONLY=solo.
+- Facts: rewrote `plugin/src/led_state.h/.cpp` (LedState struct with default-init members, `MainLedMask(const LedState&)`), `plugin/test/led_state_test.cpp` (snap/ripple/trim/take/isolate/solo/combo cases), and the main.cpp call site (builds a LedState with only snap set, no new reads).
+- Facts: running `tools/check led_state` via bgrun job `check_led` (log vibes/.ralph/logs/check_led.log) while writing this. Result: rc=0 — led_state_test passed, Windows static + host oracle pass. Task 2 ticked.
