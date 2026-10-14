@@ -384,3 +384,11 @@ Facts:
 - Verify command (`--layer reaper --scenario view_solo && --layer reaper`) passes: view_solo + load both green.
 
 Next: done — checkbox ticked. If a future task runs `--layer all` and hits the red `verbs` check, fix oracle/scenarios/verbs.lua want_cmds per the Facts bullet above (stale since M5, not a regression).
+
+Result: exit 0; done; log: logs/32-m6-simple-verbs-L130-a4-1791954650989.log
+
+### Done — 2026-10-14 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/32-m6-simple-verbs.md
+```
