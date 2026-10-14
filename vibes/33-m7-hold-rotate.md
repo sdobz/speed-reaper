@@ -27,7 +27,14 @@ tools/check hold_nudge
 tools/check
 ```
 
-- [ ] Done
+- [ ] 2. `IProject` item geometry
+  <!-- ralph: replanned=1 -->
+  - Add `struct ItemGeom { double pos, len, startoffs, playrate, vol; }` to `plugin/src/project.h`; add `double Fps()`, `ItemGeom GetGeom(int id)`, `void SetGeom(int id, const ItemGeom&)` to `IProject`, `FakeProject` (`plugin/test/fake_project.h`), and `ReaperProject` (`plugin/src/reaper_project.h/.cpp`).
+  - Reaper impl: pos/len/vol via `Get/SetMediaItemInfo_Value` (`D_POSITION`, `D_LENGTH`, `D_VOL`); startoffs/playrate via `GetActiveTake(item)` + `GetMediaItemTakeInfo_Value`/`SetMediaItemTakeInfo_Value` (`D_STARTOFFS`, `D_PLAYRATE`) — these 7.x names are in `vendor/reaper-sdk/sdk/reaper_plugin_functions.h`; there is no `GetMediaTakeInfo_Value` here, do not go looking. Call `UpdateItemInProject` after writing. `Fps()` = `TimeMap_curFrameRate`; return 30.0 when it is not > 0.
+  - Add each new `REAPERAPI_WANT_` line to `reaper_project.cpp` AND mirror it in `main.cpp` (see the comment above main.cpp's WANT list); `UpdateItemInProject` is already mirrored.
+  - Fake: `std::vector<ItemGeom> geoms` index-aligned with `items` (missing entry = `ItemGeom{0,0,0,1,1}`); GetGeom merges `items[id]` pos/len with `geoms[id]`, SetGeom writes both; add `double fps = 30.0` member; out-of-range id is a no-op.
+  - Do not add verbs.
+  Verify: `tools/check`
 
 ### 3. Pure nudge math
 

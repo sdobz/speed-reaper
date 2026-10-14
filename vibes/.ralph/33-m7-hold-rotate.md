@@ -34,3 +34,16 @@ Files:
 ```
 M vibes/.ralph/33-m7-hold-rotate.md
 ```
+
+## Task: 2. `IProject` item geometry
+
+### Attempt 2 — 2026-10-14T05:32:24Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 1 file changed, 5 insertions(+); log: logs/33-m7-hold-rotate-L30-a2-1791955944555.log
+
+### Replan (depth 0) — REWRITE → "2. `IProject` item geometry"
+Trigger: 2 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Why: The worker stalled in a research monologue: it hunted the old REAPER name GetMediaTakeInfo_Value, found it nowhere, and spent 180s deciding whether take properties are even reachable — while the task's real blocker was never naming the 7.x functions (GetMediaItemTakeInfo_Value/SetMediaItemTakeInfo_Value + GetActiveTake) that the vendored SDK header does provide.
+Rejected: SPLIT: any split (fake/interface first, ReaperProject second) breaks the build — a new pure virtual without the ReaperProject override fails tools/check, so no first child can pass its verify. SPIKE: the open question is factual and already answered (functions verified present in vendor/reaper-sdk/sdk/reaper_plugin_functions.h); the facts go straight into the body. BUDGET: record shows zero code progress and the run died at ~3 of 30 min monologuing, not from budget exhaustion. BLOCK: no human decision is needed.
+Log: logs/33-m7-hold-rotate-L30-replan-1791956186691.log
