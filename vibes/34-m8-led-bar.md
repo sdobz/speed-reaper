@@ -14,7 +14,7 @@ Builds on `33-m7-hold-rotate.md` and `22-m3-edit-verbs.md` §4 (SNAP LED exists)
 tools/reaper-oracle --layer reaper --scenario led_reads && test -s docs/notes/m8-state-reads.md && grep -q '^| ' docs/notes/m8-state-reads.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. `LedState` + `MainLedMask` (pure)
 
