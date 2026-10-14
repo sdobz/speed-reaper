@@ -15,7 +15,7 @@ Builds on `32-m6-simple-verbs.md`. The gesture engine already emits `HoldStart` 
 tools/check hold_nudge
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. `IProject` item geometry
 
