@@ -1,0 +1,9 @@
+# place_on_top scenario (vibes/32-m6-simple-verbs.md task 6c).
+# One gesture: PLACE ON TOP 0x05 tap (fires at release, ~410 ms) -> the
+# target item (A [0,5], resolved from the edit cursor; nothing selected)
+# is duplicated onto a new track above its source track (verbs.cpp
+# PlaceOnTopTap -> IProject::DuplicateItemsAbove; no REAPER command id,
+# so no cmd line in the trace).
+
+at 400 key 0x05 down
+at 450 key 0x05 up

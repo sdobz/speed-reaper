@@ -111,7 +111,7 @@ tools/reaper-oracle --layer reaper --scenario smth_cut
 tools/reaper-oracle --layer reaper --scenario place_on_top
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 6d. Scenario `view_solo`: AUDIO_ONLY and VIDEO_ONLY re-tap restores
 

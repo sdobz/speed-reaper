@@ -12,6 +12,7 @@ Durable facts every task should know (keep short).
 - `MediaItem` is only forward-declared in the vendored SDK (reaper_plugin.h:1465) — you cannot dereference item fields; use the string APIs (GetMediaItemInfo_Value / SetMediaItemInfo_Value, e.g. "I_CURTAKE").
 - REAPER 7.x Lua quirks (verified, see docs/notes/m5-observations.md ## M6): track name param is `P_NAME` ("NAME" silently fails both directions); `GetSetMediaTrackInfo_String` is 4-arg (no buf_len); `EnumProjectMarkers` returns (retval, isrgn, pos, rgnend, name, markrgnindexnumber) 0-based, idx 0's first return is retval not count — count with `GetNumRegionsOrMarkers(nil)`; `InsertTrackAtIndex` returns nothing in Lua (use `GetTrack`); `MediaTrack`/`ProjectMarker` are userdata (no `.name` field).
 - tools/check needs the nix dev shell for cmake (`nix develop --command ...`); it runs: make -C src, plugin build with -Werror + SPEED_REAPER_FAKE_DEVICE=ON, nm export check, ctest, Windows cross build (tools/windows-oracle --layer static), oracle host layer. Set SKIP_WINDOWS=1 / ORACLE_FULL for variants.
+- REAPER 7.81 Lua: `GetSetMediaTrackInfo_String(tr, par, newval, set)` returns a boolean (retval), not the string value — verified in the 6c probe; do not read names from its return.
 - "Above" in track order = SMALLER index (track 0 is the arrange top). `InsertTrackInProject(nullptr, idx, flags)` (void) inserts a new track at idx; source track at idx shifts to idx+1. Inserting into several tracks in one pass: process indices DESCENDING so smaller pending indices stay valid. `GetItemStateChunk(item, buf, sz, bool)` (bool ret, C string) / `SetItemStateChunk(item, str, bool)` copy an item's state; `AddMediaItemToTrack(track)` creates the empty item.
 - REAPER crossfade item actions (measured headless, tone sources): `40916` "Crossfade items within time selection" creates auto-fades ONLY at item boundaries (meeting pairs, or lane overlap starts) that lie strictly INSIDE the time selection; overlapping items that span the selection with no internal boundary are untouched (40916 AND `41059` no-op). Selection state does not matter. These are the only two crossfade-CREATING item actions in docs/reaper-actions.tsv. There is no "split items at time selection" action. Item selection can only be set via commands in this Lua build (40717 select-in-tsel; 40289/40297/40769 deselect); `B_SELECTED` writes are no-ops.
 
@@ -343,4 +344,25 @@ D oracle/scenarios/probe_mkr.lua
 ?? oracle/fake/smth_cut.txt
 ?? oracle/scenarios/smth_cut.env
 ?? oracle/scenarios/smth_cut.lua
+```
+
+## Task: 6c. Scenario `place_on_top`: PLACE ON TOP duplicates the target
+
+### Attempt 3 — 2026-10-14T04:57:39Z — budget 1800s
+- Facts: plugin verb already exists (verbs.cpp PlaceOnTopTap -> IProject::DuplicateItemsAbove, no REAPER cmd id, so no `cmd` trace line — only the ` gesture 0005 tap` line); KEY_PLACE_ON_TOP=0x0005 in src/speed_editor/key_map.h. No plugin source change needed; build/plugin/reaper_speed_reaper.so already current. Implicit target = item A [0,5] (cursor 2.5, nothing selected, same setup as target.lua). New track lands at index 0 (above source).
+- Dead ends: first run failed only my extra geometry check with `top_items=3` — that was MY bug: `reaper.CountMediaItems(nil, tr)` is the PROJECT total, not the track's item count. The plugin was correct from the start. Fixed by looping `GetTrackMediaItem` until nil per track.
+- Facts: empirically confirmed (probe, since deleted) `InsertTrackInProject(nil, t, 0)` inserts the new track AT index t (old track at t shifts to t+1), matching the Learnings entry; so `DuplicateItemsAbove` puts the copy on the new track 0, source unchanged at 1. `GetSetMediaTrackInfo_String` in this REAPER 7.81 Lua build returned a boolean first return (not the name string) — avoid relying on its return for reads.
+- DONE: `tools/reaper-oracle --layer reaper --scenario place_on_top` passes (ran twice, stable): tracks 1->2, items 2->3, copy of A [0,5] on new track 0, source track intact, trace has ` gesture 0005 tap`, no `target none`. Box ticked, probe files removed.
+
+Result: exit 0; done; 3 files changed, 11 insertions(+), 2 deletions(-); log: logs/32-m6-simple-verbs-L114-a3-1791953859123.log
+
+### Done — 2026-10-14 — 3 attempt(s)
+Files:
+```
+M tools/reaper-oracle
+ M vibes/.ralph/32-m6-simple-verbs.md
+ M vibes/32-m6-simple-verbs.md
+?? oracle/fake/place_on_top.txt
+?? oracle/scenarios/place_on_top.env
+?? oracle/scenarios/place_on_top.lua
 ```
