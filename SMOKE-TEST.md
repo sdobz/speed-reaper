@@ -534,3 +534,41 @@ Setup: M1 state (device plugged in, plugin connected). In REAPER: a project with
    ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
 
 Pass bar: CAM 2/3 switch the active take on selected items *and* on the cursor item with nothing selected (fewer-take items untouched, CAM LEDs still off — M8), MARK double-tap drops a project marker at the cursor and a single tap prints the item's volume, SMTH CUT crossfades a boundary that lies inside the time selection and no-ops without one, PLACE ON TOP duplicates the target onto a new track above in one undo step, VIDEO_ONLY/AUDIO_ONLY isolate/solo on tap and fully restore on re-tap (no undo entries), and FULL VIEW toggles REAPER's fullscreen window.
+
+## M7 — hold + rotate
+
+Automated equivalents: `tools/reaper-oracle --layer reaper --scenario hold_move_trim` (SPLIT / TRIM OUT holds), `--scenario hold_slip_vol` (SLIP SRC / AUDIO LEVEL holds), `--scenario hold_undo` (ESC restores a whole hold in one step) — these hand tests add real hardware and the feel the oracle cannot judge: 4 wheel ticks per project frame, the audible content slide of SLIP SRC, and the 0.5 dB volume steps.
+
+Setup: M1 state (device plugged in, plugin connected). In REAPER: a project at **30 fps** (check in Project Settings — one hold step is one project frame, `1/fps` ≈ 33 ms, and **4 wheel ticks make one step**), and **one item of ~5 s cut from a longer source file** (at least 15 s, with clearly distinct content — a song with different sections, so the content slide in step 3 is audible). Add a **second item on the same track meeting the first at a hard boundary** (second starts exactly where the first ends). Undo freely — everything here is one ESC double-tap away (step 5).
+
+1. **E3 — hold SPLIT (MOVE)**: select the second item (single click). Press **SPLIT** and **keep it held**, turn the wheel **right** 8 ticks (2 frames), release. Look at the arrange.
+
+   **Expected:** while holding, nothing happens until 4 ticks have accumulated; from then on **every 4 ticks the item jumps exactly one project frame** (1/30 s at 30 fps) — discrete, even jumps, not a smooth drag, and the remainder is kept (3 ticks + 1 tick later = one step). Only the selected item moves: the first item does **not** follow, so a 2-frame gap opens between them — hold edits are **not ripple-aware** in v1 (design §4): the plugin moves only the target's own `D_POSITION` and never touches the neighbors. Overlap is allowed the same way (turn right more): the item slides across the neighbor without the neighbor moving. The selection is restored to what it was before the hold at release. Undo label: `Speed Reaper: move`.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
+
+2. **E5 — TRIM OUT hold+wheel (tape mode)**: the tape-mode *setup* itself (SNAP on + ripple + trim-behind → the three status LEDs) is verified in M8; the gesture is testable now. In REAPER enable **per-track ripple** and snap (Project Settings → Editing), keep the two meeting items selected. Press **TRIM OUT** and hold it, turn the wheel **left** 16 ticks (4 frames), release. Then turn it back: hold **TRIM OUT**, turn **right** 8 ticks (2 frames), release.
+
+   **Expected:** each 4 ticks moves the item's **right edge by one frame** inward (length shrinks, left edge and start offset untouched) — and because **REAPER's own ripple is on**, the item after it slides left to close the gap: that "everything after ripples closed" tape behavior is the project setting doing its job, **not** the plugin (the hold is not ripple-aware, design §4 — turn ripple off and repeat: same edge nudge, but the neighbor now stays put and the gap opens). Turning right extends the right edge again, one frame per 4 ticks, and the item's length can never be nudged below one frame. Undo labels: `Speed Reaper: trim out` per hold. (The CUT/DIS/LIVE_O/WR tape-mode LEDs lighting for this workflow land with M8.)
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
+
+3. **SLIP SRC — feel (audible content slide)**: deselect and select only the 5 s item cut from the longer source. Play through it (SPACE) once so you know what plays at its start. Stop. Press **SLIP SRC** and hold it, turn the wheel **right** 48 ticks (12 frames ≈ 0.4 s of source), release. Play through the same item again.
+
+   **Expected:** the item's edges are **completely unchanged** — same position, same length on the timeline — but the **content has slid**: what now plays at the item's start is the source material from ~0.4 s later (a phrase/hit enters the item later than before; the slide is audible and discrete, 1/30 s per 4 ticks). That is the take's source offset (`D_STARTOFFS`) moving by `steps × playrate` while position and length stay fixed. Turn left while holding to slide back; at the source's beginning the offset is **clamped at 0** (keep turning and it simply stops — no negative offset, no wrap-around). Nothing else on the timeline is affected (not ripple-aware). Undo label: `Speed Reaper: slip src`.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
+
+4. **AUDIO LEVEL hold+wheel — dB feel**: select the item (make sure its volume is at 0 dB in Item Properties). Press **AUDIO LEVEL** and hold it, turn the wheel **right** 40 ticks (10 steps), release. Check Item Properties. Then hold **AUDIO LEVEL** again and turn **left** far past where the volume hits 0 dB (e.g. 100+ ticks).
+
+   **Expected:** volume changes in **0.5 dB steps, 4 ticks per step**: 40 ticks = 10 steps = **+5.0 dB**, which Item Properties confirms (`+5.00 dB`). Playing through the item, the gain steps are small and comfortable — a fine trim, not a coarse fader (if the feel is wrong, that is a parameter to record, `kHoldTicksPerStep` / 0.5 dB, not a bug). Turning left brings it back down 0.5 dB at a time and **clamps at 0 dB** — the volume never goes negative no matter how far you turn (clamped range is 0 … +12 dB; a muted item, vol ≤ 0, counts as −∞ and one right step lands it at 0 dB). Position, length, and source offset are untouched. Undo label: `Speed Reaper: audio level`.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
+
+5. **One ESC undo per gesture**: with any of steps 1–4 still in the undo history (or redo a hold), **double-tap ESC exactly once**.
+
+   **Expected:** one ESC double-tap restores **the entire hold in a single undo step** — every frame moved / trimmed / slipped / dB turned during that one hold reverts at once (8 frames of MOVE is one undo, not eight; the target set is frozen at hold start and the whole block is one `Undo_Begin`/`Undo_End` pair). Check the undo history: exactly **one** entry per completed hold gesture (`Speed Reaper: move` / `trim out` / `slip src` / `audio level`), never one per 4-tick step. Repeat for each gesture type you tested: each gets exactly one entry and one ESC double-tap fully reverts it. A hold released with fewer than 4 ticks accumulated made no step — the item is visibly unchanged (at most an empty undo entry).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
+
+Pass bar: hold+SPLIT moves the target one project frame per 4 wheel ticks without dragging any neighbor (not ripple-aware, design §4), TRIM OUT hold+wheel shaves/extends the right edge one frame per step with tape-mode ripple closing the gap only because REAPER's project ripple is on, SLIP SRC slides the audible content (edges fixed) and clamps at the source start, AUDIO LEVEL steps in 0.5 dB clamped to 0 … +12 dB, and one ESC double-tap reverts a whole hold as exactly one undo entry per gesture.

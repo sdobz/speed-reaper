@@ -189,3 +189,22 @@ M tools/reaper-oracle
 ?? oracle/scenarios/hold_undo.env
 ?? oracle/scenarios/hold_undo.lua
 ```
+
+## Task: 6. SMOKE-TEST.md: "M7 — hold + rotate"
+
+### Attempt 6 — 2026-10-14T06:17:11Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+
+- Facts: M7 section added to SMOKE-TEST.md after the M6 pass bar; verify `grep -q '^## M7 — hold' SMOKE-TEST.md` exits 0. Undo labels confirmed in `plugin/src/verbs.cpp` kHoldRows: `Speed Reaper: move` / `trim in` / `trim out` / `slip src` / `slip dest` / `audio level`. Clamps confirmed in `plugin/src/nudge.cpp`: 0.5 dB/step clamped 0…+12 (vol <= 0 counts as -inf); length >= 1 step; startoffs >= 0. Step = 1/fps, 4 ticks/step (HoldNudge). Undo_Begin opens at HoldStart even for a zero-step hold, so a no-step hold can leave an empty undo entry (worded cautiously in the doc).
+- Next: tick the box (line 114) and stop; nothing further to do.
+
+Result: exit 0; done; 3 files changed, 48 insertions(+), 1 deletion(-); log: logs/33-m7-hold-rotate-L114-a6-1791958631994.log
+
+### Done — 2026-10-14 — 6 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M vibes/.ralph/33-m7-hold-rotate.md
+ M vibes/33-m7-hold-rotate.md
+```

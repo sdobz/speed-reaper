@@ -111,4 +111,4 @@ tools/reaper-oracle --layer reaper --scenario hold_undo
 grep -q '^## M7 — hold' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
