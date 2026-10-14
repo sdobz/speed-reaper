@@ -77,4 +77,4 @@ tools/reaper-oracle --layer reaper --scenario leds_cam
 grep -q '^## M8 — LED' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done

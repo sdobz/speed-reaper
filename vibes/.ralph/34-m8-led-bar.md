@@ -112,3 +112,19 @@ Files:
 ```
 M vibes/.ralph/34-m8-led-bar.md
 ```
+
+## Task: 5. SMOKE-TEST.md: "M8 — LED bar"
+
+### Attempt 6 — 2026-10-14T06:58:49Z — budget 1800s
+- Facts: M8 section appended to SMOKE-TEST.md end-of-file (after M7), matching M6/M7 style (automated-equivalents line → setup → numbered steps with **Expected:** + ☐ pass/fail → pass bar). Trace format is `led main=%x` (no 0x prefix, plugin/src/main.cpp:379). Hex masks: snap+CUT+trim-behind = `led main=222`, DIS variant = 224, ripple off = 220, +CAM2 = 8220, +VIDEO_ONLY = 2220, +AUDIO_ONLY = 22220 (bit indexes from src/speed_editor/key_map.h). Step 3 deliberately continues the step-2 state (ripple off, snap+trim-behind on) so the hex is exact. Alt+P cycle confirmed as off→per-track→all from vibes/30-backlog.md and prior M3 wording in SMOKE-TEST.md line 321.
+- Next: none — box ticked, done.
+
+Result: exit 0; done; 3 files changed, 39 insertions(+), 1 deletion(-); log: logs/34-m8-led-bar-L80-a6-1791961129934.log
+
+### Done — 2026-10-14 — 6 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M vibes/.ralph/34-m8-led-bar.md
+ M vibes/34-m8-led-bar.md
+```

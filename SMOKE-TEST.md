@@ -572,3 +572,35 @@ Setup: M1 state (device plugged in, plugin connected). In REAPER: a project at *
    ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_
 
 Pass bar: hold+SPLIT moves the target one project frame per 4 wheel ticks without dragging any neighbor (not ripple-aware, design §4), TRIM OUT hold+wheel shaves/extends the right edge one frame per step with tape-mode ripple closing the gap only because REAPER's project ripple is on, SLIP SRC slides the audible content (edges fixed) and clamps at the source start, AUDIO LEVEL steps in 0.5 dB clamped to 0 … +12 dB, and one ESC double-tap reverts a whole hold as exactly one undo entry per gesture.
+
+## M8 — LED bar
+
+Automated equivalents: `tools/reaper-oracle --layer reaper --scenario leds_ripple` (CUT / DIS / LIVE_O/WR bits), `--scenario leds_cam` (CAM take bit) — these hand tests add real hardware and the physical LEDs to look at. The plugin polls REAPER's state every 250 ms and re-sends the LED mask only when it changes, so **every change below must appear on the device within ~1 s**. The REAPER console prints `led main=<hex>` on each mask change — check it against the bit values below (CUT = 0x02, DIS = 0x04, SNAP = 0x20, LIVE_O/WR = 0x200, VIDEO_ONLY = 0x2000, CAM2 = 0x8000, AUDIO_ONLY = 0x20000; `led_state.cpp` / `key_map.h`).
+
+Setup: M1 state (device plugged in, plugin connected). Reuse the M6 project: **one item with three takes**, **one other single-take item on the same track**, and a second track with an item on it. One gotcha: a fresh REAPER profile defaults to **snap ON, ripple OFF, trim-behind OFF** — so read each setting's current state from the toolbar / Options menu before changing it, don't assume (M7 step 2's tape-mode *setup* is verified here; its gesture was already tested).
+
+1. **E5 — tape-mode setup → three LEDs**: switch on all three of: **snap** (toolbar magnet / `Alt+S`), **per-track ripple** (Options menu → Ripple Editing → *Per-track*, or one `Alt+P` from off — `Alt+P` cycles off → per-track → all-tracks), and **trim-behind** (Options menu → *Trim content behind media items when editing*, `Shift+X`). Watch the device.
+
+   **Expected:** the three tape-mode status LEDs light — **SNAP**, **CUT** (ripple per-track), **LIVE_O/WR** (trim-behind) — each within ~1 s of its toggle, with DIS dark. Console: `led main=222` (0x20 + 0x02 + 0x200).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+2. **Flip `Alt+P` twice → CUT / DIS follow within ~1 s**: with the step-1 state (CUT lit, i.e. per-track ripple), press **`Alt+P`** in REAPER and watch the device. Then press **`Alt+P`** again and watch.
+
+   **Expected:** first flip (per-track → all-tracks): **DIS lights and CUT goes dark** within ~1 s (`led main=224`). Second flip (all-tracks → off): **both CUT and DIS go dark** (`led main=220`). SNAP and LIVE_O/WR stay lit throughout. The LEDs are a pure read of REAPER's state — the device writes nothing, so toggling ripple any other way (Options menu, toolbar ripple button) moves the same LEDs the same way.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+3. **CAM LEDs follow take changes made in REAPER**: still in the step-2 state (ripple off, snap on, trim-behind on — base mask 0x220). Select **only** the three-take item, then switch its active take **in REAPER** (click take lane 2, or `T` to cycle) to take 2 and watch. Then select **both** items (the single-take item has a different active take) and watch; then click empty arrange space so **nothing is selected**.
+
+   **Expected:** with all selected items sharing take 2 active, the **CAM 2** LED lights within ~1 s (`led main=8220`); switching to take 3 moves the light to CAM 3, back to take 1 lights CAM 1. With **mixed** active takes across the selection — or **nothing** selected — **no CAM LED is lit at all** (the take number must be shared by *all* selected items; otherwise the bit is 0). CAM 4–9 stay dark (no such takes exist here).
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+4. **Isolate / solo LEDs (VIDEO_ONLY / AUDIO_ONLY)**: select the three-take item as the target. Tap **VIDEO_ONLY** on the device, watch, tap it **again**. Then tap **AUDIO_ONLY**, watch, tap it **again**.
+
+   **Expected:** first **VIDEO_ONLY** tap (isolate view): the **VIDEO ONLY** LED lights within ~1 s (`led main=2220`); the re-tap restores the view and the LED **goes dark**. First **AUDIO_ONLY** tap (solo on the target's track): the **AUDIO_ONLY** LED lights within ~1 s (`led main=22220`); the re-tap restores the previous solo state and the LED goes dark. As in M6 step 6, these toggles create **no undo entries** — the LED is a mirror of the M6 isolate/solo toggle state, nothing more.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+Pass bar: snap + per-track ripple + trim-behind lights exactly SNAP + CUT + LIVE_O/WR (`led main=222`), each `Alt+P` flip in REAPER moves the CUT/DIS LED within ~1 s and the third cycle-off darks both, the CAM LED mirrors the take number shared by *all* selected items (mixed or unselected → no CAM bit), and VIDEO_ONLY/AUDIO_ONLY taps light/dark their LEDs as the M6 isolate/solo state toggles — every LED a ≤250 ms poll of REAPER state, the device itself writing none of them.
