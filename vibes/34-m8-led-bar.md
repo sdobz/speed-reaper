@@ -53,7 +53,7 @@ tools/check
 tools/reaper-oracle --layer reaper --scenario leds_ripple
 ```
 
-- [ ] Done
+- [x] Done
 
 #### 4b. Scenario `leds_cam`: CAM take bit
 

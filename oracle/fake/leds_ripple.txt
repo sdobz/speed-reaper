@@ -1,0 +1,11 @@
+# leds_ripple scenario (vibes/34-m8-led-bar.md task 4a).
+#
+# The scenario's state changes are driven by Lua (Main_OnCommand 40309/
+# 40310/40311/41117, spaced >= 1.5 s apart), not by buttons: the plugin has
+# no verb buttons for ripple/trim-behind. This script only taps the one
+# button the scenario needs for device-path coverage — ESC (0x31) single
+# tap -> cmd 40635 (time selection removed), which does not touch any
+# main-panel LED bit — then idles; Lua's steps land in the >= 1.5 s idle
+# gaps, so each step's `led main=` trace line is attributable to its step.
+at 400 key 0x31 down   # ESC tap -> cmd 40635 (no LED effect; no press 2 = no double-tap)
+at 450 key 0x31 up

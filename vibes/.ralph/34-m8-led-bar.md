@@ -71,3 +71,15 @@ M plugin/src/main.cpp
  M vibes/34-m8-led-bar.md
 ?? plugin/test/led_read_test.cpp
 ```
+
+## Task: 4a. Scenario `leds_ripple`: ripple and trim-behind bits
+
+### Attempt 4 — 2026-10-14T06:40:58Z — budget 1800s
+
+- Facts: LED bits (src/speed_editor/key_map.h): CUT=1 (0x02), DIS=2 (0x04), SNAP=5 (0x20), LIVE_OWR=9 (0x200). main.cpp:375 polls ReadLedState every 31 timer ticks (~30 Hz) and traces `led main=%x` only on change; g_led_mask=-1 forces a first read at load (fresh profile: snap ON, ripple off, tb off → 0x20). Plugin has NO verb buttons for ripple/trim-behind → Lua drives state via Main_OnCommand 40309/40310/40311/41117; device taps ESC (0x31) single-tap at 400 ms as the harmless needed tap (cmd 40635, clears time sel — no LED effect).
+- Facts: trace line format "<ms since plugin load> <msg>" (trace.cpp); Lua clock time_precise is a different epoch — calibrate offset via the `log connected` trace line at body start.
+- Facts: `log connected` trace line is `log connected (serial FAKE0001)` (not bare) — calibrate with prefix match. First `led main=20` traced at ~237 ms (snap ON, no ripple/tb). ESC single tap traces `gesture 0031 tap` + `cmd 40635`, no LED effect. v0 check + device tap + offset all pass.
+- Dead ends: regex `log connected$` (suffix breaks it); `local b = l:match(2 captures)` drops the 2nd capture (use `local ms, hx = ...`); `within()` referenced undefined upvalue `v` → format(nil).
+- Dead ends: comparing calibrated absolute trace times vs step times relative to body start — must store step times as `st + off`.
+- Facts (final, PASS): measured masks in order 0x20 (off, snap ON) → 0x22 (CUT) → 0x24 (DIS) → 0x224 (DIS+LIVE_OWR=0x200); each `led main=` line lands 200–850 ms after its Main_OnCommand step (poll = every 31 timer ticks). All 9 checks pass; verify `tools/reaper-oracle --layer reaper --scenario leds_ripple` → ORACLE PASS.
+- Done: added oracle/fake/leds_ripple.txt (ESC single tap 0x31 @400 ms), oracle/scenarios/leds_ripple.env, oracle/scenarios/leds_ripple.lua; added `leds_ripple` to REAPER_SCENARIOS in tools/reaper-oracle (suite list).
