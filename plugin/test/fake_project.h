@@ -20,6 +20,13 @@ class FakeProject final : public IProject {
   bool time_sel = false;
   int ripple = 0;
 
+  // LED bar (M8): snap / trim-behind mirror the REAPER toggles ReadLedState
+  // would query (1157 / 41117); ripple comes from the `ripple` member above,
+  // active_take from the selection + active_takes, isolate/solo from the
+  // view-toggle state below.
+  bool snap = false;
+  bool trim_behind = false;
+
   // SetSelectedItems calls in order.
   std::vector<std::vector<int>> selected_calls;
   int undo_begins = 0;
@@ -76,6 +83,38 @@ class FakeProject final : public IProject {
     selected_calls.push_back(ids);
   }
   int RippleMode() override { return ripple; }
+  // Shared 1-based active take of ALL selected items; 0 when none, mixed,
+  // or the shared take is > 9. An item id without an active_takes entry has
+  // take 0 (the default 1-take item).
+  int SharedSelectedTake() const {
+    int shared = 0;
+    for (const ItemInfo &it : items) {
+      if (!it.selected) continue;
+      const int id = it.id;
+      // Same convention as ItemActiveTake: no active_takes entry = active
+      // take index 0 (take number 1); a 0-take item has none (-1).
+      int t = 1;
+      if (id < static_cast<int>(active_takes.size())) t = active_takes[id] + 1;
+      if (id < static_cast<int>(take_counts.size()) && take_counts[id] == 0)
+        t = -1;
+      if (t < 1 || t > 9) return 0;
+      if (shared == 0) shared = t;
+      else if (shared != t) return 0;
+    }
+    return shared;
+  }
+  LedState ReadLedState() override {
+    LedState s;
+    s.snap = snap;
+    s.ripple = ripple;
+    s.trim_behind = trim_behind;
+    s.active_take = SharedSelectedTake();
+    s.isolate = isolate_active;
+    s.solo = solo_active;
+    return s;
+  }
+  bool IsolateActive() override { return isolate_active; }
+  bool SoloActive() override { return solo_active; }
   void Undo_Begin() override { ++undo_begins; }
   void Undo_End(const char *label) override {
     ++undo_ends;

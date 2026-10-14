@@ -48,7 +48,7 @@
 #define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
-#define REAPERAPI_WANT_GetToggleCommandState // onTimer: SNAP LED (command 1157)
+#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ReadLedState (1157 snap, 41117 trim-behind)
 #define REAPERAPI_WANT_CSurf_OnPlayRateChange // spike actions + shuttle forward rate (M4)
 #define REAPERAPI_WANT_Master_GetPlayRate // spike actions + shuttle read-back (M4)
 #define REAPERAPI_WANT_OnStopButton // spike reset + shuttle HardStop (40045 blocks headless, M4 task 3)
@@ -67,7 +67,7 @@
 #define REAPERAPI_WANT_Undo_BeginBlock2 // ReaperProject::Undo_Begin
 #define REAPERAPI_WANT_Undo_EndBlock2 // ReaperProject::Undo_End
 #define REAPERAPI_WANT_GetCursorPosition // ReaperProject::CursorPos
-#define REAPERAPI_WANT_GetToggleCommandState // already above; ripple read (40310/40311)
+#define REAPERAPI_WANT_GetToggleCommandState // already above; ReaperProject ripple read (40310/40311)
 #define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
 #define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
 #define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
@@ -266,7 +266,7 @@ HoldGatedSource g_hold_gated_source(g_hid); // design §7 hold+rotate wheel
 ModeGatedSource g_gated_source(g_hold_gated_source, g_router); // HID delta: pass-through in Jog, scroll in Scrl
 SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
 bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
-int g_snap_mask = -1; // last pushed SNAP-LED mask; -1 = not sent (force send)
+int g_led_mask = -1; // last pushed main-panel LED mask; -1 = not sent (force send)
 
 const char *GestureKindName(GestureKind k) {
   switch (k) {
@@ -342,7 +342,7 @@ void onTimer() {
   const bool connected = g_hid.Connected();
   if (connected && !g_was_connected) {
     ApplyModeToHid(g_router.Mode());
-    g_snap_mask = -1; // re-send the SNAP LED after a reconnect edge
+    g_led_mask = -1; // re-send the main-panel LEDs after a reconnect edge
   }
   g_was_connected = connected;
   // Spike probe (M4 task 2): ~300 ms after a spike action fired, log the
@@ -367,21 +367,20 @@ void onTimer() {
       g_spike.pending = 0;
     }
   }
-  // SNAP LED (M3 edit verbs task 4): poll REAPER's snap toggle (command 1157)
-  // every ~250 ms (~31 timer ticks at REAPER's ~30 Hz) and push the
-  // main-panel mask only when it changes or after a reconnect edge.
-  static int snap_tick = 0;
-  if (g_snap_mask < 0 || (snap_tick % 31) == 0) {
-    LedState led_state;  // M8: only snap is read yet (task 3 adds the rest)
-    led_state.snap = GetToggleCommandState(1157) == 1;
-    const std::uint32_t mask = MainLedMask(led_state);
-    if (static_cast<std::uint32_t>(g_snap_mask) != mask) {
-      g_snap_mask = static_cast<int>(mask);
+  // LED bar (M8, design §5): poll the REAPER state (snap/ripple/trim-behind/
+  // shared selected take/isolate/solo) every ~250 ms (~31 timer ticks at
+  // REAPER's ~30 Hz) and push the main-panel mask only when it changes or
+  // after a reconnect edge.
+  static int led_tick = 0;
+  if (g_led_mask < 0 || (led_tick % 31) == 0) {
+    const std::uint32_t mask = MainLedMask(g_project.ReadLedState());
+    if (static_cast<std::uint32_t>(g_led_mask) != mask) {
+      g_led_mask = static_cast<int>(mask);
       Trace("led main=%x", mask); // oracle greps (M3 edit verbs task 5)
       g_hid.RequestLeds(mask);
     }
   }
-  ++snap_tick;
+  ++led_tick;
   static auto last = std::chrono::steady_clock::now();
   static double acc_ms = 0.0;
   auto now = std::chrono::steady_clock::now();

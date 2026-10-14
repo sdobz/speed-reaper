@@ -47,6 +47,9 @@ namespace {
 // 40311 = "Set ripple editing all tracks" (names: docs/reaper-actions.tsv).
 constexpr int kRipplePerTrack = 40310;
 constexpr int kRippleAll = 40311;
+// LED bar (M8, docs/notes/m8-state-reads.md): snap (1157) and trim-behind
+// (41117, "Options: Trim content behind media items when editing") are
+// plain toggles; all three are valid GetToggleCommandState queries.
 
 // Track-list index of a track (master excluded); -1 if null / not found.
 int TrackIndex(MediaTrack *track) {
@@ -66,7 +69,9 @@ std::vector<MediaItem *> EnumerateItems() {
     double pos;
   };
   std::vector<Entry> entries;
-  const int n = CountMediaItems(nullptr);
+  int n = CountMediaItems(nullptr);
+  if (n < 0) n = 0;  // the host-layer stub APIs (plugin_host) return junk in the
+                     // return register; real REAPER never counts < 0
   entries.reserve(n);
   for (int i = 0; i < n; i++) {
     MediaItem *item = GetMediaItem(nullptr, i);
@@ -165,6 +170,30 @@ int ReaperProject::RippleMode() {
   if (GetToggleCommandState(kRipplePerTrack)) return 1;
   if (GetToggleCommandState(kRippleAll)) return 2;
   return 0;
+}
+
+LedState ReaperProject::ReadLedState() {
+  LedState s;
+  s.snap = GetToggleCommandState(1157) == 1;
+  s.ripple = RippleMode();
+  s.trim_behind = GetToggleCommandState(41117) == 1;
+  // active_take: the 1-based active take shared by ALL selected items,
+  // else 0 (nothing selected, mixed, no active take, or take > 9 — the
+  // main panel has only CAM1..9 bits).
+  int shared = 0;
+  for (MediaItem *item : EnumerateItems()) {
+    if (!IsMediaItemSelected(item)) continue;
+    const int t =
+        static_cast<int>(GetMediaItemInfo_Value(item, "I_CURTAKE")) + 1;  // 1-based
+    if (t < 1 || t > 9) { s.active_take = 0; return s; }
+    if (shared == 0)
+      shared = t;
+    else if (shared != t) { s.active_take = 0; return s; }
+  }
+  s.active_take = shared;
+  s.isolate = isolate_active_;
+  s.solo = solo_active_;
+  return s;
 }
 
 void ReaperProject::Undo_Begin() {

@@ -38,7 +38,7 @@ tools/check led_state
 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Oracle scenarios for the LED bar (4a–4b)
 

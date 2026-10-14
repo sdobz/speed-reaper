@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - `GetToggleCommandState(id)` (0/1/-1) also works on REAPER's "Set ..." edit-mode commands (40309/40310/40311) — not only on "Toggle" actions (41990/41991, 1157, 41117). Fresh REAPER profile defaults: snap ON, trim-behind OFF, ripple off.
+- `plugin_host` (host oracle layer) resolves every REAPER API name to one generic `void` stub — return values are register junk. Code that runs in the timer must treat stub returns as junk-tolerant (no `vector::reserve` on stub counts, no pointer chasing on stub item pointers); scalar `== 1` / `& 1` reads are fine.
 
 
 ## Task: 1. Research: prove the state reads
@@ -43,4 +44,30 @@ Result: exit 0; done; log: logs/34-m8-led-bar-L29-a2-1791959192497.log
 Files:
 ```
 M vibes/.ralph/34-m8-led-bar.md
+```
+
+## Task: 3. Read the state in the timer loop
+
+### Attempt 3 — 2026-10-14T06:31:20Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: only two IProject implementations exist (ReaperProject, plugin/test/fake_project.h). ReaperProject already had private `isolate_active_`/`solo_active_` (M6) — `IsolateActive()`/`SoloActive()` are one-line accessors.
+- Facts: added `LedState ReadLedState()` + `bool IsolateActive()`/`SoloActive()` to IProject (project.h now includes led_state.h, pure). ReaperProject::ReadLedState: snap=1157, ripple=RippleMode() (40310/40311), trim_behind=41117, active_take = 1-based I_CURTAKE shared by all selected items (0 if none/mixed/take>9/no active take; single EnumerateItems pass, no new REAPER APIs → no new REAPERAPI_WANT lines needed, only comment updates in main.cpp).
+- Facts: main.cpp 250 ms block now `MainLedMask(g_project.ReadLedState())`, push only on change, reconnect edge re-send kept (g_snap_mask → g_led_mask). FakeProject gained `snap`/`trim_behind` members + ReadLedState (shared take from selection + active_takes/take_counts) + IsolateActive/SoloActive; new test plugin/test/led_read_test.cpp (auto-globbed by plugin/test/CMakeLists.txt).
+- Dead ends: first full check (job `check3`) failed: new `led_read_test` bug (fake ignored `active_takes` when `take_counts` was empty — fixed), then host oracle ABORTed: `std::length_error` in `EnumerateItems::reserve`. Root cause: `plugin/tools/plugin_host.cpp` resolves every REAPER 7.81 API name to one generic `void` stub, so `CountMediaItems` returns register junk — negative → `reserve` throws. The host layer used to be safe because onTimer only read junk-tolerant scalars. Fix: `if (n < 0) n = 0;` guard in `EnumerateItems()` (real REAPER never counts < 0; host re-run rc=0).
+- Facts: full `tools/check` runs: `check3` (both failures above), `check4` (test fixed; host oracle aborted — guard added), `check5` → rc=0 (14/14 tests, Windows static, host oracle). Line 41 ticked.
+- Learnings: see top — `plugin_host` stub-API junk-return rule (caused the check4 abort).
+
+Result: exit 0; done; 7 files changed, 109 insertions(+), 17 deletions(-); log: logs/34-m8-led-bar-L41-a3-1791959480382.log
+
+### Done — 2026-10-14 — 3 attempt(s)
+Files:
+```
+M plugin/src/main.cpp
+ M plugin/src/project.h
+ M plugin/src/reaper_project.cpp
+ M plugin/src/reaper_project.h
+ M plugin/test/fake_project.h
+ M vibes/.ralph/34-m8-led-bar.md
+ M vibes/34-m8-led-bar.md
+?? plugin/test/led_read_test.cpp
 ```

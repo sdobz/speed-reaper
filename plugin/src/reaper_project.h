@@ -37,6 +37,9 @@ class ReaperProject final : public IProject {
   void DuplicateItemsAbove(const std::vector<int> &ids) override;
   void ToggleIsolateTracks(const std::vector<int> &item_ids) override;
   void ToggleSoloTracks(const std::vector<int> &item_ids) override;
+  LedState ReadLedState() override;
+  bool IsolateActive() override { return isolate_active_; }
+  bool SoloActive() override { return solo_active_; }
 
  private:
   struct ShowFlag {

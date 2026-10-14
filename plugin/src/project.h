@@ -7,6 +7,8 @@
 
 #include <vector>
 
+#include "led_state.h"  // LedState (M8 LED bar; pure, REAPER-free)
+
 struct ItemInfo {
   int id;       // index in Items() order
   int track;    // track index
@@ -63,6 +65,14 @@ class IProject {
   // no-op that does not toggle the saved state.
   virtual void ToggleIsolateTracks(const std::vector<int> &item_ids) = 0;
   virtual void ToggleSoloTracks(const std::vector<int> &item_ids) = 0;
+  // LED bar (M8, docs/notes/m8-state-reads.md): snapshot of snap / ripple /
+  // trim-behind / shared selected-item take / isolate / solo. active_take is
+  // the 1-based active take shared by ALL selected items, else 0 (none or
+  // mixed; also 0 when the shared take is > 9 — no CAM LED for it).
+  virtual LedState ReadLedState() = 0;
+  // M6 toggle state: is the isolate view / solo currently held on?
+  virtual bool IsolateActive() = 0;
+  virtual bool SoloActive() = 0;
 };
 
 #endif  // SPEED_REAPER_PROJECT_H
