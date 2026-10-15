@@ -111,3 +111,11 @@ Facts:
 - Job r42t5verify results (post-change): `ORACLE_FULL=1 tools/check` = **1m50s**, ORACLE PASS all 20 scenarios, ctest 20/20 (incl. new user_bindings_test). No-args `tools/check` = **20s** warm (< 3 min) → no `docs/notes/check-timing.md` needed (task says only "if not"). Cold caveats: the MinGW cross build (`tools/windows-oracle --layer static`) and a full recompile dominate on a cold nix store; not a problem here.
 Next:
 - (task complete; line 64 ticked)
+
+Result: exit 0; done; log: logs/42-release-prep-L64-a5-1792087037999.log
+
+### Done — 2026-10-15 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/42-release-prep.md
+```
