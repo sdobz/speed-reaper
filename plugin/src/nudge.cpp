@@ -8,6 +8,7 @@
 // is returned unchanged.
 #include "nudge.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cfloat>
 
@@ -132,4 +133,46 @@ int HoldNudge::Add(std::int32_t delta) {
 
 std::int32_t HoldNudge::Remainder() const {
   return static_cast<std::int32_t>(remainder_);
+}
+
+namespace {
+ItemGeom NudgeFade(const ItemGeom &g, int steps, double step_seconds,
+                   bool in) {
+  ItemGeom out = g;
+  double &f = in ? out.fadein : out.fadeout;
+  f += steps * step_seconds;
+  if (f > g.len) f = g.len;
+  if (f < 0.0) f = 0.0;
+  return out;
+}
+}  // namespace
+
+ItemGeom NudgeFadeIn(const ItemGeom &g, int steps, double step_seconds) {
+  return NudgeFade(g, steps, step_seconds, true);
+}
+
+ItemGeom NudgeFadeOut(const ItemGeom &g, int steps, double step_seconds) {
+  return NudgeFade(g, steps, step_seconds, false);
+}
+
+void NudgeRoll(ItemGeom *a, ItemGeom *b, int steps, double step_seconds) {
+  double d = steps * step_seconds;
+  const double lo = std::max(step_seconds - a->len,
+                             b->playrate > 0.0 ? -b->startoffs / b->playrate
+                                               : -DBL_MAX);
+  const double hi = b->len - step_seconds;
+  if (lo > hi) return;  // pathological geometry: unchanged
+  d = std::min(std::max(d, lo), hi);
+  a->len += d;
+  b->pos += d;
+  b->len -= d;
+  b->startoffs += d * b->playrate;
+}
+
+double NudgeSelIn(double start, double end, int steps, double step_seconds) {
+  return std::min(std::max(start + steps * step_seconds, 0.0), end);
+}
+
+double NudgeSelOut(double start, double end, int steps, double step_seconds) {
+  return std::max(end + steps * step_seconds, start);
 }

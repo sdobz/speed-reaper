@@ -163,7 +163,7 @@ tools/check nudge && tools/reaper-oracle --layer reaper --scenario hold_handles
 tools/check default_bindings && test -s docs/notes/crossfade-actions.md && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 9. Simplify the defaults
 

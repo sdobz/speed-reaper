@@ -28,6 +28,8 @@ struct ItemGeom {
   double startoffs;  // active take D_STARTOFFS, seconds
   double playrate;   // active take D_PLAYRATE, 1.0 = normal speed
   double vol;        // D_VOL, linear (1.0 = 0 dB)
+  double fadein = 0.0;   // D_FADEINLEN, seconds
+  double fadeout = 0.0;  // D_FADEOUTLEN, seconds
 };
 
 // Track-level flags the view ops toggle (the primitives behind
@@ -57,6 +59,14 @@ class IProject {
   virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
   virtual double ItemVolume(int id) = 0;  // D_VOL, linear (1.0 = 0 dB)
   virtual double Fps() = 0;  // TimeMap_curFrameRate; 30.0 if unknown
+  // Nudge step sizes (the `step=` arg): the project grid division in
+  // seconds at the cursor (<= 0 if unknown) and one sample (project rate).
+  virtual double GridSeconds() = 0;
+  virtual double SampleSeconds() = 0;
+  // Time selection edges. TimeSelection: false when there is none;
+  // SetTimeSelection writes start/end (GetSet_LoopTimeRange2).
+  virtual bool TimeSelection(double *start, double *end) = 0;
+  virtual void SetTimeSelection(double start, double end) = 0;
   // Item geometry. pos/len/vol are item properties (D_POSITION,
   // D_LENGTH, D_VOL); startoffs/playrate come from the active take
   // (D_STARTOFFS, D_PLAYRATE). SetGeom writes all five and calls

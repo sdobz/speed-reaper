@@ -323,67 +323,169 @@ class SelectStepVerb : public Verb {
   int select_delta_ = 0;
 };
 
-// NUDGE modes: the old the old hold rows, key replaced by the binding-facing
-// mode name; the Undo_End labels and apply functions are unchanged.
+// NUDGE modes. `apply` drives the per-item modes; the others are
+// special-cased by `kind` in NudgeVerb.
+enum class NudgeKind { Item, Roll, SelIn, SelOut };
+
 struct NudgeMode {
-  const char *name;   // the binding arg: move | trim_in | trim_out | slip_src | slip_dest | volume
+  const char *name;   // the binding arg
   const char *label;  // Undo_End label: "Speed Reaper: <verb>"
-  ItemGeom (*apply)(const ItemGeom &, int, double);  // nudge.h free function
+  NudgeKind kind;
+  ItemGeom (*apply)(const ItemGeom &, int, double);  // nudge.h; Item kind only
 };
 
 constexpr NudgeMode kNudgeModes[] = {
-    {"move",      "Speed Reaper: move",        NudgeMove},
-    {"trim_in",   "Speed Reaper: trim in",     NudgeTrimIn},
-    {"trim_out",  "Speed Reaper: trim out",    NudgeTrimOut},
-    {"slip_src",  "Speed Reaper: slip src",    NudgeSlipSrc},
-    {"slip_dest", "Speed Reaper: slip dest",   NudgeSlipDest},
-    {"volume",    "Speed Reaper: audio level", NudgeVolume},
+    {"move",      "Speed Reaper: move",        NudgeKind::Item, NudgeMove},
+    {"trim_in",   "Speed Reaper: trim in",     NudgeKind::Item, NudgeTrimIn},
+    {"trim_out",  "Speed Reaper: trim out",    NudgeKind::Item, NudgeTrimOut},
+    {"slip_src",  "Speed Reaper: slip src",    NudgeKind::Item, NudgeSlipSrc},
+    {"slip_dest", "Speed Reaper: slip dest",   NudgeKind::Item, NudgeSlipDest},
+    {"volume",    "Speed Reaper: audio level", NudgeKind::Item, NudgeVolume},
+    {"fade_in",   "Speed Reaper: fade in",     NudgeKind::Item, NudgeFadeIn},
+    {"fade_out",  "Speed Reaper: fade out",    NudgeKind::Item, NudgeFadeOut},
+    {"roll",      "Speed Reaper: roll",        NudgeKind::Roll, nullptr},
+    {"sel_in",    "Speed Reaper: time selection start", NudgeKind::SelIn, nullptr},
+    {"sel_out",   "Speed Reaper: time selection end",   NudgeKind::SelOut, nullptr},
 };
 
+constexpr const char *kNudgeModeList =
+    "move|trim_in|trim_out|slip_src|slip_dest|volume|fade_in|fade_out|roll|sel_in|sel_out";
+
+// The `step=` argument: frame (default) | grid | sample | <N>ms.
+struct StepSpec {
+  enum Kind { Frame, Grid, Sample, Ms } kind = Frame;
+  double ms = 0.0;
+
+  double Seconds(IProject &project) const {
+    switch (kind) {
+      case Grid: {
+        const double g = project.GridSeconds();
+        if (g > 0.0) return g;
+        break;  // no grid known: fall back to a frame
+      }
+      case Sample: return project.SampleSeconds();
+      case Ms: return ms / 1000.0;
+      case Frame: break;
+    }
+    return 1.0 / project.Fps();
+  }
+};
+
+bool ParseStep(const std::string &text, StepSpec *out) {
+  if (text == "frame") { out->kind = StepSpec::Frame; return true; }
+  if (text == "grid") { out->kind = StepSpec::Grid; return true; }
+  if (text == "sample") { out->kind = StepSpec::Sample; return true; }
+  if (text.size() > 2 && text.compare(text.size() - 2, 2, "ms") == 0) {
+    const std::string num = text.substr(0, text.size() - 2);
+    char *end = nullptr;
+    const double v = std::strtod(num.c_str(), &end);
+    if (end != num.c_str() && *end == '\0' && v > 0.0) {
+      out->kind = StepSpec::Ms;
+      out->ms = v;
+      return true;
+    }
+  }
+  return false;
+}
+
 // NUDGE hold+rotate: one hold = one undo block (Undo_Begin at Begin,
-// Undo_End at End). The target set is resolved ONCE at Begin and the
-// selection is snapshotted there, restored at End. Each step is one
-// project frame (1/Fps()); 4 wheel ticks per step, the remainder
-// accumulated in HoldNudge (signed, symmetric toward zero).
+// Undo_End at End). Targets are resolved ONCE at Begin (item modes also
+// snapshot the selection, restored at End); each step is `step=` seconds
+// (default one project frame), `ticks_per_step` wheel ticks per step
+// (the remainder accumulated in HoldNudge, signed, symmetric toward zero).
 class NudgeVerb : public Verb {
  public:
-  explicit NudgeVerb(const NudgeMode *mode) : mode_(mode) {}
+  NudgeVerb(const NudgeMode *mode, StepSpec step) : mode_(mode), step_(step) {}
 
   void Begin(VerbContext &ctx) override {
-    const std::vector<int> targets = TargetItems(ctx.project);
-    if (targets.empty()) {
-      Trace("target none");  // no-target hold: do nothing (no undo block)
-      return;
+    active_ = false;
+    selection_.clear();
+    targets_.clear();
+    nudge_ = HoldNudge(ctx.ticks_per_step > 0 ? ctx.ticks_per_step : 4);
+    switch (mode_->kind) {
+      case NudgeKind::Item: {
+        targets_ = TargetItems(ctx.project);
+        if (targets_.empty()) { Trace("target none"); return; }
+        for (const ItemInfo &item : ctx.project.Items())
+          if (item.selected) selection_.push_back(item.id);
+        break;
+      }
+      case NudgeKind::Roll: {
+        // The edit point between the cursor item and its right neighbour
+        // on the same track.
+        const std::vector<int> cur = CursorTargetItem(ctx.project);
+        if (cur.empty()) { Trace("target none"); return; }
+        const std::vector<ItemInfo> items = ctx.project.Items();
+        int right = -1;
+        for (size_t i = 0; i + 1 < items.size(); ++i)
+          if (items[i].id == cur[0] && items[i + 1].track == items[i].track)
+            right = items[i + 1].id;
+        if (right < 0) { Trace("target none"); return; }
+        targets_ = {cur[0], right};
+        break;
+      }
+      case NudgeKind::SelIn:
+      case NudgeKind::SelOut: {
+        double s = 0.0, e = 0.0;
+        if (!ctx.project.TimeSelection(&s, &e)) return;  // none: no-op
+        break;
+      }
     }
     active_ = true;
-    targets_ = targets;
-    for (const ItemInfo &item : ctx.project.Items())
-      if (item.selected) selection_.push_back(item.id);
     ctx.project.Undo_Begin();  // one hold = one undo block
   }
 
   void Step(VerbContext &ctx, int delta) override {
-    if (!active_) return;  // unmapped / no-target hold: no-op
+    if (!active_) return;  // no-target hold: no-op
     const int steps = nudge_.Add(delta);
-    if (steps == 0) return;  // below the 4-tick step threshold
-    const double step = 1.0 / ctx.project.Fps();  // one project frame
-    for (const int id : targets_)
-      ctx.project.SetGeom(id, mode_->apply(ctx.project.GetGeom(id), steps, step));
+    if (steps == 0) return;  // below the tick threshold
+    const double step = step_.Seconds(ctx.project);
+    switch (mode_->kind) {
+      case NudgeKind::Item:
+        for (const int id : targets_)
+          ctx.project.SetGeom(id, mode_->apply(ctx.project.GetGeom(id), steps, step));
+        break;
+      case NudgeKind::Roll: {
+        ItemGeom a = ctx.project.GetGeom(targets_[0]);
+        ItemGeom b = ctx.project.GetGeom(targets_[1]);
+        NudgeRoll(&a, &b, steps, step);
+        ctx.project.SetGeom(targets_[0], a);
+        ctx.project.SetGeom(targets_[1], b);
+        break;
+      }
+      case NudgeKind::SelIn:
+      case NudgeKind::SelOut: {
+        double s = 0.0, e = 0.0;
+        if (!ctx.project.TimeSelection(&s, &e)) {  // cleared mid-hold
+          // keep the edge values the hold last wrote
+          s = sel_start_; e = sel_end_;
+        }
+        if (mode_->kind == NudgeKind::SelIn) s = NudgeSelIn(s, e, steps, step);
+        else e = NudgeSelOut(s, e, steps, step);
+        sel_start_ = s;
+        sel_end_ = e;
+        ctx.project.SetTimeSelection(s, e);
+        break;
+      }
+    }
   }
 
   void End(VerbContext &ctx) override {
     if (!active_) return;  // no hold active
-    ctx.project.SetSelectedItems(selection_);  // restore snapshot
+    if (mode_->kind == NudgeKind::Item)
+      ctx.project.SetSelectedItems(selection_);  // restore snapshot
     ctx.project.Undo_End(mode_->label);
     active_ = false;
   }
 
  private:
   const NudgeMode *mode_;
+  StepSpec step_;
   HoldNudge nudge_{4};
   bool active_ = false;
   std::vector<int> targets_;
   std::vector<int> selection_;
+  double sel_start_ = 0.0, sel_end_ = 0.0;
 };
 
 }  // namespace
@@ -585,17 +687,27 @@ VerbRegistry MakeDefaultRegistry() {
                }});
 
   reg.Register({"nudge", {BindingGesture::Turn},
-               "Hold+rotate nudge of the targets: <move|trim_in|trim_out|slip_src|slip_dest|volume>",
+               std::string("Hold+rotate nudge of the targets: <") + kNudgeModeList +
+                   "> [step=frame|grid|sample|<N>ms]",
                [](std::vector<std::string> args) -> VerbBuildResult {
-                 if (args.size() != 1)
-                   return {nullptr, "nudge: expected one of move|trim_in|trim_out|slip_src|slip_dest|volume, got " +
+                 if (args.empty() || args.size() > 2)
+                   return {nullptr, std::string("nudge: expected <") + kNudgeModeList +
+                                         "> [step=...], got " +
                                          std::to_string(args.size()) + " argument(s)"};
                  const NudgeMode *mode = nullptr;
                  for (const NudgeMode &m : kNudgeModes)
                    if (args[0] == m.name) mode = &m;
                  if (mode == nullptr)
-                   return {nullptr, "nudge: unknown mode '" + args[0] + "' (expected one of move|trim_in|trim_out|slip_src|slip_dest|volume)"};
-                 return {std::make_unique<NudgeVerb>(mode), ""};
+                   return {nullptr, "nudge: unknown mode '" + args[0] +
+                                         "' (expected one of " + kNudgeModeList + ")"};
+                 StepSpec step;
+                 if (args.size() == 2) {
+                   if (args[1].rfind("step=", 0) != 0 ||
+                       !ParseStep(args[1].substr(5), &step))
+                     return {nullptr, "nudge: bad step '" + args[1] +
+                                           "' (expected step=frame|grid|sample|<N>ms)"};
+                 }
+                 return {std::make_unique<NudgeVerb>(mode, step), ""};
                }});
 
   reg.Register({"wheel", {BindingGesture::Press},

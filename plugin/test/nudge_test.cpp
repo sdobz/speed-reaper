@@ -184,5 +184,51 @@ int main() {
     CHECK(n.Add(-1) == -1);
   }
 
+  // Fades: length += steps*step, clamped to 0 ... item length; the rest
+  // of the geometry is untouched.
+  {
+    ItemGeom g = G(10.0, 1.0, 2.0, 1.0, 1.0);
+    ItemGeom r = NudgeFadeIn(g, 3, step);
+    CHECK_NEAR(r.fadein, 0.3, 1e-9);
+    CHECK(r.pos == 10.0 && r.len == 1.0 && r.fadeout == 0.0);
+    CHECK_NEAR(NudgeFadeIn(r, -9, step).fadein, 0.0, 1e-12);   // clamp >= 0
+    CHECK_NEAR(NudgeFadeIn(g, 50, step).fadein, 1.0, 1e-12);   // clamp <= len
+    g.fadeout = 0.2;
+    CHECK_NEAR(NudgeFadeOut(g, 2, step).fadeout, 0.4, 1e-9);
+    CHECK(NudgeFadeOut(g, 2, step).fadein == 0.0);
+    CHECK_NEAR(NudgeFadeOut(g, -5, step).fadeout, 0.0, 1e-12);
+  }
+
+  // Roll: the shared edit point moves; a.len + b.len stays fixed and b's
+  // content stays in time (startoffs += d*playrate).
+  {
+    ItemGeom a = G(0.0, 4.0, 0.0, 1.0, 1.0);
+    ItemGeom b = G(4.0, 6.0, 1.0, 2.0, 1.0);
+    NudgeRoll(&a, &b, 3, step);
+    CHECK_NEAR(a.len, 4.3, 1e-9);
+    CHECK_NEAR(b.pos, 4.3, 1e-9);
+    CHECK_NEAR(b.len, 5.7, 1e-9);
+    CHECK_NEAR(a.len + b.len, 10.0, 1e-9);
+    CHECK_NEAR(b.startoffs, 1.6, 1e-9);  // 1 + 0.3*2
+    CHECK(a.pos == 0.0);
+    // Clamps: b can shrink to one step; a can shrink to one step.
+    NudgeRoll(&a, &b, 1000, step);
+    CHECK_NEAR(b.len, step, 1e-9);
+    CHECK_NEAR(a.len + b.len, 10.0, 1e-9);
+    NudgeRoll(&a, &b, -1000, step);
+    CHECK(a.len >= step - 1e-9);
+    CHECK(b.startoffs >= -1e-9);
+    CHECK_NEAR(a.len + b.len, 10.0, 1e-9);
+  }
+
+  // Time selection edges.
+  {
+    CHECK_NEAR(NudgeSelIn(2.0, 5.0, 3, step), 2.3, 1e-9);
+    CHECK_NEAR(NudgeSelIn(2.0, 5.0, 100, step), 5.0, 1e-9);   // <= end
+    CHECK_NEAR(NudgeSelIn(0.1, 5.0, -100, step), 0.0, 1e-9);  // >= 0
+    CHECK_NEAR(NudgeSelOut(2.0, 5.0, -4, step), 4.6, 1e-9);
+    CHECK_NEAR(NudgeSelOut(2.0, 5.0, -100, step), 2.0, 1e-9);  // >= start
+  }
+
   return check_failures();
 }

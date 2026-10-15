@@ -35,6 +35,10 @@ class ReaperProject final : public IProject {
   void SetItemActiveTake(int id, int take) override;
   double ItemVolume(int id) override;
   double Fps() override;
+  double GridSeconds() override;
+  double SampleSeconds() override;
+  bool TimeSelection(double *start, double *end) override;
+  void SetTimeSelection(double start, double end) override;
   ItemGeom GetGeom(int id) override;
   void SetGeom(int id, const ItemGeom &g) override;
   int TrackCount() override;

@@ -60,4 +60,20 @@ ItemGeom NudgeSlipDest(const ItemGeom &g, int steps, double step_seconds);
 // 1.0 = 0 dB). step_seconds is unused.
 ItemGeom NudgeVolume(const ItemGeom &g, int steps, double step_seconds);
 
+// FADE IN / FADE OUT: fade length += steps * step, clamped to 0 ... item
+// length. Position, length and content are untouched.
+ItemGeom NudgeFadeIn(const ItemGeom &g, int steps, double step_seconds);
+ItemGeom NudgeFadeOut(const ItemGeom &g, int steps, double step_seconds);
+
+// ROLL: move the edit point between item `a` and its right neighbour `b`
+// by steps * step. a's right edge and b's left edge move together (b's
+// content stays in time: startoffs += applied * playrate), so a.len + b.len
+// is fixed. Clamps: both lengths >= one step, b.startoffs >= 0.
+void NudgeRoll(ItemGeom *a, ItemGeom *b, int steps, double step_seconds);
+
+// SEL IN / SEL OUT: move a time-selection edge by steps * step. The start
+// stays within [0, end], the end stays >= start.
+double NudgeSelIn(double start, double end, int steps, double step_seconds);
+double NudgeSelOut(double start, double end, int steps, double step_seconds);
+
 #endif  // SPEED_REAPER_PLUGIN_NUDGE_H

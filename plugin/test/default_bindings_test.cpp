@@ -77,6 +77,9 @@ const std::vector<Expected> kExpected = {
     {KEY_AUDIO_LEVEL, BindingGesture::Turn, "nudge", {"volume"}},
     // the last CompositeRow: TIMELINE hold + rotate
     {KEY_TIMELINE, BindingGesture::Turn, "select_step", {}},
+    {KEY_IN,       BindingGesture::Turn, "nudge", {"sel_in"}},
+    {KEY_OUT,      BindingGesture::Turn, "nudge", {"sel_out"}},
+    {KEY_ROLL,     BindingGesture::Turn, "nudge", {"roll"}},
 };
 
 }  // namespace

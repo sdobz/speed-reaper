@@ -1,0 +1,34 @@
+# hold_handles scenario (vibes/41-action-registry.md task 7).
+# Five holds, each: key down, +/-8 ticks (4 x `wheel 2`) = 2 steps of
+# step=100ms, key up. Hold recognition needs >= 350 ms of key-down.
+# The script rebinds the keys (bindings.ini + reload) within the first 100 ms.
+at 300 key 0x0E down   # TRANS_DUR: fade_in +0.2
+at 700 wheel 2
+at 708 wheel 2
+at 716 wheel 2
+at 724 wheel 2
+at 800 key 0x0E up
+at 1000 key 0x10 down   # DIS: fade_out +0.2
+at 1400 wheel 2
+at 1408 wheel 2
+at 1416 wheel 2
+at 1424 wheel 2
+at 1500 key 0x10 up
+at 1700 key 0x0B down   # ROLL: roll +0.2
+at 2100 wheel 2
+at 2108 wheel 2
+at 2116 wheel 2
+at 2124 wheel 2
+at 2200 key 0x0B up
+at 2400 key 0x07 down   # IN: sel_in +0.2
+at 2800 wheel 2
+at 2808 wheel 2
+at 2816 wheel 2
+at 2824 wheel 2
+at 2900 key 0x07 up
+at 3100 key 0x08 down   # OUT: sel_out -0.2
+at 3500 wheel -2
+at 3508 wheel -2
+at 3516 wheel -2
+at 3524 wheel -2
+at 3600 key 0x08 up

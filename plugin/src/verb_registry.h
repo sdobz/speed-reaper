@@ -33,6 +33,7 @@ const char *GestureName(BindingGesture g);
 struct VerbContext {
   IActionSink &sink;
   IProject &project;
+  int ticks_per_step = 4;  // [tuning] hold_ticks_per_step (turn verbs)
 };
 
 // The wheel mode routing state (the old Router mode_ / shuttle_prev_ /

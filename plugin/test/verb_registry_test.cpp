@@ -586,7 +586,133 @@ void test_wheel_transport_behaviors() {
 
 }  // namespace
 
+// step= arg, hold_ticks_per_step, and the handle verbs (fades, roll, sel).
+void test_nudge_handles() {
+  VerbRegistry reg = MakeDefaultRegistry();
+  // Arg validation.
+  CHECK(reg.Build("nudge", BindingGesture::Turn, {"move", "step=grid"}).error.empty());
+  CHECK(reg.Build("nudge", BindingGesture::Turn, {"move", "step=sample"}).error.empty());
+  CHECK(reg.Build("nudge", BindingGesture::Turn, {"move", "step=10ms"}).error.empty());
+  CHECK(reg.Build("nudge", BindingGesture::Turn, {"move", "step=0.5ms"}).error.empty());
+  for (const char *bad : {"step=", "step=foo", "step=ms", "step=-3ms", "grid", "step=0ms"}) {
+    VerbBuildResult r = reg.Build("nudge", BindingGesture::Turn, {"move", bad});
+    CHECK(!r.error.empty() && r.error.rfind("nudge:", 0) == 0);
+  }
+  for (const char *m : {"fade_in", "fade_out", "roll", "sel_in", "sel_out"})
+    CHECK(reg.Build("nudge", BindingGesture::Turn, {m}).error.empty());
+
+  // step=10ms with 4 ticks/step; ticks_per_step from the context.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, true});
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project, 2};  // 2 ticks per step
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"move", "step=10ms"}).verb;
+    v->Begin(c);
+    v->Step(c, 4);  // 2 steps of 10 ms
+    CHECK_NEAR(project.items[0].pos, 0.02, 1e-12);
+    v->End(c);
+  }
+  // step=grid uses GridSeconds; step=sample uses SampleSeconds.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 1.0, 5.0, true});
+    project.last_touched = 0;
+    project.grid_seconds = 0.25;
+    project.sample_seconds = 1.0 / 44100.0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto g = reg.Build("nudge", BindingGesture::Turn, {"move", "step=grid"}).verb;
+    g->Begin(c); g->Step(c, 4); g->End(c);
+    CHECK_NEAR(project.items[0].pos, 1.25, 1e-12);
+    auto sm = reg.Build("nudge", BindingGesture::Turn, {"move", "step=sample"}).verb;
+    sm->Begin(c); sm->Step(c, 8); sm->End(c);
+    CHECK_NEAR(project.items[0].pos, 1.25 + 2.0 / 44100.0, 1e-12);
+    // unknown grid (<= 0) falls back to a frame
+    project.grid_seconds = 0.0;
+    project.items[0].pos = 0.0;
+    g->Begin(c); g->Step(c, 4); g->End(c);
+    CHECK_NEAR(project.items[0].pos, 1.0 / 30.0, 1e-12);
+  }
+  // fade_in: clamped to the item length, one undo block, label.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 1.0, true});
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"fade_in", "step=100ms"}).verb;
+    v->Begin(c);
+    v->Step(c, 12);  // 3 steps
+    CHECK_NEAR(project.GetGeom(0).fadein, 0.3, 1e-12);
+    v->Step(c, 400);
+    CHECK_NEAR(project.GetGeom(0).fadein, 1.0, 1e-12);  // <= length
+    v->Step(c, -4000);
+    CHECK_NEAR(project.GetGeom(0).fadein, 0.0, 1e-12);  // >= 0
+    v->End(c);
+    CHECK(project.undo_begins == 1 && project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: fade in");
+  }
+  // roll: cursor item A [0,4] + right neighbour B [4,10], cursor in A.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 4.0, false});
+    project.items.push_back(ItemInfo{1, 0, 4.0, 6.0, false});
+    project.cursor = 2.0;
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"roll", "step=100ms"}).verb;
+    v->Begin(c);
+    v->Step(c, 8);  // 2 steps
+    CHECK_NEAR(project.items[0].len, 4.2, 1e-12);
+    CHECK_NEAR(project.items[1].pos, 4.2, 1e-12);
+    CHECK_NEAR(project.items[1].len, 5.8, 1e-12);
+    v->End(c);
+    CHECK(project.undo_begins == 1 && project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: roll");
+  }
+  // roll with no right neighbour: target none, no undo block.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 4.0, false});
+    project.cursor = 2.0;
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"roll"}).verb;
+    v->Begin(c); v->Step(c, 40); v->End(c);
+    CHECK(project.undo_begins == 0 && project.undo_ends == 0);
+    CHECK_NEAR(project.items[0].len, 4.0, 1e-12);
+  }
+  // sel_in / sel_out move the time selection edges; none -> no-op.
+  {
+    FakeProject project;
+    project.time_sel = true;
+    project.tsel_start = 2.0;
+    project.tsel_end = 5.0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto in = reg.Build("nudge", BindingGesture::Turn, {"sel_in", "step=100ms"}).verb;
+    in->Begin(c); in->Step(c, 12); in->End(c);
+    CHECK_NEAR(project.tsel_start, 2.3, 1e-12);
+    CHECK_NEAR(project.tsel_end, 5.0, 1e-12);
+    auto out = reg.Build("nudge", BindingGesture::Turn, {"sel_out", "step=100ms"}).verb;
+    out->Begin(c); out->Step(c, -8); out->End(c);
+    CHECK_NEAR(project.tsel_end, 4.8, 1e-12);
+    CHECK(project.undo_begins == 2 && project.undo_ends == 2);
+    CHECK(project.last_undo_label == "Speed Reaper: time selection end");
+    // no time selection: nothing
+    FakeProject none;
+    VerbContext cn{s, none};
+    in->Begin(cn); in->Step(cn, 40); in->End(cn);
+    CHECK(none.undo_begins == 0 && !none.time_sel);
+  }
+}
+
 int main() {
+  test_nudge_handles();
   test_all_names_resolve();
   test_wrong_gesture_rejected();
   test_bad_args_rejected();

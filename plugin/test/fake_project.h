@@ -55,6 +55,9 @@ class FakeProject final : public IProject {
   // out-of-range id is a no-op.
   std::vector<ItemGeom> geoms;
   double fps = 30.0;
+  double grid_seconds = 0.0;   // GridSeconds() (<= 0: unknown)
+  double sample_seconds = 1.0 / 48000.0;
+  double tsel_start = 0.0, tsel_end = 0.0;  // used when time_sel is true
 
   // Write-primitive calls, in order (tests assert the ops combined them
   // the right way).
@@ -115,6 +118,19 @@ class FakeProject final : public IProject {
     return id < static_cast<int>(item_volumes.size()) ? item_volumes[id] : 1.0;
   }
   double Fps() override { return fps; }
+  double GridSeconds() override { return grid_seconds; }
+  double SampleSeconds() override { return sample_seconds; }
+  bool TimeSelection(double *s, double *e) override {
+    if (!time_sel) return false;
+    *s = tsel_start;
+    *e = tsel_end;
+    return true;
+  }
+  void SetTimeSelection(double s, double e) override {
+    time_sel = e > s;
+    tsel_start = s;
+    tsel_end = e;
+  }
   ItemGeom GetGeom(int id) override {
     ItemGeom g{0.0, 0.0, 0.0, 1.0, 1.0};  // default for a valid id, no entry
     if (id < 0 || id >= static_cast<int>(items.size())) return g;
@@ -124,6 +140,8 @@ class FakeProject final : public IProject {
       g.startoffs = geoms[id].startoffs;
       g.playrate = geoms[id].playrate;
       g.vol = geoms[id].vol;
+      g.fadein = geoms[id].fadein;
+      g.fadeout = geoms[id].fadeout;
     }
     return g;
   }

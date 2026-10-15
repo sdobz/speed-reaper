@@ -113,6 +113,35 @@ bool ReaperProject::HasTimeSelection() {
   return t1 > t0;
 }
 
+bool ReaperProject::TimeSelection(double *start, double *end) {
+  double t0 = 0.0, t1 = 0.0;
+  GetSet_LoopTimeRange2(nullptr, false, false, &t0, &t1, false);
+  if (!(t1 > t0)) return false;
+  *start = t0;
+  *end = t1;
+  return true;
+}
+
+void ReaperProject::SetTimeSelection(double start, double end) {
+  double t0 = start, t1 = end;
+  GetSet_LoopTimeRange2(nullptr, true, false, &t0, &t1, false);
+}
+
+double ReaperProject::GridSeconds() {
+  // Grid division is a fraction of a whole note (0.25 = quarter); seconds
+  // per whole note = 4 * 60 / bpm at the cursor.
+  double div = 0.0;
+  GetSetProjectGrid(nullptr, false, &div, nullptr, nullptr);
+  if (!(div > 0.0)) return 0.0;
+  const double bpm = TimeMap_GetDividedBpmAtTime(GetCursorPosition());
+  return bpm > 0.0 ? div * 4.0 * 60.0 / bpm : 0.0;
+}
+
+double ReaperProject::SampleSeconds() {
+  const double rate = GetSetProjectInfo(nullptr, "PROJECT_SRATE", 0.0, false);
+  return 1.0 / (rate > 0.0 ? rate : 48000.0);
+}
+
 void ReaperProject::SetSelectedItems(const std::vector<int> &ids) {
   const std::vector<MediaItem *> items = EnumerateItems();  // id == index
   std::set<int> want(ids.begin(), ids.end());
@@ -233,6 +262,8 @@ ItemGeom ReaperProject::GetGeom(int id) {
   g.pos = GetMediaItemInfo_Value(item, "D_POSITION");
   g.len = GetMediaItemInfo_Value(item, "D_LENGTH");
   g.vol = GetMediaItemInfo_Value(item, "D_VOL");
+  g.fadein = GetMediaItemInfo_Value(item, "D_FADEINLEN");
+  g.fadeout = GetMediaItemInfo_Value(item, "D_FADEOUTLEN");
   MediaItem_Take *take = GetActiveTake(item);
   if (take) {
     g.startoffs = GetMediaItemTakeInfo_Value(take, "D_STARTOFFS");
@@ -247,6 +278,8 @@ void ReaperProject::SetGeom(int id, const ItemGeom &g) {
   SetMediaItemInfo_Value(item, "D_POSITION", g.pos);
   SetMediaItemInfo_Value(item, "D_LENGTH", g.len);
   SetMediaItemInfo_Value(item, "D_VOL", g.vol);
+  SetMediaItemInfo_Value(item, "D_FADEINLEN", g.fadein);
+  SetMediaItemInfo_Value(item, "D_FADEOUTLEN", g.fadeout);
   MediaItem_Take *take = GetActiveTake(item);
   if (take) {
     SetMediaItemTakeInfo_Value(take, "D_STARTOFFS", g.startoffs);

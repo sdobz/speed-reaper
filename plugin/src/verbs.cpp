@@ -66,7 +66,7 @@ BoundVerb *VerbRouter::Find(std::uint16_t key, BindingGesture g) {
 }
 
 void VerbRouter::OnGesture(const Gesture &g) {
-  VerbContext ctx{sink_, project_};
+  VerbContext ctx{sink_, project_, bindings_.tuning.hold_ticks_per_step};
   BindingGesture bg = BindingGesture::Tap;
   switch (g.kind) {
     case GestureKind::Press: bg = BindingGesture::Press; break;

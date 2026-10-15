@@ -25,6 +25,9 @@
 #define REAPERAPI_WANT_RecursiveCreateDirectory // main: bindings dir
 #define REAPERAPI_WANT_PromptForAction // main: learn action picker
 #define REAPERAPI_WANT_ReverseNamedCommandLookup // main: learned action -> _Named
+#define REAPERAPI_WANT_GetSetProjectGrid // ReaperProject::GridSeconds
+#define REAPERAPI_WANT_TimeMap_GetDividedBpmAtTime // ReaperProject::GridSeconds
+#define REAPERAPI_WANT_GetSetProjectInfo // ReaperProject::SampleSeconds
 #define REAPERAPI_WANT_GetPlayState // ReaperPlayheadSink::ScrubBySeconds
 #define REAPERAPI_WANT_GetCursorPosition // ReaperPlayheadSink::ScrubBySeconds, ReaperProject::CursorPos
 #define REAPERAPI_WANT_SetEditCurPos // ReaperPlayheadSink::ScrubBySeconds
