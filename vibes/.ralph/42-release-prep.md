@@ -23,3 +23,11 @@ Facts:
 - `tools/check` passed (job r42t1check, rc=0, ~18s warm); exact Verify command exits 0. Line 17 ticked; done.
 Next:
 - (task complete)
+
+Result: exit 0; done; log: logs/42-release-prep-L17-a1-1792085921059.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/42-release-prep.md
+```
