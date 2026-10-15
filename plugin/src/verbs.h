@@ -15,7 +15,7 @@
 
 #include "action_sink.h"
 #include "gesture.h"
-#include "hold_nudge.h"
+#include "nudge.h"  // HoldNudge (tick→step accumulator, M7 design §4)
 #include "project.h"
 
 class VerbRouter {

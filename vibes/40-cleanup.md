@@ -101,7 +101,7 @@ tools/check 'wheel_dispatcher|router|session' && ! rg -q 'ModeGatedSource|HoldGa
 tools/check nudge && ! ls plugin/src/hold_nudge.* 2>/dev/null
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. `IProject` down to primitives
 

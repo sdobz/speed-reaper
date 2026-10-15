@@ -48,7 +48,6 @@ endif()
 set(PLUGIN_PURE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/button_diff.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gesture.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/hold_nudge.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/led_state.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nudge.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/router.cpp

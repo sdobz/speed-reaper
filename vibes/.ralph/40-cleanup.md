@@ -232,3 +232,17 @@ Files:
 ```
 M vibes/.ralph/40-cleanup.md
 ```
+
+## Task: 7. Merge `hold_nudge` into `nudge`
+
+### Attempt 4 — 2026-10-15T03:21:07Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Clean tree at start; no partial work from attempts 1–3.
+- `HoldNudge` moved into `nudge.h` (class + doc, `#include <cstdint>` added) and `nudge.cpp` (implementation, verbatim). `hold_nudge.h/.cpp` deleted.
+- `verbs.h` was the only includer of hold_nudge.h (member `HoldNudge nudge{4}`) → now includes `nudge.h`. verbs.cpp already included nudge.h for the Nudge* functions; its comment on line 286 names HoldNudge (still valid).
+- `hold_nudge_test.cpp` cases merged verbatim into `nudge_test.cpp` main() before `check_failures()` (check.h CHECK macro style matches).
+- `plugin/test/CMakeLists.txt` needed NO change: tests are globbed via `file(GLOB *_test.cpp)` — deleting hold_nudge_test.cpp is the whole update.
+- `plugin/CMakeLists.txt` PLUGIN_PURE_SOURCES: hold_nudge.cpp line removed.
+- No new files, so no `git add` needed before the nix Windows build.
+- DONE: verify7 (exact Verify) rc=0 in 14s — tools/check nudge: 13/13 tests build warning-free, nudge_test PASS (with merged HoldNudge cases), WINDOWS ORACLE PASS static, ORACLE PASS host; `ls plugin/src/hold_nudge.*` finds nothing. Line 104 ticked.
