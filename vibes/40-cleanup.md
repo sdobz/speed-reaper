@@ -116,7 +116,7 @@ tools/check nudge && ! ls plugin/src/hold_nudge.* 2>/dev/null
 tools/check && ! rg -q 'DuplicateItemsAbove|ToggleSoloTracks|ToggleIsolateTracks' plugin/src/project.h && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
   <!-- ralph: replanned=1 timeout=2400 -->
 
 ### 9. Comment pass

@@ -276,3 +276,19 @@ Trigger: 5 attempt(s), last: exit 0, progress
 Why: Attempt 5 finished the entire refactor (19 files, all staged) and its log shows the full Verify pipeline already green on this exact tree — tools/check 16/16 + Windows/host oracle, ORACLE PASS reaper/load, build untouched (ninja: no work to do), and the rg half of Verify passes now; it was killed mid-thought while running an EXTRA --layer all regression scenario. The retry only needs to re-run the Verify command (expect it green, incremental) and tick the box; do not redo the implementation.
 Rejected: SPLIT: nothing is left to split — the implementation is done and the remainder is one already-green verify pipeline, so subtasks would just burn an extra model run. SPIKE: no open design question; the record already pins the design and the log shows everything passing. REWRITE: the task text and Verify are correct and Verify should exit 0 on the current tree as-is. BLOCK: no human decision needed — the stale `verbs` scenario is out of scope because --layer reaper runs only the `load` scenario (per Learnings).
 Log: logs/40-cleanup-L119-replan-1792035898074.log
+
+### Attempt 1 — 2026-10-15T03:48:03Z — budget 2400s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Refactor from attempt 5 is fully committed (folded into commit fe80e6a "replan" commit); tree clean except the record file; `project_ops.h/.cpp` present; `project.h` has no verb names (rg half of Verify already passes).
+- Running full Verify as bg job `verify119`; will tick the box if it exits 0.
+Result: exit 0; verify119 green (16/16 tests, Windows oracle PASS, ORACLE PASS reaper/load); box ticked; log: logs/verify119.log
+
+Result: exit 0; done; 2 files changed, 8 insertions(+), 1 deletion(-); log: logs/40-cleanup-L119-a1-1792036083802.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+ M vibes/40-cleanup.md
+```
