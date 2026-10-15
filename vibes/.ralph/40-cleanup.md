@@ -306,3 +306,11 @@ M vibes/.ralph/40-cleanup.md
   - `tools/check` (job check40-9) green: 16/16 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host.
   - Exact Verify command re-run in foreground: rc=0. Line 132 ticked.
 - Next: none — done.
+
+Result: exit 0; done; log: logs/40-cleanup-L132-a2-1792036167515.log
+
+### Done — 2026-10-15 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+```
