@@ -139,3 +139,14 @@ Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 
 ### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
 Trigger: 3 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
 Log: logs/41-action-registry-L111-replan-1792041052564.log
+
+## Task: 5. Actions: reload, open, show, echo
+
+### Attempt 1 — 2026-10-15T17:00:11Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 1 file changed, 5 insertions(+); log: logs/41-action-registry-L127-a1-1792083611750.log
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 1 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Log: logs/41-action-registry-L127-replan-1792083921938.log
