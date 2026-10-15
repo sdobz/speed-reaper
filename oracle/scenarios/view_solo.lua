@@ -2,8 +2,8 @@
 -- task 6d). Validates AUDIO_ONLY (0x26) and VIDEO_ONLY (0x25) tap-twice:
 -- the first tap solos / isolates the target items' tracks, the second tap
 -- restores the saved flags (plugin memory only, no undo block, no REAPER
--- command — see ToggleSoloTracks / ToggleIsolateTracks in
--- plugin/src/reaper_project.cpp).
+-- command — see the IsolateView / SoloView ops in
+-- plugin/src/project_ops.h, on the IProject track-flag primitives).
 --
 -- The harness sources oracle/scenarios/view_solo.env, which points
 -- SPEED_REAPER_FAKE_DEVICE at oracle/fake/view_solo.txt (device clock; the

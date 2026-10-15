@@ -19,9 +19,6 @@ namespace {
 // 40311 = "Set ripple editing all tracks" (names: docs/reaper-actions.tsv).
 constexpr int kRipplePerTrack = 40310;
 constexpr int kRippleAll = 40311;
-// LED bar (M8, docs/notes/m8-state-reads.md): snap (1157) and trim-behind
-// (41117, "Options: Trim content behind media items when editing") are
-// plain toggles; all three are valid GetToggleCommandState queries.
 
 // Track-list index of a track (master excluded); -1 if null / not found.
 int TrackIndex(MediaTrack *track) {
@@ -69,20 +66,6 @@ MediaItem *ItemById(int id) {
   const std::vector<MediaItem *> items = EnumerateItems();
   if (id < 0 || id >= static_cast<int>(items.size())) return nullptr;
   return items[id];
-}
-
-// Unique track indices of the valid item ids, in order of first appearance
-// (the view-button verbs act on the target items' tracks).
-std::vector<int> TracksOfItems(const std::vector<MediaItem *> &items,
-                               const std::vector<int> &ids) {
-  std::vector<int> out;
-  for (int id : ids) {
-    if (id < 0 || id >= static_cast<int>(items.size())) continue;
-    const int t = TrackIndex(GetMediaItem_Track(items[id]));
-    if (t < 0) continue;
-    if (std::find(out.begin(), out.end(), t) == out.end()) out.push_back(t);
-  }
-  return out;
 }
 
 }  // namespace
@@ -144,28 +127,66 @@ int ReaperProject::RippleMode() {
   return 0;
 }
 
-LedState ReaperProject::ReadLedState() {
-  LedState s;
-  s.snap = GetToggleCommandState(1157) == 1;
-  s.ripple = RippleMode();
-  s.trim_behind = GetToggleCommandState(41117) == 1;
-  // active_take: the 1-based active take shared by ALL selected items,
-  // else 0 (nothing selected, mixed, no active take, or take > 9 — the
-  // main panel has only CAM1..9 bits).
-  int shared = 0;
-  for (MediaItem *item : EnumerateItems()) {
-    if (!IsMediaItemSelected(item)) continue;
-    const int t =
-        static_cast<int>(GetMediaItemInfo_Value(item, "I_CURTAKE")) + 1;  // 1-based
-    if (t < 1 || t > 9) { s.active_take = 0; return s; }
-    if (shared == 0)
-      shared = t;
-    else if (shared != t) { s.active_take = 0; return s; }
+// Write primitives (40-cleanup §8) — the multi-step actions that combine
+// them (duplicate, view toggles, LED snapshot) are the pure ops in
+// project_ops.cpp.
+int ReaperProject::TrackCount() { return CountTracks(nullptr); }
+
+bool ReaperProject::ToggleState(int cmd) {
+  return GetToggleCommandState(cmd) == 1;
+}
+
+int ReaperProject::InsertTrackAbove(int track) {
+  InsertTrackInProject(nullptr, track, 0);  // new track above, at index `track`
+  return GetTrack(nullptr, track) ? track : -1;
+}
+
+int ReaperProject::CopyItemToTrack(int item_id, int track) {
+  MediaItem *src = ItemById(item_id);
+  MediaTrack *dst = GetTrack(nullptr, track);
+  if (!src || !dst) return -1;
+  std::set<MediaItem *> pre;  // to identify the new item after the copy
+  for (MediaItem *item : EnumerateItems()) pre.insert(item);
+  MediaItem *ni = AddMediaItemToTrack(dst);
+  if (!ni) return -1;
+  char chunk[8192];
+  chunk[sizeof chunk - 1] = 0;  // SetItemStateChunk wants a C string
+  if (GetItemStateChunk(src, chunk, static_cast<int>(sizeof chunk), false))
+    SetItemStateChunk(ni, chunk, false);
+  // Same position (the state chunk may carry take/item geometry; keep
+  // the item's edit position explicit per design §3).
+  SetMediaItemInfo_Value(ni, "D_POSITION",
+                         GetMediaItemInfo_Value(src, "D_POSITION"));
+  UpdateItemInProject(ni);
+  const std::vector<MediaItem *> after = EnumerateItems();  // id == index
+  for (size_t i = 0; i < after.size(); ++i)
+    if (pre.count(after[i]) == 0) return static_cast<int>(i);
+  return -1;
+}
+
+bool ReaperProject::GetTrackFlag(int track, TrackFlag flag) {
+  MediaTrack *tr = GetTrack(nullptr, track);
+  if (!tr)  // missing track: report the flag's default (shown / not solo)
+    return flag == TrackFlag::Solo ? false : true;
+  switch (flag) {
+    case TrackFlag::ShowTcp:
+      return GetMediaTrackInfo_Value(tr, "B_SHOWINTCP") != 0.0;
+    case TrackFlag::ShowMixer:
+      return GetMediaTrackInfo_Value(tr, "B_SHOWINMIXER") != 0.0;
+    case TrackFlag::Solo:
+      return GetMediaTrackInfo_Value(tr, "I_SOLO") != 0.0;
   }
-  s.active_take = shared;
-  s.isolate = isolate_active_;
-  s.solo = solo_active_;
-  return s;
+  return false;
+}
+
+void ReaperProject::SetTrackFlag(int track, TrackFlag flag, bool on) {
+  MediaTrack *tr = GetTrack(nullptr, track);
+  if (!tr) return;  // track deleted meanwhile: skip
+  const char *key =
+      flag == TrackFlag::ShowTcp    ? "B_SHOWINTCP"
+      : flag == TrackFlag::ShowMixer ? "B_SHOWINMIXER"
+                                     : "I_SOLO";
+  SetMediaTrackInfo_Value(tr, key, on ? 1.0 : 0.0);
 }
 
 void ReaperProject::Undo_Begin() {
@@ -234,111 +255,4 @@ void ReaperProject::SetGeom(int id, const ItemGeom &g) {
   UpdateItemInProject(item);
 }
 
-// PLACE ON TOP (M6 design §3): one new track above each source track;
-// every requested item is copied onto its source track's new track at the
-// same position. The copies are the only new things — the source items,
-// their selection, and the track selection are left alone.
-void ReaperProject::DuplicateItemsAbove(const std::vector<int> &ids) {
-  const std::vector<MediaItem *> items = EnumerateItems();  // id == index
-  std::vector<int> source_tracks;  // unique tracks of the valid ids
-  for (int id : ids) {
-    if (id < 0 || id >= static_cast<int>(items.size())) continue;
-    const int t = TrackIndex(GetMediaItem_Track(items[id]));
-    if (t < 0) continue;
-    if (std::find(source_tracks.begin(), source_tracks.end(), t) ==
-        source_tracks.end())
-      source_tracks.push_back(t);
-  }
-  // Descending: an insert at t shifts only tracks ABOVE t, so the smaller
-  // indices still to process stay valid.
-  for (int i = static_cast<int>(source_tracks.size()) - 1; i >= 0; --i) {
-    const int t = source_tracks[i];
-    MediaTrack *src = GetTrack(nullptr, t);
-    if (!src) continue;
-    InsertTrackInProject(nullptr, t, 0);  // new track above src, at index t
-    MediaTrack *dst = GetTrack(nullptr, t);
-    if (!dst) continue;
-    // ids are in Items() order (track, then pos) → copies land in pos order.
-    for (int id : ids) {
-      if (id < 0 || id >= static_cast<int>(items.size())) continue;
-      MediaItem *si = items[id];
-      if (GetMediaItem_Track(si) != src) continue;
-      MediaItem *ni = AddMediaItemToTrack(dst);
-      if (!ni) continue;
-      char chunk[8192];
-      chunk[sizeof chunk - 1] = 0;  // SetItemStateChunk wants a C string
-      if (GetItemStateChunk(si, chunk, static_cast<int>(sizeof chunk), false))
-        SetItemStateChunk(ni, chunk, false);
-      // Same position (the state chunk may carry take/item geometry; keep
-      // the item's edit position explicit per design §3).
-      SetMediaItemInfo_Value(ni, "D_POSITION",
-                             GetMediaItemInfo_Value(si, "D_POSITION"));
-      UpdateItemInProject(ni);
-    }
-  }
-}
 
-// View buttons (M6 design §3). The saved previous flags live in plugin
-// memory only (members of this object) — the first call saves them, the
-// second restores exactly those; no REAPER undo block is involved.
-void ReaperProject::ToggleIsolateTracks(const std::vector<int> &item_ids) {
-  if (isolate_active_) {  // second call: restore exactly the saved visibility
-    for (size_t i = 0; i < saved_isolate_.size(); ++i) {
-      MediaTrack *tr = GetTrack(nullptr, i);  // track deleted meanwhile: skip
-      if (!tr) continue;
-      SetMediaTrackInfo_Value(tr, "B_SHOWINTCP",
-                              saved_isolate_[i].tcp ? 1.0 : 0.0);
-      SetMediaTrackInfo_Value(tr, "B_SHOWINMIXER",
-                              saved_isolate_[i].mixer ? 1.0 : 0.0);
-    }
-    isolate_active_ = false;
-    saved_isolate_.clear();
-    return;
-  }
-  const std::vector<MediaItem *> items = EnumerateItems();  // id == index
-  const std::vector<int> targets = TracksOfItems(items, item_ids);
-  if (targets.empty()) return;  // no valid target: no state change
-  const int n = CountTracks(nullptr);
-  saved_isolate_.resize(n);
-  for (int i = 0; i < n; ++i) {
-    MediaTrack *tr = GetTrack(nullptr, i);
-    if (!tr) continue;
-    saved_isolate_[i].tcp =
-        GetMediaTrackInfo_Value(tr, "B_SHOWINTCP") != 0.0;
-    saved_isolate_[i].mixer =
-        GetMediaTrackInfo_Value(tr, "B_SHOWINMIXER") != 0.0;
-  }
-  for (int i = 0; i < n; ++i) {
-    MediaTrack *tr = GetTrack(nullptr, i);
-    if (!tr) continue;
-    const bool show =
-        std::find(targets.begin(), targets.end(), i) != targets.end();
-    SetMediaTrackInfo_Value(tr, "B_SHOWINTCP", show ? 1.0 : 0.0);
-    SetMediaTrackInfo_Value(tr, "B_SHOWINMIXER", show ? 1.0 : 0.0);
-  }
-  isolate_active_ = true;
-}
-
-void ReaperProject::ToggleSoloTracks(const std::vector<int> &item_ids) {
-  if (solo_active_) {  // second call: restore exactly the saved solo flags
-    for (const auto &p : saved_solo_) {
-      MediaTrack *tr = GetTrack(nullptr, p.first);  // deleted meanwhile: skip
-      if (!tr) continue;
-      SetMediaTrackInfo_Value(tr, "I_SOLO", p.second ? 1.0 : 0.0);
-    }
-    solo_active_ = false;
-    saved_solo_.clear();
-    return;
-  }
-  const std::vector<MediaItem *> items = EnumerateItems();  // id == index
-  const std::vector<int> targets = TracksOfItems(items, item_ids);
-  if (targets.empty()) return;  // no valid target: no state change
-  saved_solo_.clear();
-  for (const int t : targets) {
-    MediaTrack *tr = GetTrack(nullptr, t);
-    if (!tr) continue;
-    saved_solo_.emplace_back(t, GetMediaTrackInfo_Value(tr, "I_SOLO") != 0.0);
-    SetMediaTrackInfo_Value(tr, "I_SOLO", 1.0);
-  }
-  solo_active_ = true;
-}

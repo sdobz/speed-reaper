@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "led_state.h"
+#include "project_ops.h"  // ReadLedState (pure op on IProject, 40-cleanup §8)
 #include "speed_editor/key_map.h"  // KEY_* codes for the router-key split
 #include "trace.h"
 #include "wheel_mode.h"
@@ -105,7 +106,8 @@ void Session::Tick(std::int64_t now_ms) {
   // (no point pushing while the device is not connected).
   if (connected && (led_mask_ < 0 || now_ms - last_led_ms_ >= kLedPollMs)) {
     last_led_ms_ = now_ms;
-    const std::uint32_t mask = MainLedMask(project_.ReadLedState());
+    const std::uint32_t mask = MainLedMask(ReadLedState(
+        project_, verbs_.IsolateActive(), verbs_.SoloActive()));
     if (static_cast<std::uint32_t>(led_mask_) != mask) {
       led_mask_ = static_cast<int>(mask);
       Trace("led main=%x", mask);  // oracle greps (M3 edit verbs task 5)

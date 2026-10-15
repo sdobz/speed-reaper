@@ -6,6 +6,7 @@
 
 #include "nudge.h"                 // Nudge* hold+rotate math (M7, design §4)
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
+#include "project_ops.h"           // DuplicateItemsAbove (pure op, 40-cleanup §8)
 #include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
 #include "trace.h"                 // Trace (no-target diagnostics)
 
@@ -155,9 +156,9 @@ void AudioLevelTap(VerbRouter &, IActionSink &sink, IProject &project,
 }
 
 // PLACE ON TOP Tap (M6 design §3): duplicate the target items onto one new
-// track above each source track, same position (IProject::
-// DuplicateItemsAbove); the original selection is restored. No targets →
-// trace `target none` and do nothing.
+// track above each source track, same position (the pure op
+// DuplicateItemsAbove from project_ops.h, on IProject primitives); the original
+// selection is restored. No targets → trace `target none` and do nothing.
 void PlaceOnTopTap(VerbRouter &, IActionSink &, IProject &project,
                    const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
@@ -167,7 +168,7 @@ void PlaceOnTopTap(VerbRouter &, IActionSink &, IProject &project,
   }
   project.Undo_Begin();
   WithTargetSelected(project, [&project, &targets] {
-    project.DuplicateItemsAbove(targets);
+    DuplicateItemsAbove(project, targets);
   });
   project.Undo_End("Speed Reaper: place on top");
 }
@@ -188,26 +189,26 @@ void SmthCutTap(VerbRouter &, IActionSink &sink, IProject &project,
 // except the target items' tracks; the second tap restores the saved
 // per-track visibility (the saved state is plugin memory only, so no undo
 // block). No targets → trace `target none` and do nothing.
-void VideoOnlyTap(VerbRouter &, IActionSink &, IProject &project,
+void VideoOnlyTap(VerbRouter &router, IActionSink &, IProject &project,
                   const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
     Trace("target none");  // §1.1 rule 3: the verb does nothing
     return;
   }
-  project.ToggleIsolateTracks(targets);
+  router.isolate_view_.Toggle(project, targets);
 }
 
 // AUDIO_ONLY Tap (M6 design §3): toggle solo on the target items' tracks;
 // the second tap restores the saved solo flags.
-void AudioOnlyTap(VerbRouter &, IActionSink &, IProject &project,
+void AudioOnlyTap(VerbRouter &router, IActionSink &, IProject &project,
                   const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
     Trace("target none");  // §1.1 rule 3: the verb does nothing
     return;
   }
-  project.ToggleSoloTracks(targets);
+  router.solo_view_.Toggle(project, targets);
 }
 
 // One hold+rotate step: move the selection to the next (dir>0) / previous

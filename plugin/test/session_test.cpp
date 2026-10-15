@@ -11,7 +11,8 @@
 
 #include "check.h"
 #include "fake_project.h"
-#include "led_state.h"  // MainLedMask (expected masks)
+#include "led_state.h"    // MainLedMask (expected masks)
+#include "project_ops.h"  // ReadLedState (pure op, 40-cleanup §8)
 #include "speed_editor/key_map.h"  // KEY_SNAP
 #include "wheel_mode.h"  // ProtocolMode
 
@@ -93,7 +94,8 @@ int main() {
     CHECK(dev.jog_leds_.size() == 1);
     CHECK(dev.jog_leds_[0] == (std::array<bool, 3>{true, false, false}));
     CHECK(dev.leds_.size() == 1);
-    CHECK(dev.leds_[0] == MainLedMask(proj.ReadLedState()));
+    CHECK(dev.leds_[0] ==
+          MainLedMask(ReadLedState(proj, false, false)));  // no view toggles
 
     dev.connected_ = false;
     s.Tick(16);
@@ -126,7 +128,7 @@ int main() {
     s.Tick(256);  // poll fires, mask unchanged: no push
     CHECK(dev.leds_.size() == 1);
 
-    LedState on = proj.ReadLedState();  // change the mirrored REAPER state
+    LedState on = ReadLedState(proj, false, false);  // mirror the session
     on.snap = true;
     const std::uint32_t snap_mask = MainLedMask(on);
     CHECK(snap_mask != off);

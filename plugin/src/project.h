@@ -1,13 +1,15 @@
-// Pure, REAPER-free view of the project state that item verbs need
-// (docs/plugin-design-m5-m9.md §2). ReaperProject (not in this header's
-// translation unit graph) implements IProject against the REAPER API;
-// plugin/test/fake_project.h implements it for unit tests.
+// Pure, REAPER-free view of the project STATE that item verbs need
+// (docs/plugin-design-m5-m9.md §2): state reads plus the smallest
+// write primitives. Multi-step actions (duplicate-onto-new-track, view
+// toggles, the LED snapshot) are pure ops in project_ops.h built on
+// these primitives, so fake_project.h re-implements no verb logic.
+// ReaperProject (not in this header's translation unit graph) implements
+// IProject against the REAPER API; plugin/test/fake_project.h implements
+// it for unit tests.
 #ifndef SPEED_REAPER_PROJECT_H
 #define SPEED_REAPER_PROJECT_H
 
 #include <vector>
-
-#include "led_state.h"  // LedState (M8 LED bar; pure, REAPER-free)
 
 struct ItemInfo {
   int id;       // index in Items() order
@@ -26,6 +28,14 @@ struct ItemGeom {
   double startoffs;  // active take D_STARTOFFS, seconds
   double playrate;   // active take D_PLAYRATE, 1.0 = normal speed
   double vol;        // D_VOL, linear (1.0 = 0 dB)
+};
+
+// Track-level flags the view ops toggle (40-cleanup §8: the primitives
+// behind project_ops.h).
+enum class TrackFlag : int {
+  ShowTcp = 0,    // B_SHOWINTCP (visible in TCP)
+  ShowMixer = 1,  // B_SHOWINMIXER (visible in mixer)
+  Solo = 2,       // I_SOLO
 };
 
 class IProject {
@@ -53,26 +63,21 @@ class IProject {
   // UpdateItemInProject; a bad id is a no-op.
   virtual ItemGeom GetGeom(int id) = 0;
   virtual void SetGeom(int id, const ItemGeom &g) = 0;
-  // PLACE ON TOP (M6): duplicate the given ids onto one new track above
-  // each source track, same position; the originals and their selection
-  // are left alone. Bad ids are ignored.
-  virtual void DuplicateItemsAbove(const std::vector<int> &ids) = 0;
-  // View buttons (M6): toggle isolate (hide every track except the target
-  // items' tracks, B_SHOWINTCP/B_SHOWINMIXER) / solo (I_SOLO on the target
-  // items' tracks). The first call saves the previous per-track flags and
-  // the second restores exactly those; the saved state is plugin memory
-  // only (not REAPER undo). Bad ids are ignored; no valid target ids is a
-  // no-op that does not toggle the saved state.
-  virtual void ToggleIsolateTracks(const std::vector<int> &item_ids) = 0;
-  virtual void ToggleSoloTracks(const std::vector<int> &item_ids) = 0;
-  // LED bar (M8, docs/notes/m8-state-reads.md): snapshot of snap / ripple /
-  // trim-behind / shared selected-item take / isolate / solo. active_take is
-  // the 1-based active take shared by ALL selected items, else 0 (none or
-  // mixed; also 0 when the shared take is > 9 — no CAM LED for it).
-  virtual LedState ReadLedState() = 0;
-  // M6 toggle state: is the isolate view / solo currently held on?
-  virtual bool IsolateActive() = 0;
-  virtual bool SoloActive() = 0;
+  // Write primitives (40-cleanup §8): the building blocks the pure ops
+  // in project_ops.h combine. Track indices are the Items()/track-list
+  // index (master excluded); item ids are Items() ids.
+  virtual int TrackCount() = 0;  // CountTracks
+  virtual bool ToggleState(int cmd) = 0;  // REAPER toggle command on/off
+  // Insert one empty track at `track` (above the track currently there);
+  // returns the new track's index, -1 on failure.
+  virtual int InsertTrackAbove(int track) = 0;
+  // Copy item `id` (state chunk + edit position) onto a new item on
+  // `track`; returns the new item's id, -1 on a bad id / track.
+  virtual int CopyItemToTrack(int item_id, int track) = 0;
+  // Track flag read/write; a missing track reports the flag's default
+  // (shown / not solo) and is a no-op target for SetTrackFlag.
+  virtual bool GetTrackFlag(int track, TrackFlag flag) = 0;
+  virtual void SetTrackFlag(int track, TrackFlag flag, bool on) = 0;
 };
 
 #endif  // SPEED_REAPER_PROJECT_H

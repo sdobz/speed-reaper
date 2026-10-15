@@ -522,9 +522,9 @@ void test_audio_level_and_smth_cut() {
 }
 
 // M6 design §3: PLACE ON TOP Tap duplicates the target items onto one new
-// track above each source track (IProject::DuplicateItemsAbove with the
-// target ids), one undo block "Speed Reaper: place on top"; the original
-// selection is restored. No targets → nothing.
+// track above each source track (the pure op DuplicateItemsAbove on the
+// IProject primitives, with the target ids), one undo block "Speed Reaper:
+// place on top"; the original selection is restored. No targets → nothing.
 void test_place_on_top() {
   // 1) One target (the cursor target, rule 2): the project gets exactly one
   // call with [0]; the fake applies the duplication (copy on the new track
@@ -540,9 +540,11 @@ void test_place_on_top() {
 
     r.OnGesture(G(KEY_PLACE_ON_TOP, GestureKind::Tap));
     CHECK(sink.commands.empty());  // pure project API, no REAPER commands
-    CHECK(project.duplicate_calls.size() == 1);
-    CHECK(project.duplicate_calls[0].size() == 1);
-    CHECK(project.duplicate_calls[0][0] == 0);
+    CHECK(project.insert_calls.size() == 1);   // the op's primitive calls
+    CHECK(project.insert_calls[0] == 0);
+    CHECK(project.copy_calls.size() == 1);
+    CHECK(project.copy_calls[0].first == 0);   // the target id
+    CHECK(project.copy_calls[0].second == 0);  // onto the new track
     CHECK(project.undo_begins == 1);
     CHECK(project.undo_ends == 1);
     CHECK(project.last_undo_label == "Speed Reaper: place on top");
@@ -575,7 +577,8 @@ void test_place_on_top() {
 
     r.OnGesture(G(KEY_PLACE_ON_TOP, GestureKind::Tap));
     CHECK(sink.commands.empty());
-    CHECK(project.duplicate_calls.empty());
+    CHECK(project.insert_calls.empty());
+    CHECK(project.copy_calls.empty());
     CHECK(project.undo_begins == 0);
     CHECK(project.undo_ends == 0);
     CHECK(project.selected_calls.empty());
@@ -587,75 +590,14 @@ void test_place_on_top() {
 // restores the saved B_SHOWINTCP/B_SHOWINMIXER exactly). AUDIO_ONLY
 // toggles I_SOLO on the target items' tracks (same save/restore). FULL
 // VIEW runs 40346 (candidate, settled by the M6 task-6 oracle). The saved
-// state is plugin memory only — no undo block, no selection churn.
+// state lives in the IsolateView / SoloView ops (project_ops.h) — plugin
+// memory only, no undo block, no selection churn. (The ops' save/restore
+// behavior is tested directly in project_ops_test.cpp.)
 void test_view_buttons() {
-  // 1) Isolate, direct on the fake with the target ids: A item on track 0,
-  // B item on track 1; track 1 was mixer-hidden beforehand. The first call
-  // hides track 1 (keeps track 0 shown); the second restores track 1's
-  // saved flags EXACTLY (tcp back to shown, mixer still hidden).
-  {
-    FakeProject project;
-    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: track 0
-    project.items.push_back(ItemInfo{1, 1, 0.0, 5.0, false});  // B: track 1
-    project.track_views = {{true, true, 0}, {true, false, 0}};
-
-    project.ToggleIsolateTracks({0});
-    CHECK(project.isolate_calls.size() == 1);
-    CHECK(project.isolate_calls[0].size() == 1);
-    CHECK(project.isolate_calls[0][0] == 0);
-    CHECK(project.isolate_active);
-    CHECK(project.track_views[0].show_tcp == true);
-    CHECK(project.track_views[0].show_mixer == true);
-    CHECK(project.track_views[1].show_tcp == false);  // hidden
-    CHECK(project.track_views[1].show_mixer == false);
-
-    project.ToggleIsolateTracks({0});
-    CHECK(project.isolate_calls.size() == 2);
-    CHECK(!project.isolate_active);
-    CHECK(project.track_views[0].show_tcp == true);
-    CHECK(project.track_views[0].show_mixer == true);
-    CHECK(project.track_views[1].show_tcp == true);     // restored
-    CHECK(project.track_views[1].show_mixer == false);  // restored exactly
-  }
-
-  // 2) Solo, direct on the fake: track 0 was already solo. The toggle
-  // affects only the target track; the second tap restores exactly.
-  {
-    FakeProject project;
-    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});  // A: track 0
-    project.items.push_back(ItemInfo{1, 1, 0.0, 5.0, false});  // B: track 1
-    project.track_views = {{true, true, 1}, {true, true, 0}};
-
-    project.ToggleSoloTracks({1});
-    CHECK(project.solo_calls.size() == 1);
-    CHECK(project.solo_calls[0][0] == 1);
-    CHECK(project.solo_active);
-    CHECK(project.track_views[0].solo == 1);  // untouched
-    CHECK(project.track_views[1].solo == 1);  // soloed
-
-    project.ToggleSoloTracks({1});
-    CHECK(project.solo_calls.size() == 2);
-    CHECK(!project.solo_active);
-    CHECK(project.track_views[0].solo == 1);  // untouched
-    CHECK(project.track_views[1].solo == 0);  // restored exactly
-  }
-
-  // 3) A toggle with no valid target ids: recorded but no state change.
-  {
-    FakeProject project;
-    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
-    project.ToggleIsolateTracks({99});
-    CHECK(project.isolate_calls.size() == 1);
-    CHECK(!project.isolate_active);
-    CHECK(project.track_views.empty());
-    project.ToggleSoloTracks({});
-    CHECK(project.solo_calls.size() == 1);
-    CHECK(!project.solo_active);
-  }
-
-  // 4) Routing: VIDEO_ONLY / AUDIO_ONLY taps pass the target ids (cursor
-  // target, rule 2) to the project toggles; FULL VIEW runs 40346. No
-  // commands from the toggles, no selection churn, no undo block.
+  // 1) Routing: VIDEO_ONLY / AUDIO_ONLY taps pass the target ids (cursor
+  // target, rule 2) to the view ops, which hit the track-flag primitives;
+  // FULL VIEW runs 40346. No commands from the toggles, no selection
+  // churn, no undo block.
   {
     FakeSink sink;
     FakeProject project;
@@ -666,18 +608,14 @@ void test_view_buttons() {
     VerbRouter r(sink, project);
 
     r.OnGesture(G(KEY_VIDEO_ONLY, GestureKind::Tap));
-    CHECK(project.isolate_calls.size() == 1);
-    CHECK(project.isolate_calls[0].size() == 1);
-    CHECK(project.isolate_calls[0][0] == 0);
-    CHECK(project.isolate_active);
+    CHECK(r.IsolateActive());  // the router's isolate op activated
     CHECK(project.track_views[1].show_tcp == false);  // track 1 hidden
+    CHECK(project.track_views[0].show_tcp == true);   // target kept
 
     r.OnGesture(G(KEY_AUDIO_ONLY, GestureKind::Tap));
-    CHECK(project.solo_calls.size() == 1);
-    CHECK(project.solo_calls[0].size() == 1);
-    CHECK(project.solo_calls[0][0] == 0);
-    CHECK(project.solo_active);
-    CHECK(project.track_views[0].solo == 1);
+    CHECK(r.SoloActive());  // the router's solo op activated
+    CHECK(project.track_views[0].solo == 1);  // target soloed
+    CHECK(project.track_views[1].solo == 0);  // untouched
 
     r.OnGesture(G(KEY_FULL_VIEW, GestureKind::Tap));
     CHECK(sink.commands.size() == 1);
@@ -698,8 +636,8 @@ void test_view_buttons() {
 
     r.OnGesture(G(KEY_VIDEO_ONLY, GestureKind::Tap));
     r.OnGesture(G(KEY_AUDIO_ONLY, GestureKind::Tap));
-    CHECK(project.isolate_calls.empty());
-    CHECK(project.solo_calls.empty());
+    CHECK(!r.IsolateActive());  // no valid target: the ops never activated
+    CHECK(!r.SoloActive());
     CHECK(sink.commands.empty());
     CHECK(project.selected_calls.empty());
   }

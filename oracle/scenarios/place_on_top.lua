@@ -1,9 +1,9 @@
 -- oracle/scenarios/place_on_top.lua — M6 PLACE ON TOP (vibes/32-m6-simple-verbs.md
 -- task 6c). One gesture: PLACE ON TOP 0x05 tap (fires at release, ~410 ms
 -- device time). The verb duplicates the target item onto a new track above
--- its source track at the same position (verbs.cpp PlaceOnTopTap ->
--- IProject::DuplicateItemsAbove; no REAPER command id, so no cmd line in
--- the trace).
+-- its source track at the same position (verbs.cpp PlaceOnTopTap -> the
+-- pure op DuplicateItemsAbove in plugin/src/project_ops.h; no REAPER
+-- command id, so no cmd line in the trace).
 --
 -- The harness sources oracle/scenarios/place_on_top.env, which points
 -- SPEED_REAPER_FAKE_DEVICE at oracle/fake/place_on_top.txt (device clock;

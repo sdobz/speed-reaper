@@ -15,8 +15,9 @@
 
 #include "action_sink.h"
 #include "gesture.h"
-#include "nudge.h"  // HoldNudge (tick→step accumulator, M7 design §4)
+#include "nudge.h"        // HoldNudge (tick→step accumulator, M7 design §4)
 #include "project.h"
+#include "project_ops.h"  // IsolateView / SoloView (view-toggle state)
 
 class VerbRouter {
  public:
@@ -37,6 +38,16 @@ class VerbRouter {
   // one step per ±kSelectStepTicks, remainder kept). Public because the
   // composite rows in verbs.cpp are free functions.
   int select_delta_ = 0;
+
+  // View-toggle state (40-cleanup §8): the saved previous flags for the
+  // re-tap restore live in these pure ops (project_ops.h). The Session
+  // reads them for the LED bar (ReadLedState's isolate/solo bits).
+  bool IsolateActive() const { return isolate_view_.IsActive(); }
+  bool SoloActive() const { return solo_view_.IsActive(); }
+  // Public (like select_delta_) because the composite rows in verbs.cpp
+  // are free functions that toggle them.
+  IsolateView isolate_view_;  // VIDEO_ONLY saved state (project_ops.h)
+  SoloView solo_view_;        // AUDIO_ONLY saved state (project_ops.h)
 
  private:
   // One active hold (M7, design §4): the targets resolved at HoldStart,

@@ -1,10 +1,13 @@
 // Configurable IProject fake for unit tests (docs/plugin-design-m5-m9.md
-// §2). Everything is a plain member; SetSelectedItems is recorded (not
-// applied) so tests can assert exactly which selections a verb makes.
+// §2). Primitives only (40-cleanup §8): every member is state, and the
+// write primitives apply it directly — the multi-step actions are the
+// pure ops in plugin/src/project_ops.h, which run against this fake
+// unmodified. SetSelectedItems is recorded (not applied) so tests can
+// assert exactly which selections a verb makes.
 #ifndef SPEED_REAPER_TEST_FAKE_PROJECT_H
 #define SPEED_REAPER_TEST_FAKE_PROJECT_H
 
-#include <algorithm>  // std::find (DuplicateItemsAbove), std::max (view toggles)
+#include <algorithm>  // std::max (TrackCount)
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,10 +23,10 @@ class FakeProject final : public IProject {
   bool time_sel = false;
   int ripple = 0;
 
-  // LED bar (M8): snap / trim-behind mirror the REAPER toggles ReadLedState
-  // would query (1157 / 41117); ripple comes from the `ripple` member above,
-  // active_take from the selection + active_takes, isolate/solo from the
-  // view-toggle state below.
+  // LED bar (M8): snap / trim-behind mirror the REAPER toggles the
+  // ReadLedState op queries (ToggleState 1157 / 41117); ripple comes from
+  // the `ripple` member above; active_take from the selection +
+  // active_takes.
   bool snap = false;
   bool trim_behind = false;
 
@@ -53,26 +56,20 @@ class FakeProject final : public IProject {
   std::vector<ItemGeom> geoms;
   double fps = 30.0;
 
-  // DuplicateItemsAbove calls in order (the ids passed).
-  std::vector<std::vector<int>> duplicate_calls;
+  // Write-primitive calls, in order (tests assert the ops combined them
+  // the right way).
+  std::vector<int> insert_calls;             // InsertTrackAbove(track)
+  std::vector<std::pair<int, int>> copy_calls;  // CopyItemToTrack(id, track)
 
-  // View buttons (M6): per-track visibility/solo state, index-aligned with
-  // track indices. ToggleIsolateTracks / ToggleSoloTracks save the previous
-  // flags on the first call and restore exactly those on the second; the
-  // active/saved state is plain members (plugin memory only).
+  // Track-flag state, index-aligned with track indices. GetTrackFlag past
+  // the end reports the flag's default (shown / not solo), as REAPER does
+  // for a missing track; SetTrackFlag grows the vector as needed.
   struct TrackView {
     bool show_tcp = true;    // B_SHOWINTCP
     bool show_mixer = true;  // B_SHOWINMIXER
     int solo = 0;            // I_SOLO
   };
   std::vector<TrackView> track_views;
-  bool isolate_active = false;
-  bool solo_active = false;
-  std::vector<TrackView> saved_isolate_;  // all tracks, index-aligned
-  std::vector<std::pair<int, int>> saved_solo_;  // (track, previous I_SOLO)
-  // Toggle calls in order (the ids passed).
-  std::vector<std::vector<int>> isolate_calls;
-  std::vector<std::vector<int>> solo_calls;
 
   std::vector<ItemInfo> Items() override { return items; }
   std::vector<int> SelectedTracks() override { return tracks; }
@@ -83,38 +80,16 @@ class FakeProject final : public IProject {
     selected_calls.push_back(ids);
   }
   int RippleMode() override { return ripple; }
-  // Shared 1-based active take of ALL selected items; 0 when none, mixed,
-  // or the shared take is > 9. An item id without an active_takes entry has
-  // take 0 (the default 1-take item).
-  int SharedSelectedTake() const {
-    int shared = 0;
-    for (const ItemInfo &it : items) {
-      if (!it.selected) continue;
-      const int id = it.id;
-      // Same convention as ItemActiveTake: no active_takes entry = active
-      // take index 0 (take number 1); a 0-take item has none (-1).
-      int t = 1;
-      if (id < static_cast<int>(active_takes.size())) t = active_takes[id] + 1;
-      if (id < static_cast<int>(take_counts.size()) && take_counts[id] == 0)
-        t = -1;
-      if (t < 1 || t > 9) return 0;
-      if (shared == 0) shared = t;
-      else if (shared != t) return 0;
-    }
-    return shared;
+  int TrackCount() override {
+    int n = static_cast<int>(track_views.size());
+    for (const ItemInfo &it : items) n = std::max(n, it.track + 1);
+    return n;
   }
-  LedState ReadLedState() override {
-    LedState s;
-    s.snap = snap;
-    s.ripple = ripple;
-    s.trim_behind = trim_behind;
-    s.active_take = SharedSelectedTake();
-    s.isolate = isolate_active;
-    s.solo = solo_active;
-    return s;
+  bool ToggleState(int cmd) override {
+    if (cmd == 1157) return snap;
+    if (cmd == 41117) return trim_behind;
+    return false;
   }
-  bool IsolateActive() override { return isolate_active; }
-  bool SoloActive() override { return solo_active; }
   void Undo_Begin() override { ++undo_begins; }
   void Undo_End(const char *label) override {
     ++undo_ends;
@@ -159,95 +134,47 @@ class FakeProject final : public IProject {
     items[id].pos = g.pos;
     items[id].len = g.len;
   }
-  // Unique track indices of the valid ids, in order of first appearance.
-  std::vector<int> TargetTracksOf(const std::vector<int> &item_ids) const {
-    std::vector<int> out;
-    for (int id : item_ids) {
-      if (id < 0 || id >= static_cast<int>(items.size())) continue;
-      const int t = items[id].track;
-      if (std::find(out.begin(), out.end(), t) == out.end()) out.push_back(t);
-    }
-    return out;
+  // Insert an empty track at `track`: items on/above it shift down by one
+  // (their ids — vector indices — are unchanged).
+  int InsertTrackAbove(int track) override {
+    insert_calls.push_back(track);
+    for (auto &it : items)
+      if (it.track >= track) ++it.track;
+    return track;
   }
-  void ToggleIsolateTracks(const std::vector<int> &item_ids) override {
-    isolate_calls.push_back(item_ids);
-    if (isolate_active) {  // second call: restore exactly the saved flags
-      for (size_t i = 0;
-           i < saved_isolate_.size() && i < track_views.size(); ++i)
-        track_views[i] = saved_isolate_[i];  // tracks added after the save
-                                             // keep their defaults
-      saved_isolate_.clear();
-      isolate_active = false;
-      return;
-    }
-    const std::vector<int> targets = TargetTracksOf(item_ids);
-    if (targets.empty()) return;  // no valid target: no state change
-    int max_t = -1;
-    for (const int t : targets) max_t = std::max(max_t, t);
-    if (max_t + 1 > static_cast<int>(track_views.size()))
-      track_views.resize(max_t + 1);
-    saved_isolate_ = track_views;  // every track's previous visibility
-    for (size_t i = 0; i < track_views.size(); ++i) {
-      const bool show =
-          std::find(targets.begin(), targets.end(), static_cast<int>(i)) !=
-          targets.end();
-      track_views[i].show_tcp = show;
-      track_views[i].show_mixer = show;
-    }
-    isolate_active = true;
+  // Copy item `id` onto `track` (same position, unselected — the fake's
+  // model of the state-chunk copy); appends to items, renumbers ids.
+  int CopyItemToTrack(int item_id, int track) override {
+    copy_calls.emplace_back(item_id, track);
+    if (item_id < 0 || item_id >= static_cast<int>(items.size())) return -1;
+    ItemInfo c = items[item_id];
+    c.selected = false;
+    c.track = track;
+    items.push_back(c);
+    for (size_t i = 0; i < items.size(); ++i)
+      items[i].id = static_cast<int>(i);
+    return static_cast<int>(items.size()) - 1;
   }
-  void ToggleSoloTracks(const std::vector<int> &item_ids) override {
-    solo_calls.push_back(item_ids);
-    if (solo_active) {  // second call: restore exactly the saved flags
-      for (const auto &p : saved_solo_)
-        if (p.first >= 0 && p.first < static_cast<int>(track_views.size()))
-          track_views[p.first].solo = p.second;
-      saved_solo_.clear();
-      solo_active = false;
-      return;
+  bool GetTrackFlag(int track, TrackFlag flag) override {
+    if (track < 0 || track >= static_cast<int>(track_views.size()))
+      return flag == TrackFlag::Solo ? false : true;  // the flag's default
+    const TrackView &v = track_views[track];
+    switch (flag) {
+      case TrackFlag::ShowTcp: return v.show_tcp;
+      case TrackFlag::ShowMixer: return v.show_mixer;
+      case TrackFlag::Solo: return v.solo != 0;
     }
-    const std::vector<int> targets = TargetTracksOf(item_ids);
-    if (targets.empty()) return;  // no valid target: no state change
-    int max_t = -1;
-    for (const int t : targets) max_t = std::max(max_t, t);
-    if (max_t + 1 > static_cast<int>(track_views.size()))
-      track_views.resize(max_t + 1);
-    saved_solo_.clear();
-    for (const int t : targets) {
-      saved_solo_.emplace_back(t, track_views[t].solo);
-      track_views[t].solo = 1;
-    }
-    solo_active = true;
+    return false;
   }
-  // Simulates the duplication: one new track above each source track
-  // (track numbers above a new track shift by one), copies at the same
-  // position, unselected; originals and their selection untouched.
-  void DuplicateItemsAbove(const std::vector<int> &ids) override {
-    duplicate_calls.push_back(ids);
-    std::vector<int> tracks;  // unique source tracks, descending
-    for (int id : ids) {
-      if (id < 0 || id >= static_cast<int>(items.size())) continue;
-      const int t = items[id].track;
-      if (std::find(tracks.begin(), tracks.end(), t) == tracks.end())
-        tracks.push_back(t);
-    }
-    std::sort(tracks.rbegin(), tracks.rend());
-    for (const int t : tracks) {
-      // Copies first (membership is captured before the insert).
-      std::vector<ItemInfo> copies;
-      for (int id : ids) {
-        if (id < 0 || id >= static_cast<int>(items.size())) continue;
-        const ItemInfo &s = items[id];
-        if (s.track != t) continue;
-        copies.push_back(s);
-        copies.back().selected = false;
-      }
-      // Insert the new track at index t: everything on/above it shifts.
-      for (auto &it : items)
-        if (it.track >= t) ++it.track;
-      for (auto &c : copies) c.track = t;  // the new track sits at index t
-      items.insert(items.end(), copies.begin(), copies.end());
-      for (size_t i = 0; i < items.size(); ++i) items[i].id = static_cast<int>(i);
+  void SetTrackFlag(int track, TrackFlag flag, bool on) override {
+    if (track < 0) return;
+    if (track >= static_cast<int>(track_views.size()))
+      track_views.resize(track + 1);
+    TrackView &v = track_views[track];
+    switch (flag) {
+      case TrackFlag::ShowTcp: v.show_tcp = on; break;
+      case TrackFlag::ShowMixer: v.show_mixer = on; break;
+      case TrackFlag::Solo: v.solo = on ? 1 : 0; break;
     }
   }
 };

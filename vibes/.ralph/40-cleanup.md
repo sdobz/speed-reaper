@@ -254,3 +254,25 @@ Files:
 ```
 M vibes/.ralph/40-cleanup.md
 ```
+
+## Task: 8. `IProject` down to primitives
+
+### Attempt 5 — 2026-10-15T03:23:39Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Clean tree at start (record only); no partial work from attempts 1–4.
+- Only two IProject implementers: ReaperProject, FakeProject. main.cpp/reaper_sinks don't touch the verbs. ReadLedState consumer: session.cpp:108 (+ tests).
+- Design: new IProject primitives = `TrackCount()`, `bool ToggleState(cmd)`, `int InsertTrackAbove(track)`, `int CopyItemToTrack(id, track)` (returns new item id), `GetTrackFlag/SetTrackFlag(track, TrackFlag{ShowTcp,ShowMixer,Solo})`. NO new REAPER API functions needed — all REAPER calls (InsertTrackInProject, AddMediaItemToTrack, state chunks, track info, GetToggleCommandState) already have WANT lines; only the caller comments in reaper_api.h need updating.
+- project_ops (pure, PLUGIN_PURE_SOURCES): free `DuplicateItemsAbove(IProject&, ids)`, stateful `IsolateView`/`SoloView` (Toggle + IsActive; saved state in the op), and free `ReadLedState(IProject&, bool isolate, bool solo)` = aggregate of ToggleState(1157/41117)+RippleMode()+Items/ItemActiveTake (REAPER reads I_CURTAKE only, NO take-count special case — oracle leds_cam.lua says so).
+- View state objects live in VerbRouter (verbs are the only writers; Session reads via verbs_.IsolateActive()/SoloActive()). No VerbRouter constructor change. NOTE: they must be PUBLIC members (composite rows in verbs.cpp are free functions; same rule as select_delta_ — spotted pre-build, fixed before the first build ran).
+- REAPER CopyItemToTrack returns the new id via before/after EnumerateItems pointer-set diff (empty-track inserts never change item order, so op ids stay stable across the descending-track loop — same as current behavior).
+- All edits done: project.h (TrackFlag enum + 6 primitives, verbs removed), project_ops.h/.cpp (ops, in PLUGIN_PURE_SOURCES), verbs.h/.cpp, session.cpp, reaper_project.h/.cpp (primitives only, no saved state), fake_project.h (primitives only: track_views flags, insert_calls/copy_calls), reaper_api.h caller comments (NO new WANT lines — all REAPER functions already listed), CMakeLists, tests: led_read_test rewritten on the ops (dropped the fake-only 0-take-item special case — REAPER's ReadLedState reads I_CURTAKE only, per oracle leds_cam.lua comment), verbs_test (dup via insert/copy_calls; view routing via r.IsolateActive/SoloActive), session_test, NEW project_ops_test.cpp (dup single/multi-track/bad-id, isolate exact-restore + TrackCount-from-items, solo exact-restore, empty-target no-op), oracle comment fixes (place_on_top.txt/.lua, view_solo.lua).
+- Job check8b = full `tools/check` running. (First bgrun attempt 'check8' was killed by an accidental `pkill -f tools/check` that matched its own shell; only check8b is real.)
+
+Result: exit 0; progress; 19 files changed, 616 insertions(+), 464 deletions(-); log: logs/40-cleanup-L119-a5-1792034619937.log
+
+### Replan (depth 0) — BUDGET → timeout=2400
+Trigger: 5 attempt(s), last: exit 0, progress
+Why: Attempt 5 finished the entire refactor (19 files, all staged) and its log shows the full Verify pipeline already green on this exact tree — tools/check 16/16 + Windows/host oracle, ORACLE PASS reaper/load, build untouched (ninja: no work to do), and the rg half of Verify passes now; it was killed mid-thought while running an EXTRA --layer all regression scenario. The retry only needs to re-run the Verify command (expect it green, incremental) and tick the box; do not redo the implementation.
+Rejected: SPLIT: nothing is left to split — the implementation is done and the remainder is one already-green verify pipeline, so subtasks would just burn an extra model run. SPIKE: no open design question; the record already pins the design and the log shows everything passing. REWRITE: the task text and Verify are correct and Verify should exit 0 on the current tree as-is. BLOCK: no human decision needed — the stale `verbs` scenario is out of scope because --layer reaper runs only the `load` scenario (per Learnings).
+Log: logs/40-cleanup-L119-replan-1792035898074.log

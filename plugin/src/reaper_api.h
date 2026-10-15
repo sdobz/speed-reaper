@@ -29,7 +29,7 @@
 #define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
-#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ReadLedState (1157 snap, 41117 trim-behind, ripple 40310/40311)
+#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ToggleState/RippleMode (ops:ReadLedState 1157/41117, ripple 40310/40311)
 #define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop (M4)
 #define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace (M4)
 #define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless, M4 task 3)
@@ -50,11 +50,11 @@
 #define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
 #define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
 #define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
-#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
+#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::InsertTrackAbove
+#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::CopyItemToTrack
+#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::CopyItemToTrack
+#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::CopyItemToTrack
+#define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::SetTrackFlag
 #define REAPERAPI_WANT_TimeMap_curFrameRate // ReaperProject::Fps
 #define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
 #define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom

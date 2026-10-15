@@ -3,10 +3,13 @@
 // Not in PLUGIN_PURE_SOURCES: it calls the REAPER host API, so it is linked
 // into the plugin target only (plugin/CMakeLists.txt). main.cpp constructs
 // the global g_project and hands it to VerbRouter (M5 step 3).
+//
+// 40-cleanup §8: this class implements STATE and primitives only. The
+// multi-step verbs (duplicate-onto-new-track, isolate/solo toggles, the LED
+// snapshot) are pure ops in project_ops.h built on these primitives, so
+// their saved-state and sequencing never live here.
 #ifndef SPEED_REAPER_REAPER_PROJECT_H
 #define SPEED_REAPER_REAPER_PROJECT_H
-
-#include <utility>  // std::pair (saved solo flags)
 
 #include "project.h"
 #include "reaper_plugin.h"  // ReaProject / MediaTrack / MediaItem declarations
@@ -34,22 +37,12 @@ class ReaperProject final : public IProject {
   double Fps() override;
   ItemGeom GetGeom(int id) override;
   void SetGeom(int id, const ItemGeom &g) override;
-  void DuplicateItemsAbove(const std::vector<int> &ids) override;
-  void ToggleIsolateTracks(const std::vector<int> &item_ids) override;
-  void ToggleSoloTracks(const std::vector<int> &item_ids) override;
-  LedState ReadLedState() override;
-  bool IsolateActive() override { return isolate_active_; }
-  bool SoloActive() override { return solo_active_; }
-
- private:
-  struct ShowFlag {
-    bool tcp = true;  // B_SHOWINTCP
-    bool mixer = true;  // B_SHOWINMIXER
-  };
-  bool isolate_active_ = false;
-  bool solo_active_ = false;
-  std::vector<ShowFlag> saved_isolate_;  // all tracks, index-aligned
-  std::vector<std::pair<int, int>> saved_solo_;  // (track, previous I_SOLO)
+  int TrackCount() override;
+  bool ToggleState(int cmd) override;
+  int InsertTrackAbove(int track) override;
+  int CopyItemToTrack(int item_id, int track) override;
+  bool GetTrackFlag(int track, TrackFlag flag) override;
+  void SetTrackFlag(int track, TrackFlag flag, bool on) override;
 };
 
 #endif  // SPEED_REAPER_REAPER_PROJECT_H
