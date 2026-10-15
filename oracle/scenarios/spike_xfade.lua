@@ -1,3 +1,4 @@
+-- Documented probe: intentionally NOT in the tools/reaper-oracle REAPER_SCENARIOS suite (42-release-prep §5). Keep for manual runs: --scenario NAME.
 -- spike_xfade.lua — M9 spike: crossfade behavior under the oracle (record-only,
 -- no behavior asserts). Layout: track 0 = A [0,5] + B [4,9] (overlap [4,5]);
 -- track 1 = C [0,5] + D [5,10] (abutting at 5). Probes:

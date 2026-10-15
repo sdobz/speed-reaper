@@ -1,3 +1,4 @@
+-- Documented probe: intentionally NOT in the tools/reaper-oracle REAPER_SCENARIOS suite (42-release-prep §5).
 -- Oracle scenario: one trivial check, then finish. For crash-capture testing
 -- (vibes/18-oracle-linux.md task 6) combined with SPEED_REAPER_TEST_CRASH,
 -- and as a startup/teardown timing baseline.

@@ -4,6 +4,9 @@
 #include <cctype>
 #include <climits>
 #include <cstdlib>  // std::strtol
+#include <fstream>
+#include <sstream>
+#include <utility>
 
 #include "speed_editor/key_map.h"  // KEY_* keycodes
 
@@ -310,4 +313,17 @@ Bindings ParseBindings(std::string_view text, const VerbRegistry &registry) {
     if (entry.first.second == BindingGesture::Double)
       out.double_tap_keys.push_back(entry.first.first);
   return out;
+}
+
+std::string LoadUserBindings(const std::string &path,
+                             std::string_view fallback,
+                             const std::function<void()> &seed_if_missing) {
+  std::ifstream in(path, std::ios::binary);
+  if (in) {
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    return ss.str();  // verbatim, empty file included: the user cleared it
+  }
+  if (seed_if_missing) seed_if_missing();
+  return std::string(fallback);  // missing/unreadable: the embedded default
 }

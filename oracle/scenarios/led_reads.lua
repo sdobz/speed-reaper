@@ -1,3 +1,4 @@
+-- Documented probe: intentionally NOT in the tools/reaper-oracle REAPER_SCENARIOS suite (42-release-prep §5). Keep for manual runs: --scenario NAME.
 -- oracle/scenarios/led_reads.lua — M8 research (vibes/34-m8-led-bar.md task 1).
 -- No fake device: drive REAPER state via Main_OnCommand and read it back with
 -- GetToggleCommandState (0=off, 1=on, -1=NA) to prove the LED-bar state reads

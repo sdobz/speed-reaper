@@ -96,3 +96,18 @@ Files:
 ```
 M vibes/.ralph/42-release-prep.md
 ```
+
+## Task: 5. Test suite: full and fast
+
+### Attempt 5 — 2026-10-15T17:57:17Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- No partial work left (clean tree except this record). Build dirs warm.
+- REAPER_SCENARIOS (tools/reaper-oracle, 20 scenarios: load…xfade_keys) — every one has an oracle/scenarios/<n>.lua. Non-suite lua files: led_reads, noop, spike_xfade — all three already have top comments explaining why kept (M8 research probe / crash-capture + timing baseline / M9 record-only spike); I add an explicit "not in the suite" line to each.
+- "User bindings path" = LoadBindingsText() in main.cpp (user's <resource>/speed-reaper/bindings.ini; missing → seed + embedded default). It calls REAPER API so it's not linkable into the pure unit tests → extract the read-with-fallback into a pure LoadUserBindings(path, fallback, seed_if_missing) in bindings.cpp, main.cpp keeps seeding (dir create + write + trace) via callback.
+- Full `ORACLE_FULL=1 tools/check` (pre-change, warm) = **1m54s**, ORACLE PASS all 20 scenarios (job r42t5check). So <3 min is in sight; the no-args `tools/check` additionally runs `tools/windows-oracle --layer static` (MinGW cross build).
+- Extracted `LoadUserBindings(path, fallback, seed_if_missing)` into bindings.cpp (pure, in PLUGIN_PURE_SOURCES); main.cpp LoadBindingsText now calls it, seed callback does RecursiveCreateDirectory + write + Trace. New test plugin/test/user_bindings_test.cpp: missing → default + seed once; empty file → "" (no fallback, no seed) + ParseBindings → 0 bindings/0 errors; malformed file → verbatim text, 3 error lines, 1 good binding survives. Test passes standalone (rc=0).
+- Caveat: bare shell has no cmake/reaper — must prefix `nix develop --command`; tools/check self re-execs into the dev shell.
+- Job r42t5verify results (post-change): `ORACLE_FULL=1 tools/check` = **1m50s**, ORACLE PASS all 20 scenarios, ctest 20/20 (incl. new user_bindings_test). No-args `tools/check` = **20s** warm (< 3 min) → no `docs/notes/check-timing.md` needed (task says only "if not"). Cold caveats: the MinGW cross build (`tools/windows-oracle --layer static`) and a full recompile dominate on a cold nix store; not a problem here.
+Next:
+- (task complete; line 64 ticked)

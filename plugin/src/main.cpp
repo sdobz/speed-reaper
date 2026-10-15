@@ -51,20 +51,13 @@ ReaperProject g_project; // IProject over the REAPER API
 std::string LoadBindingsText() {
   const std::string dir = std::string(GetResourcePath()) + "/speed-reaper";
   const std::string path = dir + "/bindings.ini";
-  {
-    std::ifstream in(path, std::ios::binary);
-    if (in) {
-      std::ostringstream ss;
-      ss << in.rdbuf();
-      return ss.str();
-    }
-  }
-  RecursiveCreateDirectory(dir.c_str(), 0);
-  std::ofstream out(path, std::ios::binary);
   const std::string_view def = DefaultBindingsText();
-  if (out) out.write(def.data(), static_cast<std::streamsize>(def.size()));
-  Trace("bindings written %s", path.c_str());
-  return std::string(def);
+  return LoadUserBindings(path, def, [dir, path, def]() {
+    RecursiveCreateDirectory(dir.c_str(), 0);
+    std::ofstream out(path, std::ios::binary);
+    if (out) out.write(def.data(), static_cast<std::streamsize>(def.size()));
+    Trace("bindings written %s", path.c_str());
+  });
 }
 
 // --- actions (action list: search "Speed Reaper") ----------------------

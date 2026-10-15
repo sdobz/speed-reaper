@@ -61,7 +61,7 @@ test -s LICENSE && test -s docs/notes/licensing.md
 ORACLE_FULL=1 tools/check
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Cross-platform release builds
 

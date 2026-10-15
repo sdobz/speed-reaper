@@ -20,6 +20,7 @@
 #define SPEED_REAPER_BINDINGS_H
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -65,6 +66,17 @@ struct Bindings {
 // bad args) goes through the registry; the registry's error text is
 // surfaced verbatim as the line reason.
 Bindings ParseBindings(std::string_view text, const VerbRegistry &registry);
+
+// The user bindings file (main.cpp's LoadBindingsText, pure part):
+// if `path` exists and is readable, return its contents verbatim (an
+// empty file returns "" — the user cleared it, that is not a fallback);
+// otherwise (missing or unreadable) call seed_if_missing (the plugin
+// seeds the file with the embedded default; optional) and return
+// `fallback`. Never throws; never writes itself.
+std::string LoadUserBindings(const std::string &path,
+                             std::string_view fallback,
+                             const std::function<void()> &seed_if_missing =
+                                 nullptr);
 
 // "SPLIT" -> 0x002F: the KEY_* suffix names from src/speed_editor/key_map.h
 // (STOP/PLAY reads STOP_PLAY, RIPL O/WR reads RIPL_OWR, ...). Unknown
