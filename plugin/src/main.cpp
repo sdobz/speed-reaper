@@ -1,22 +1,8 @@
-// main.cpp — "Speed Reaper" hello-world REAPER extension.
-//
-// Demonstrates smooth playhead control through the exact pipeline the
-// Blackmagic Speed Editor will use:
-//
-//   IWheelSource (today: DemoWheelSource; later: the hidapi driver from
-//   src/speed_editor/ behind the same interface)
-//        │  relative wheel deltas
-//        ▼
-//   JogEngine (1:1 delta → seconds)
-//        │  seconds of timeline
-//        ▼
-//   IPlayheadSink → CSurf_ScrubAmt (REAPER scrub primitive)
-//
-// Actions (main section, search "Speed Reaper" in the action list):
-//   "Speed Reaper: jog demo (smooth playhead)" — toggles a simulated wheel
-//     turn; the playhead glides ~0.5 s forward and coasts to a stop.
-//   "Speed Reaper: scrub forward 0.5 s" / "scrub back 0.5 s" — one-shot
-//     nudge, verifies the sink path with no source involved.
+// main.cpp — "Speed Reaper" REAPER extension entry point.
+// Wires the Blackmagic Speed Editor (HID) to REAPER: the wheel feeds a
+// JogEngine through mode/hold gating (jog → playhead, scroll → arrange
+// view, shuttle → playrate), buttons drive transport and edit verbs via
+// the router/gesture/verb layers, and a ~125 Hz timer ticks it all + LEDs.
 
 // Before SDK/Swell headers: their min/max macros break <limits>/<string>
 // (hid_wheel_source.h needs <string> & friends; button_diff.h needs
@@ -49,9 +35,9 @@
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
 #define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ReadLedState (1157 snap, 41117 trim-behind)
-#define REAPERAPI_WANT_CSurf_OnPlayRateChange // spike actions + shuttle forward rate (M4)
-#define REAPERAPI_WANT_Master_GetPlayRate // spike actions + shuttle read-back (M4)
-#define REAPERAPI_WANT_OnStopButton // spike reset + shuttle HardStop (40045 blocks headless, M4 task 3)
+#define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop (M4)
+#define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace (M4)
+#define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless, M4 task 3)
 #define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek (M4 decision)
 // ReaperProject (reaper_project.cpp; M5 design §2) — keep in sync with that file's list.
 #define REAPERAPI_WANT_CountMediaItems // ReaperProject::Items/SetSelectedItems
@@ -107,7 +93,7 @@ typedef int (*plugin_register_variadic)(const char *name, ...);
 plugin_register_variadic g_register = nullptr;
 
 // Engine step (ms): 125 Hz keeps the scrub motion smooth.
-constexpr int kTimerMs = 8; // must match DemoWheelSource::kTickMs
+constexpr int kTimerMs = 8; // one engine step at 125 Hz
 // Max catch-up per timer callback. REAPER can delay timer delivery by >200 ms
 // (observed 234 ms in the oracle) while its main loop and the oracle's
 // sampling keep running; flushing the whole acc_ms backlog in one callback
@@ -119,28 +105,6 @@ constexpr double kMaxCatchUpMs = 50.0;
 
 IPlayheadSink *g_sink = nullptr;
 JogEngine *g_engine = nullptr;
-int g_cmd_demo = 0;
-int g_cmd_fwd = 0;
-int g_cmd_back = 0;
-int g_cmd_spike_rate2 = 0;
-int g_cmd_spike_rate8 = 0;
-int g_cmd_spike_reverse = 0;
-int g_cmd_spike_reset = 0;
-
-// --- Spike actions (M4 playrate API probe) ----------------------------
-// Register four actions that set the master play rate and, ~300 ms later
-// from the timer callback, log the requested rate, the read-back rate
-// (Master_GetPlayRate), and the play state. `reverse` additionally logs
-// the playhead position now and later so direction is visible. Pure
-// probe — no shuttle wiring (vibes/23-m4-shuttle.md task 2).
-struct SpikeState {
-  int pending = 0; // command id of the in-flight spike (0 = none)
-  double requested = 1.0;
-  bool reverse = false;
-  double pos_first = 0.0;
-  std::chrono::steady_clock::time_point t0{};
-};
-SpikeState g_spike;
 
 // --- IPlayheadSink over the REAPER API -------------------------------
 
@@ -234,7 +198,6 @@ class ReaperActionSink : public IActionSink {
 };
 
 ReaperPlayheadSink g_reaper_sink;
-DemoWheelSource g_demo_source; // synthetic wheel; demos the pipeline with no device
 HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
 ReaperActionSink g_action_sink;
 Router g_router(g_action_sink); // owns the wheel mode (Jog/Scrl) from HID buttons
@@ -264,7 +227,6 @@ class HoldGatedSource : public IWheelSource {
 };
 HoldGatedSource g_hold_gated_source(g_hid); // design §7 hold+rotate wheel
 ModeGatedSource g_gated_source(g_hold_gated_source, g_router); // HID delta: pass-through in Jog, scroll in Scrl
-SummedWheelSource g_wheel_source(g_gated_source, g_demo_source);
 bool g_was_connected = false; // false→true edge re-sends mode + LEDs (design §6)
 int g_led_mask = -1; // last pushed main-panel LED mask; -1 = not sent (force send)
 
@@ -345,28 +307,6 @@ void onTimer() {
     g_led_mask = -1; // re-send the main-panel LEDs after a reconnect edge
   }
   g_was_connected = connected;
-  // Spike probe (M4 task 2): ~300 ms after a spike action fired, log the
-  // requested rate vs. the read-back rate and the play state.
-  if (g_spike.pending != 0) {
-    const double elapsed_ms = std::chrono::duration<double, std::milli>(
-                                  std::chrono::steady_clock::now() - g_spike.t0)
-                                  .count();
-    if (elapsed_ms >= 300.0) {
-      const double read = Master_GetPlayRate(nullptr);
-      const int state = GetPlayState();
-      const double pos = GetPlayPosition();
-      char buf[256];
-      std::snprintf(buf, sizeof(buf), "Speed Reaper: spike rate=%f read=%f state=%d pos=%f", g_spike.requested, read, state, pos);
-      ShowConsoleMsg(buf);
-      Trace("spike rate=%f read=%f state=%d pos=%f", g_spike.requested, read, state, pos);
-      if (g_spike.reverse) { // playhead now vs. 300 ms earlier: reversal must be visible
-        std::snprintf(buf, sizeof(buf), "Speed Reaper: spike reverse pos0=%f pos1=%f", g_spike.pos_first, pos);
-        ShowConsoleMsg(buf);
-        Trace("spike reverse pos0=%f pos1=%f", g_spike.pos_first, pos);
-      }
-      g_spike.pending = 0;
-    }
-  }
   // LED bar (M8, design §5): poll the REAPER state (snap/ripple/trim-behind/
   // shared selected take/isolate/solo) every ~250 ms (~31 timer ticks at
   // REAPER's ~30 Hz) and push the main-panel mask only when it changes or
@@ -401,60 +341,6 @@ void onTimer() {
     acc_ms -= kTimerMs;
     consumed_ms += kTimerMs;
   }
-}
-
-void RunSpike(int cmd, double rate, bool reverse) {
-  // Start play if the transport is stopped, so the rate change is audible.
-  if (GetPlayState() == 0) Main_OnCommand(1007, 0); // play
-  CSurf_OnPlayRateChange(rate);
-  g_spike.pending = cmd;
-  g_spike.requested = rate;
-  g_spike.reverse = reverse;
-  g_spike.pos_first = GetPlayPosition();
-  g_spike.t0 = std::chrono::steady_clock::now();
-  Trace("spike set rate=%f", rate);
-}
-
-void RunSpikeReset() {
-  // Restore 1.0 and stop the transport (no play-start here).
-  // OnStopButton, not Main_OnCommand(40045): the stop *command* blocks
-  // forever in headless REAPER under the oracle (verified in
-  // oracle/scenarios/dbg8.lua; OnStopButton returns, see dbg9.lua).
-  CSurf_OnPlayRateChange(1.0);
-  OnStopButton(); // transport stop
-  g_spike.pending = g_cmd_spike_reset;
-  g_spike.requested = 1.0;
-  g_spike.reverse = false;
-  g_spike.pos_first = GetPlayPosition();
-  g_spike.t0 = std::chrono::steady_clock::now();
-  Trace("spike set rate=1.0 (reset, stop)");
-}
-
-bool onHookCommand2(KbdSectionInfo *sec, int command, int val, int val2,
-                    int relmode, HWND hwnd) {
-  (void)sec; (void)val; (void)val2; (void)relmode; (void)hwnd;
-  // Spike probes (M4 task 2) work even before the engine is up.
-  if (command == g_cmd_spike_rate2) { RunSpike(command, 2.0, false); return true; }
-  if (command == g_cmd_spike_rate8) { RunSpike(command, 8.0, false); return true; }
-  if (command == g_cmd_spike_reverse) { RunSpike(command, -1.0, true); return true; }
-  if (command == g_cmd_spike_reset) { RunSpikeReset(); return true; }
-  if (!g_engine) return false;
-  if (command == g_cmd_demo) { // The engine ticks g_demo_source, so toggle that (not the engine's own
-    // internal demo_ member, which nothing reads).
-    if (g_demo_source.Active()) g_demo_source.Stop();
-    else g_demo_source.Trigger();
-    return true; }
-  if (command == g_cmd_fwd) { g_engine->NudgeSeconds(+0.5); return true; }
-  if (command == g_cmd_back) { g_engine->NudgeSeconds(-0.5); return true; }
-  return false;
-}
-
-int RegisterAction(const char *id_str, const char *display_name) {
-  custom_action_register_t ca = {0, id_str, display_name, nullptr};
-  int cmd = g_register("custom_action", &ca); // command id (0 = failed)
-  Trace("register action %s %s", id_str, cmd ? "ok" : "FAIL");
-  if (cmd) Trace("action %s cmd=%d", id_str, cmd);
-  return cmd;
 }
 
 } // namespace
@@ -497,32 +383,10 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   rec->Register("ext_vendor", (void *)"speed-reaper");
   Trace("register ext_vendor ok");
 
-  g_cmd_demo = RegisterAction("speed_reaper_jogdemo",
-                              "Speed Reaper: jog demo (smooth playhead)");
-  g_cmd_fwd = RegisterAction("speed_reaper_scrub_fwd",
-                             "Speed Reaper: scrub forward 0.5 s");
-  g_cmd_back = RegisterAction("speed_reaper_scrub_back",
-                              "Speed Reaper: scrub back 0.5 s");
-  g_cmd_spike_rate2 = RegisterAction("speed_reaper_spike_rate2",
-                                     "Speed Reaper: spike rate 2x");
-  g_cmd_spike_rate8 = RegisterAction("speed_reaper_spike_rate8",
-                                     "Speed Reaper: spike rate 8x");
-  g_cmd_spike_reverse = RegisterAction("speed_reaper_spike_reverse",
-                                       "Speed Reaper: spike rate reverse");
-  g_cmd_spike_reset = RegisterAction("speed_reaper_spike_reset",
-                                     "Speed Reaper: spike rate reset");
-  if (!g_cmd_demo || !g_cmd_fwd || !g_cmd_back || !g_cmd_spike_rate2 ||
-      !g_cmd_spike_rate8 || !g_cmd_spike_reverse || !g_cmd_spike_reset)
-    return done(0);
-
-  g_engine = new JogEngine(g_wheel_source, g_reaper_sink);
+  g_engine = new JogEngine(g_gated_source, g_reaper_sink);
   g_sink = &g_reaper_sink;
   g_gestures.SetDoubleTapKeys(VerbDoubleTapKeys()); // IN, OUT, ESC (design §7)
 
-  // SDK header: "for actions, the related callback should be registered
-  // with hookcommand2".
-  rec->Register("hookcommand2", (void *)onHookCommand2);
-  Trace("register hookcommand2 ok");
   g_register("timer", (void *)&onTimer); // SDK: timer takes only void(*)()
   Trace("register timer ok");
   g_hid.Start(); // all registrations above succeeded; spawn the HID worker

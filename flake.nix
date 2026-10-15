@@ -174,7 +174,7 @@
           echo "Build CLI (task 5): nix build .#packages.x86_64-linux.speedcli              → .../bin/speedcli"
           echo "                   nix build .#packages.x86_64-pc-windows-gnu.speedcli → .../bin/speedcli.exe"
           echo "Build REAPER plugin (task 6): cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin"
-          echo "  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, 'REAPER plugin' section)"
+          echo "  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, Prerequisites 5–6)"
           echo "Build REAPER plugin for Windows (task 7): nix build .#reaper-plugin-windows → .../reaper/reaper_speed_reaper.dll"
           echo "  Cross-platform matrix + gotchas: CROSS-PLATFORM.md"
           echo "Oracle: tools/reaper-oracle (headless REAPER smoke + trace checks — vibes/18-oracle-linux.md)"

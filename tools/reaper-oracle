@@ -7,7 +7,7 @@
 #                       [--platform linux|windows] [--report-only]
 #
 # Without --scenario, the reaper layer runs the full scenario suite
-# (load, jog_demo, hid_wheel, buttons, verbs, ripple_del, shuttle, target);
+# (load, hid_wheel, buttons, verbs, ripple_del, shuttle, target);
 # --scenario NAME runs only that scenario.
 # A scenario may ship an oracle/scenarios/<NAME>.env file that is sourced
 # before reaper starts (e.g. hid_wheel.env sets SPEED_REAPER_FAKE_DEVICE).
@@ -97,7 +97,6 @@ run_host() {
   SPEED_REAPER_TRACE="$PWD/$OUT/trace.txt" \
     ./build/plugin/plugin_host build/plugin/reaper_speed_reaper.so \
       --expect-entry 1 \
-      --expect-actions speed_reaper_jogdemo,speed_reaper_scrub_fwd,speed_reaper_scrub_back \
       > "$OUT/plugin_host.out" 2>&1
   HOST_RC=$?
   # Store plugin_host's output in trace.txt alongside the plugin trace.
@@ -224,8 +223,8 @@ run_crash_capture() {
 }
 
 # Reaper-layer scenario suite: explicit --scenario wins; otherwise the bare
-# run (layer all) runs load, then jog_demo (vibes/18-oracle-linux.md task 9),
-# then hid_wheel (vibes/20-m1-wheel-playhead.md task 7), then buttons
+# run (layer all) runs load, then hid_wheel (vibes/20-m1-wheel-playhead.md
+# task 7), then buttons
 # (vibes/21-m2-buttons-modes.md task 4), then verbs (vibes/22-m3-edit-verbs.md
 # task 5), then ripple_del (M3: cmd 40006 delete + gap behavior under each
 # ripple mode; SMOKE-TEST.md "M3" step 4), then shuttle (M4: SHTL law
@@ -236,7 +235,7 @@ run_crash_capture() {
 # (M7: SPLIT move + TRIM OUT holds — vibes/33-m7-hold-rotate.md task 5a).
 REAPER_SCENARIOS=("$SCENARIO")
 if [[ $SCENARIO_EXPLICIT -eq 0 && "$LAYER" == all ]]; then
-  REAPER_SCENARIOS=(load jog_demo hid_wheel buttons verbs ripple_del shuttle target simple_verbs smth_cut place_on_top view_solo hold_move_trim hold_slip_vol hold_undo leds_ripple leds_cam)
+  REAPER_SCENARIOS=(load hid_wheel buttons verbs ripple_del shuttle target simple_verbs smth_cut place_on_top view_solo hold_move_trim hold_slip_vol hold_undo leds_ripple leds_cam)
 fi
 
 HOST_RC=0

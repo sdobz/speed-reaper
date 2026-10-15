@@ -27,6 +27,29 @@ dev env.
 4. **Exclusivity**: only one host app may claim the device at a time.
    Close **DaVinci Resolve** (and any other tool touching the editor)
    before each test. If Resolve holds it, `listen` fails to open.
+5. **REAPER plugin build** (needed from the M1 sections on):
+   `cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin`
+   → `build/plugin/reaper_speed_reaper.so`, no compiler warnings.
+   (Build fails with `gdk/gdk.h: No such file` → you are outside the nix
+   dev env (`gdk-3.0` pkg-config module missing); re-run in `nix develop`.)
+6. **REAPER plugin install (once)**:
+   `cp build/plugin/reaper_speed_reaper.so ~/.config/REAPER/UserPlugins/`,
+   then restart REAPER. (`UserPlugins/` or `Plugins/` under the REAPER
+   resource path — find it via Options → *Show REAPER resource path in
+   explorer* if REAPER is installed portably instead of via nixpkgs.)
+   Verify: Options → Extensions lists *Speed Reaper*.
+   Uninstall: delete the `.so` and restart REAPER.
+7. **Windows build (cross, from the Linux dev env)**: this project is
+   cross-platform — see `CROSS-PLATFORM.md` for the matrix. The same
+   plugin sources build a Windows `.dll` via the flake (MinGW toolchain;
+   works because the plugin's REAPER surface is C-ABI only):
+   `nix build .#reaper-plugin-windows`
+   → `reaper/reaper_speed_reaper.dll` (`PE32+ DLL`, x86-64, no compiler
+   warnings); on a Windows machine, copy it to
+   `%APPDATA%\REAPER\UserPlugins\`. If a future version implements REAPER
+   C++ interface classes (vtables REAPER instantiates), the MinGW path
+   stops being safe — build on Windows with MSVC instead and update
+   `CROSS-PLATFORM.md`.
 
 ## Build
 
@@ -135,107 +158,6 @@ the wheel, compare delta semantics with mode 0).
   device / another app stole the device (exclusivity).
 - Protocol reference: `docs/speed-editor-capabilities.md`.
 
-## REAPER plugin: hello world (smooth playhead control)
-
-The `plugin/` extension (no Speed Editor hardware needed — it uses a
-synthetic wheel source standing in for the driver) registers three actions
-that move the playhead through the same `IWheelSource → JogEngine →
-CSurf_ScrubAmt` pipeline the real editor will use.
-
-### Build
-
-```sh
-cmake -S plugin -B build/plugin -G Ninja
-cmake --build build/plugin
-```
-
-**Expected:** `build/plugin/reaper_speed_reaper.so`, no compiler warnings.
-
-### Install (once)
-
-```sh
-cp build/plugin/reaper_speed_reaper.so ~/.config/REAPER/UserPlugins/
-```
-
-(`UserPlugins/` or `Plugins/` under the REAPER resource path — find it via
-Options → *Show REAPER resource path in explorer* if REAPER is installed
-portably instead of via nixpkgs.)
-
-**Restart REAPER** (or Options → Extensions — the plugin must be loaded for
-its actions to exist). Verify: Options → Extensions shows
-*"Speed Reaper (hello world)"*.
-
-### Test 5 — actions exist
-
-Actions → Show Action List → search `Speed Reaper`. **Expected:** three
-actions:
-- `Speed Reaper: jog demo (smooth playhead)`
-- `Speed Reaper: scrub forward 0.5 s`
-- `Speed Reaper: scrub back 0.5 s`
-
-### Test 6 — jog demo: smooth playhead control
-
-1. Open any project (an empty one is fine), click somewhere in the timeline
-   to place the edit cursor, make sure transport is **stopped**.
-2. Run *"Speed Reaper: jog demo (smooth playhead)"* (double-click or the
-   Run button).
-
-**Expected:** the edit cursor/playhead **glides forward** over ~1.2 s
-(accelerates, cruises, coasts to a stop) — it does not jump. Run it again
-while it is still moving → it stops. Run it a third time → a new turn
-starts from the current position. The playhead ends ~0.5 s ahead of where
-it started.
-
-### Test 7 — one-shot nudges (sink path without the source)
-
-Run *"Speed Reaper: scrub forward 0.5 s"* → playhead jumps +0.5 s in one
-step (no smoothing — this bypasses the wheel). Run *"scrub back 0.5 s"* →
-returns to the previous position. Both work while stopped; while playing,
-`CSurf_ScrubAmt` scrubs the play position (audio tracks the scrub — that
-is REAPER's built-in scrub behaviour, not the plugin's).
-
-### Uninstall
-
-Delete `~/.config/REAPER/UserPlugins/reaper_speed_reaper.so`, restart
-REAPER.
-
-### Troubleshooting
-
-- **Actions missing** → plugin not loaded: check Options → Extensions
-  (it appears after a REAPER restart), and that the `.so` is in the
-  resource path (Options → Show REAPER resource path in explorer).
-- **Action runs but nothing moves** → REAPER version too old or wrong
-  section: the actions live in the *main* section; run them from the main
-  action list, not a MIDI editor list.
-- **Build fails with `gdk/gdk.h: No such file`** → you are outside the nix
-  dev env (`gdk-3.0` pkg-config module missing); re-run in `nix develop`.
-- **Windows**: build via the flake cross path, not the dev shell —
-  `nix build .#reaper-plugin-windows` (see the next section and
-  `CROSS-PLATFORM.md` at the repo root).
-
-### Windows build (cross, from the Linux dev env)
-
-This project is cross-platform — see `CROSS-PLATFORM.md` for the matrix.
-The same plugin sources build a Windows `.dll` via the flake (MinGW
-toolchain; works because the plugin's REAPER surface is C-ABI only):
-
-```sh
-nix build .#reaper-plugin-windows
-file $(nix path-info .#reaper-plugin-windows)/reaper/reaper_speed_reaper.dll
-```
-
-**Expected:** `PE32+ DLL` / x86-64, no compiler warnings.
-
-To test on a Windows machine: copy `reaper_speed_reaper.dll` to
-`%APPDATA%\REAPER\UserPlugins\`, start REAPER, and run Tests 5–7 above
-identically (Options → Extensions should list *"Speed Reaper (hello
-world)"*; the action names are the same). The DLL statically links its
-C++ runtime — no Visual C++ redistributable needed.
-
-If a future version of the plugin implements REAPER C++ interface
-classes (vtables REAPER instantiates), the MinGW path stops being safe —
-build on Windows with MSVC instead and update `CROSS-PLATFORM.md`.
-
 ## M1 — wheel drives the playhead
 
 Automated equivalent: `tools/reaper-oracle --layer reaper --scenario hid_wheel`; this hand test only adds real hardware.
@@ -248,7 +170,7 @@ Automated equivalent: `tools/reaper-oracle --layer reaper --scenario hid_wheel`;
 
    **Expected (plugged in):** `log: connected (serial …)` at startup; turning the wheel changes `wheel: sum`, and the sign flips with direction. **Expected (unplugged):** `log: device not found` and no `wheel: sum` lines. (The tool exits 0 either way after the full window — it is a probe, not a pass/fail gate.)
 
-3. **Build + install the plugin**: reuse the hello-world *Build* and *Install (once)* steps above (`cmake … build/plugin/reaper_speed_reaper.so`, copy to `~/.config/REAPER/UserPlugins/`), then start REAPER with the device still plugged in.
+3. **Build + install the plugin**: reuse Prerequisites 5–6 above (build `build/plugin/reaper_speed_reaper.so`, copy it to `~/.config/REAPER/UserPlugins/`), then start REAPER with the device still plugged in.
 
    **Expected:** REAPER console shows `Speed Reaper: connected (serial …)` shortly after startup.
 

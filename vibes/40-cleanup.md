@@ -36,7 +36,7 @@ tools/check && test -z "$(git ls-files vibes/.ralph-logs)" && ! ls oracle/scenar
 tools/check && ! rg -q 'spike|jogdemo|DemoWheelSource|scrub_fwd' plugin/src tools/reaper-oracle && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. One REAPER API list
 
