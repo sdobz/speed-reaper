@@ -61,8 +61,9 @@ class FakeSink final : public IActionSink {
   void ScrollBySeconds(double dt) override { (void)dt; }
   void ApplyShuttleRate(double rate) override { (void)rate; }
   void HardStop() override {}
-  void Message(const char *msg) override { (void)msg; }
+  void Message(const char *msg) override { messages_.push_back(msg); }
   std::vector<int> commands_;
+  std::vector<std::string> messages_;
 };
 
 class FakePlayhead final : public IPlayheadSink {
@@ -185,6 +186,81 @@ int main() {
     s.Tick(50);  // release: Tap → VerbRouter → RunCommand
     CHECK(sink.commands_.size() == 1);
     CHECK(sink.commands_[0] == 1157);
+  }
+
+  // Learn: the next tap is reported as ("KEY.gesture", "action <spec>") and
+  // swallowed (no verb runs); double-tap works; a hold+turn is refused;
+  // ESC cancels; 10 s without a gesture times out.
+  {
+    FakeDevice dev;
+    FakeProject proj;
+    FakeSink sink;
+    FakePlayhead ph;
+    Session s(dev, sink, proj, ph);
+    std::vector<std::string> got;
+    s.SetLearnCallback([&got](const std::string &l, const std::string &v) {
+      got.push_back(l + " = " + v);
+    });
+    s.Tick(0);
+    s.BeginLearn("_RSabc");
+    CHECK(s.Learning());
+    dev.PushButton({KEY_SNAP, true});
+    s.Tick(100);
+    dev.PushButton({KEY_SNAP, false});
+    s.Tick(150);  // tap: learned, NOT run
+    CHECK(!s.Learning());
+    CHECK(got.size() == 1 && got[0] == "SNAP.tap = action _RSabc");
+    CHECK(sink.commands_.empty());
+    // Back to normal: SNAP runs 1157 again.
+    dev.PushButton({KEY_SNAP, true});
+    s.Tick(200);
+    dev.PushButton({KEY_SNAP, false});
+    s.Tick(250);
+    CHECK(sink.commands_.size() == 1 && sink.commands_[0] == 1157);
+
+    // Double-tap on IN (a double-tap key by default).
+    s.BeginLearn("40012");
+    for (int i = 0; i < 2; ++i) {
+      dev.PushButton({KEY_IN, true});
+      s.Tick(1000 + i * 100);
+      dev.PushButton({KEY_IN, false});
+      s.Tick(1050 + i * 100);
+    }
+    CHECK(got.size() == 2 && got[1] == "IN.double = action 40012");
+
+    // ESC cancels (ESC is not learnable): nothing reported.
+    s.BeginLearn("40012");
+    dev.PushButton({KEY_ESC, true});
+    s.Tick(2000);
+    dev.PushButton({KEY_ESC, false});
+    s.Tick(2050);
+    s.Tick(2400);  // ESC tap is deferred (it has a .double binding)
+    CHECK(!s.Learning());
+    CHECK(got.size() == 2);
+
+    // Timeout: 10 s.
+    s.BeginLearn("40012");
+    s.Tick(5000);
+    CHECK(s.Learning());
+    s.Tick(12500);
+    CHECK(!s.Learning());
+    CHECK(got.size() == 2);
+  }
+
+  // Reload: new text rebinds; bad lines are reported and skipped.
+  {
+    FakeDevice dev;
+    FakeProject proj;
+    FakeSink sink;
+    FakePlayhead ph;
+    Session s(dev, sink, proj, ph);
+    s.ReloadBindings("[bindings]\nSNAP.tap = action 999\nFOO.tap = action 1\n");
+    dev.PushButton({KEY_SNAP, true});
+    s.Tick(0);
+    dev.PushButton({KEY_SNAP, false});
+    s.Tick(50);
+    CHECK(sink.commands_.size() == 1 && sink.commands_[0] == 999);
+    CHECK(sink.messages_.size() >= 2);
   }
 
   return check_failures();

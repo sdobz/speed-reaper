@@ -74,4 +74,13 @@ std::string KeyName(std::uint16_t key);
 // Every nameable key code, in key_map order (for the show-bindings list).
 std::vector<std::uint16_t> AllKeys();
 
+// Pure INI rewrite for the learn action: set `<lhs> = <rhs>` (lhs e.g.
+// "TRIM_IN.tap", rhs e.g. "action 40012") in the [bindings] section. An
+// existing line for the same lhs (whitespace-insensitive, a trailing
+// comment is dropped) is replaced in place; otherwise the line is appended
+// at the end of [bindings] (the section is created if missing). Every
+// other line, comments included, is preserved byte for byte.
+std::string SetBindingLine(std::string_view ini, std::string_view lhs,
+                           std::string_view rhs);
+
 #endif  // SPEED_REAPER_BINDINGS_H

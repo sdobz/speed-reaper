@@ -135,6 +135,51 @@ std::vector<std::uint16_t> AllKeys() {
   return keys;
 }
 
+std::string SetBindingLine(std::string_view ini, std::string_view lhs,
+                           std::string_view rhs) {
+  std::vector<std::string> lines;
+  for (size_t pos = 0; pos <= ini.size();) {
+    size_t nl = ini.find('\n', pos);
+    if (nl == std::string_view::npos) {
+      if (pos < ini.size()) lines.emplace_back(ini.substr(pos));
+      break;
+    }
+    lines.emplace_back(ini.substr(pos, nl - pos));
+    pos = nl + 1;
+  }
+  const std::string newline = std::string(lhs) + " = " + std::string(rhs);
+  bool in_bindings = false;
+  int last_content = -1;  // last non-blank line inside [bindings]
+  int bindings_header = -1;
+  for (size_t i = 0; i < lines.size(); ++i) {
+    const std::string_view t = Trim(lines[i]);
+    if (!t.empty() && t.front() == '[') {
+      in_bindings = (t == "[bindings]");
+      if (in_bindings) { bindings_header = static_cast<int>(i); last_content = static_cast<int>(i); }
+      continue;
+    }
+    if (!in_bindings || t.empty()) continue;
+    last_content = static_cast<int>(i);
+    if (t.front() == ';' || t.front() == '#') continue;
+    const size_t eq = t.find('=');
+    if (eq != std::string_view::npos && Trim(t.substr(0, eq)) == lhs) {
+      lines[i] = newline;
+      goto done;
+    }
+  }
+  if (bindings_header < 0) {
+    if (!lines.empty() && !Trim(lines.back()).empty()) lines.push_back("");
+    lines.push_back("[bindings]");
+    lines.push_back(newline);
+  } else {
+    lines.insert(lines.begin() + last_content + 1, newline);
+  }
+done:
+  std::string out;
+  for (const std::string &l : lines) out += l + "\n";
+  return out;
+}
+
 Bindings ParseBindings(std::string_view text, const VerbRegistry &registry) {
   Bindings out;
   enum class Section { None, Tuning, Bindings };

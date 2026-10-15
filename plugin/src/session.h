@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -61,6 +62,18 @@ class Session {
   bool ToggleEcho();
   bool EchoOn() const { return verbs_.Echo(); }
 
+  // Learn: `action_spec` is the picked action ("40012" or "_RSabc"). The
+  // next device gesture (tap / double / press) is reported once through
+  // the learn callback as ("KEY.gesture", "action <spec>"); the caller
+  // persists it and reloads. ESC (any gesture) or a 10 s timeout cancels;
+  // a hold+turn is refused (turn handles are nudge verbs, not actions).
+  // While learning no gesture reaches a verb.
+  using LearnCallback =
+      std::function<void(const std::string &key_gesture, const std::string &verb)>;
+  void SetLearnCallback(LearnCallback cb) { learn_cb_ = std::move(cb); }
+  void BeginLearn(const std::string &action_spec);
+  bool Learning() const { return learning_; }
+
  private:
   // Forward the mode to the device + the matching jog-mode LED (report
   // 0x04: bit 0 JOG, 1 SHTL, 2 SCRL).
@@ -77,6 +90,12 @@ class Session {
   Router router_;           // Scrl / Shtl wheel laws over verbs_' wheel mode
   WheelDispatcher dispatcher_;  // hold → gestures; else Jog/Scrl/Shtl
   JogEngine engine_;             // driven by the dispatcher
+
+  bool learning_ = false;
+  std::string learn_spec_;
+  std::int64_t learn_deadline_ms_ = 0;
+  LearnCallback learn_cb_;
+  std::string learned_lhs_, learned_verb_;  // result, delivered at end of Tick
 
   bool was_connected_ = false;  // false→true edge re-sends mode + LEDs
   int led_mask_ = -1;           // last pushed mask; -1 = not sent (force)

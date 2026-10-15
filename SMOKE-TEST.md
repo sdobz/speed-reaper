@@ -526,3 +526,31 @@ Setup: M1 state (device plugged in, plugin connected). Reuse the M6 project: **o
    ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
 
 Pass bar: snap + per-track ripple + trim-behind lights exactly SNAP + CUT + LIVE_O/WR (`led main=222`), each `Alt+P` flip in REAPER moves the CUT/DIS LED within ~1 s and the third cycle-off darks both, the CAM LED mirrors the take number shared by *all* selected items (mixed or unselected → no CAM bit), and VIDEO_ONLY/AUDIO_ONLY taps light/dark their LEDs as the M6 isolate/solo state toggles — every LED a ≤250 ms poll of REAPER state, the device itself writing none of them.
+
+## Bindings
+
+Not headless (the oracle scenario `bindings` covers reload + fire; the action picker needs a window). Run with the Speed Editor connected. The file is `<REAPER resource path>/speed-reaper/bindings.ini` (Options → Show REAPER resource path…). All actions are in the Action List under "Speed Reaper:".
+
+1. **Default file written**: delete `speed-reaper/bindings.ini`, restart REAPER.
+
+   **Expected:** the file is recreated from the built-in default (it is the manual: one commented line per key). Run **Speed Reaper: show bindings** — the console lists every key grouped, then an `Unbound:` line.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+2. **Edit + reload**: run **Speed Reaper: open bindings file**, change `SNAP.tap = action 1157` to `SNAP.tap = action 40157` (marker), add a junk line `FOO.tap = action 1`, save, run **Speed Reaper: reload bindings**.
+
+   **Expected:** console `Speed Reaper: bindings loaded n=<count>` and `bindings.ini:<n>: …` for the junk line (loading continues). SNAP now inserts a marker. Toggle **Speed Reaper: echo** on: each device key press prints `KEY.gesture → verb args`.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+3. **Learn → fire → restart**: run **Speed Reaper: learn**, pick any action in the picker (e.g. "Transport: Play"), then **tap** a device key (e.g. APPND). Repeat once with a **double-tap** on another key, and once pressing **ESC** to cancel, and once doing nothing for 10 s.
+
+   **Expected:** console prompts "press a device key + gesture…". The tapped key now runs the action immediately (the file got `APPND.tap = action <id or _Named>` in place of / appended to the existing line, comments preserved); ESC and the 10 s timeout print "learn cancelled" / "learn timed out" and change nothing; a hold+turn is refused with a message. **Restart REAPER**: the learned bindings are still active.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+4. **Delete file → default rewritten**: delete the file, restart REAPER; the default (without your edits) is back, and an existing file is never overwritten on startup.
+
+   ☐ pass ☐ fail — notes: \_\_\_\_\_\_\_\_
+
+Pass bar: the file is the single source of truth — default written once, edits + reload take effect without restart, learn writes in place and survives restart.

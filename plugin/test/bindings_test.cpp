@@ -251,9 +251,44 @@ void test_example_file() {
     CHECK(turn->second.name == "nudge");
 }
 
+// SetBindingLine (learn): in-place replace keeps every other line and
+// comment; a new line is appended at the end of [bindings].
+void test_set_binding_line() {
+  const std::string ini =
+      "; header comment\n[tuning]\nhold_ms = 350\n\n[bindings]\n"
+      "; the split key\nSPLIT.tap = action 40012 ; old\nIN.tap=action 40625\n"
+      "\n[other]\nx = 1\n";
+  // Replace in place (whitespace-insensitive lhs), trailing comment dropped.
+  std::string r = SetBindingLine(ini, "IN.tap", "action _RSabc");
+  CHECK(r.find("IN.tap = action _RSabc\n") != std::string::npos);
+  CHECK(r.find("action 40625") == std::string::npos);
+  CHECK(r.find("; the split key\nSPLIT.tap = action 40012 ; old\n") !=
+        std::string::npos);
+  CHECK(r.find("; header comment\n") == 0);
+  // Append: right after the last [bindings] line, before [other].
+  r = SetBindingLine(ini, "OUT.double", "action 40635");
+  const size_t at = r.find("OUT.double = action 40635\n");
+  CHECK(at != std::string::npos);
+  CHECK(at > r.find("IN.tap=action 40625\n"));
+  CHECK(at < r.find("[other]"));
+  // The result parses with no errors; the new binding is there.
+  const VerbRegistry reg = MakeDefaultRegistry();
+  Bindings b = ParseBindings(r, reg);
+  CHECK(b.bindings.count({KEY_OUT, BindingGesture::Double}) == 1);
+  // No [bindings] section: created at the end.
+  r = SetBindingLine("[tuning]\nhold_ms = 1", "SPLIT.tap", "action 40012");
+  CHECK(r == "[tuning]\nhold_ms = 1\n\n[bindings]\nSPLIT.tap = action 40012\n");
+  // Empty file.
+  CHECK(SetBindingLine("", "SPLIT.tap", "action 1") ==
+        "\n[bindings]\nSPLIT.tap = action 1\n" ||
+        SetBindingLine("", "SPLIT.tap", "action 1") ==
+        "[bindings]\nSPLIT.tap = action 1\n");
+}
+
 }  // namespace
 
 int main() {
+  test_set_binding_line();
   test_numeric_id();
   test_named_command();
   test_targeted();

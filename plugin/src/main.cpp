@@ -99,17 +99,54 @@ SrAction g_actions[] = {
     {"SPEED_REAPER_OPEN_BINDINGS", "Speed Reaper: open bindings file", false, 0, {}},
     {"SPEED_REAPER_SHOW_BINDINGS", "Speed Reaper: show bindings", false, 0, {}},
     {"SPEED_REAPER_ECHO", "Speed Reaper: echo fired bindings (toggle)", true, 0, {}},
+    {"SPEED_REAPER_LEARN", "Speed Reaper: learn (pick an action, then press a device key)", false, 0, {}},
 };
+constexpr int kNumActions = sizeof(g_actions) / sizeof(g_actions[0]);
+
+// Learn: PromptForAction session (open, polled from the timer, closed).
+bool g_prompt_open = false;
+
+void StartLearnPrompt() {
+  if (g_prompt_open) return;
+  PromptForAction(1, 0, 0);  // open the action picker (main section)
+  g_prompt_open = true;
+  Trace("learn prompt open");
+}
+
+void PollLearnPrompt() {
+  if (!g_prompt_open) return;
+  const int id = PromptForAction(0, 0, 0);
+  if (id == -1) { g_prompt_open = false; return; }  // window closed by the user
+  if (id == 0) return;                              // nothing picked yet
+  PromptForAction(-1, 0, 0);                        // got one: close the session
+  g_prompt_open = false;
+  const char *named = ReverseNamedCommandLookup(id);
+  const std::string spec = named ? "_" + std::string(named) : std::to_string(id);
+  if (g_session) g_session->BeginLearn(spec);
+}
+
+// The learned (KEY.gesture, "action <spec>"): write it into the file, reload.
+void OnLearned(const std::string &lhs, const std::string &verb) {
+  const std::string path = BindingsPath();
+  const std::string text = SetBindingLine(LoadBindingsText(), lhs, verb);
+  {
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (out) out.write(text.data(), static_cast<std::streamsize>(text.size()));
+    else Trace("learn: cannot write %s", path.c_str());
+  }
+  if (g_session) g_session->ReloadBindings(text);
+}
 
 bool onCommand(int cmd, int /*flag*/) {
   if (cmd == 0 || !g_session) return false;
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < kNumActions; ++i) {
     if (g_actions[i].cmd != cmd) continue;
     switch (i) {
       case 0: g_session->ReloadBindings(LoadBindingsText()); break;
       case 1: OpenBindingsFile(); break;
       case 2: g_session->ShowBindings(); break;
-      default: g_session->ToggleEcho(); break;
+      case 3: g_session->ToggleEcho(); break;
+      default: StartLearnPrompt(); break;
     }
     return true;
   }
@@ -143,6 +180,7 @@ void onTimer() {
           std::chrono::steady_clock::now().time_since_epoch())
           .count();
   if (!g_session) return;
+  PollLearnPrompt();
   g_session->Tick(now_ms);
   // Drain the HID worker's log lines and show them in REAPER's console.
   std::string line;
@@ -192,6 +230,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
 
   g_session = new Session(g_hid, g_action_sink, g_project, g_reaper_sink,
                           LoadBindingsText());
+  g_session->SetLearnCallback(OnLearned);
   g_sink = &g_reaper_sink;
 
   RegisterActions();

@@ -3,12 +3,16 @@
 
 #include <algorithm>
 
+#include "bindings.h"  // KeyName
 #include "led_state.h"
 #include "project_ops.h"  // ReadLedState (pure op on IProject)
+#include "speed_editor/key_map.h"  // KEY_ESC
 #include "trace.h"
 #include "wheel_mode.h"
 
 namespace {
+
+constexpr std::int64_t kLearnTimeoutMs = 10000;
 
 // Engine step (ms): 125 Hz keeps the scrub motion smooth.
 constexpr double kTimerMs = 8.0;
@@ -84,6 +88,16 @@ void Session::ReloadBindings(std::string_view bindings_text) {
   ReportErrors();
 }
 
+void Session::BeginLearn(const std::string &action_spec) {
+  learning_ = true;
+  learn_spec_ = action_spec;
+  learn_deadline_ms_ = (last_tick_ms_ < 0 ? 0 : last_tick_ms_) + kLearnTimeoutMs;
+  Trace("learn begin %s", action_spec.c_str());
+  actions_.Message(
+      "Speed Reaper: press a device key + gesture (tap / double / hold+turn) "
+      "- ESC cancels\n");
+}
+
 void Session::ShowBindings() {
   for (const std::string &l : verbs_.DescribeBindings())
     actions_.Message(l.c_str());
@@ -114,7 +128,37 @@ void Session::Tick(std::int64_t now_ms) {
   Gesture gest;
   while (gestures_.Pop(&gest)) {
     Trace("gesture %04x %s", gest.key, GestureKindName(gest.kind));
+    if (learning_) {
+      const char *g = nullptr;
+      switch (gest.kind) {
+        case GestureKind::Press: g = "press"; break;
+        case GestureKind::Tap: g = "tap"; break;
+        case GestureKind::DoubleTap: g = "double"; break;
+        case GestureKind::HoldStart:
+          if (gest.key != KEY_ESC)
+            actions_.Message("Speed Reaper: learn: a hold+turn cannot take an action - tap or double-tap\n");
+          break;
+        default: break;
+      }
+      if (gest.key == KEY_ESC) {
+        if (g || gest.kind == GestureKind::HoldStart) {
+          learning_ = false;
+          Trace("learn cancelled");
+          actions_.Message("Speed Reaper: learn cancelled\n");
+        }
+      } else if (g) {
+        learning_ = false;
+        learned_lhs_ = KeyName(gest.key) + "." + g;
+        learned_verb_ = "action " + learn_spec_;
+      }
+      continue;  // swallowed while learning
+    }
     verbs_.OnGesture(gest);  // mapped → RunCommand (traces `cmd <id>`)
+  }
+  if (learning_ && now_ms >= learn_deadline_ms_) {
+    learning_ = false;
+    Trace("learn timeout");
+    actions_.Message("Speed Reaper: learn timed out\n");
   }
   WheelMode changed;
   if (router_.TakeModeChange(&changed)) ApplyModeToHid(changed);
@@ -156,5 +200,11 @@ void Session::Tick(std::int64_t now_ms) {
     engine_.Tick();
     acc_ms_ -= kTimerMs;
     consumed_ms += kTimerMs;
+  }
+  if (!learned_lhs_.empty()) {
+    const std::string lhs = std::move(learned_lhs_), verb = std::move(learned_verb_);
+    learned_lhs_.clear();
+    Trace("learn %s = %s", lhs.c_str(), verb.c_str());
+    if (learn_cb_) learn_cb_(lhs, verb);
   }
 }

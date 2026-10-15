@@ -150,7 +150,7 @@ tools/check bindings && grep -q '^## Bindings' SMOKE-TEST.md
 tools/check nudge && tools/reaper-oracle --layer reaper --scenario hold_handles
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. Crossfade keys as plain bindings
 
