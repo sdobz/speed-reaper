@@ -82,3 +82,48 @@ M vibes/.ralph/40-cleanup.md
   - check40-3 FAILED at the Windows cross build: nix source copy lacked the untracked `reaper_api.h` (see Learnings). Fixed by `git add plugin/src/reaper_api.h tools/check_api_want`; rebuild win40-3 rc=0.
   - Also fixed before verify: the comment in reaper_project.cpp originally contained the literal `REAPERAPI_WANT_*` — the Verify `rg -c` counts comment occurrences too, so it would have made 2 files match; reworded the comment.
   - DONE: verify40-3 (exact Verify command) rc=0 — tools/check green (check_api_want OK, 14/14 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host), `rg -c` count = 1 (only reaper_api.h), ORACLE PASS reaper/load. Line 51 ticked.
+
+Verify failed (exit 1):
+```
+.....   Passed    0.00 sec
+      Start  4: hold_nudge_test
+ 4/14 Test  #4: hold_nudge_test ..................   Passed    0.00 sec
+      Start  5: jog_engine_test
+ 5/14 Test  #5: jog_engine_test ..................   Passed    0.00 sec
+      Start  6: led_read_test
+ 6/14 Test  #6: led_read_test ....................   Passed    0.00 sec
+      Start  7: led_state_test
+ 7/14 Test  #7: led_state_test ...................   Passed    0.00 sec
+      Start  8: nudge_test
+ 8/14 Test  #8: nudge_test .......................   Passed    0.00 sec
+      Start  9: router_test
+ 9/14 Test  #9: router_test ......................   Passed    0.00 sec
+      Start 10: shuttle_test
+10/14 Test #10: shuttle_test .....................   Passed    0.00 sec
+      Start 11: target_test
+11/14 Test #11: target_test ......................   Passed    0.00 sec
+      Start 12: trace_test
+12/14 Test #12: trace_test .......................   Passed    0.01 sec
+      Start 13: transport_factory_test
+13/14 Test #13: transport_factory_test ...........   Passed    0.02 sec
+      Start 14: verbs_test
+14/14 Test #14: verbs_test .......................   Passed    0.00 sec
+
+100% tests passed out of 14
+
+Total Test time (real) =   0.57 sec
+WINDOWS ORACLE PASS static (/nix/store/l3kbaypdnl4m2w7h2dwa4l5cifw78dnx-reaper-speed-reaper-x86_64-w64-mingw32-0.1.0/reaper/reaper_speed_reaper.dll)
+[0/2] Re-checking globbed directories...
+ninja: no work to do.
+PASS=True REASONS=[]
+ORACLE PASS host
+bash: line 1: rg: command not found
+```
+
+Result: exit 0; verify-failed; 2 files changed, 38 insertions(+), 1 deletion(-); log: logs/40-cleanup-L51-a3-1792032144577.log
+
+### Replan (depth 0) — REWRITE → "3. One REAPER API list (Verify without rg)"
+Trigger: 3 attempt(s), last: exit 0, verify-failed
+Why: Attempt 3 finished the entire task — reaper_api.h, the REAPERAPI_IMPLEMENT split, and tools/check_api_want are all in the tree and the worker's own verify passed — but ralph's re-run died on 'bash: line 1: rg: command not found': the Verify uses `rg`, which is not on PATH in the verify environment, so `test "" -eq 1` fails. Only the Verify is wrong. (Task 4's Verify also uses rg and will need the same grep fix.)
+Rejected: BUDGET: not a timeout and no time was wasted — the work was complete and the failure is a missing binary in the verify env. SPLIT/SPIKE: nothing left to build or decide. BLOCK: the fix is mechanical, no human input needed.
+Log: logs/40-cleanup-L51-replan-1792032755675.log

@@ -48,7 +48,13 @@ tools/check && ! rg -q 'spike|jogdemo|DemoWheelSource|scrub_fwd' plugin/src tool
 tools/check && test "$(rg -c 'REAPERAPI_WANT_' plugin/src | wc -l)" -eq 1 && tools/reaper-oracle --layer reaper --scenario load
 ```
 
-- [x] Done
+- [ ] 3. One REAPER API list (Verify without rg)
+  <!-- ralph: replanned=1 -->
+  Attempt 3 already built everything and it is in the tree: `plugin/src/reaper_api.h` (MINIMAL + 39 `REAPERAPI_WANT_*` lines, comment = caller), `main.cpp` (`#define REAPERAPI_IMPLEMENT` + include), `reaper_project.cpp` (plain include), and `tools/check_api_want` wired into `tools/check` before the build. Do not recreate any of it.
+  Sanity-check only: exactly one file under `plugin/src` matches `REAPERAPI_WANT_` (`grep -rl 'REAPERAPI_WANT_' plugin/src`), and no duplicated list or "keep in sync" comment remains in `main.cpp`/`reaper_project.cpp`.
+  The previous Verify failed only because `rg` is not on PATH in the verify environment; the corrected Verify below uses `grep` instead.
+  Run Verify until it exits 0 (builds are cached from attempt 3, so this is a few minutes), then tick.
+  Verify: `tools/check && test "$(grep -rl 'REAPERAPI_WANT_' plugin/src | wc -l)" -eq 1 && tools/reaper-oracle --layer reaper --scenario load`
 
 ### 4. Move the REAPER sinks out of `main.cpp`
 
