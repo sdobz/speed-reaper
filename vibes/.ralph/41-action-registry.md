@@ -128,3 +128,14 @@ Files:
 ```
 M vibes/.ralph/41-action-registry.md
 ```
+
+## Task: 4. Switch over and delete the old tables
+
+### Attempt 3 — 2026-10-15T05:06:05Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 1 file changed, 5 insertions(+); log: logs/41-action-registry-L111-a3-1792040765654.log
+
+### Replan (depth 0) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: 3 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Log: logs/41-action-registry-L111-replan-1792041052564.log
