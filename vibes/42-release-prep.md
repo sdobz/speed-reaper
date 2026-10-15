@@ -26,7 +26,7 @@ tools/check && test -s docs/design.md && ! rg -n 'docs/(plugin-design-m|plugin-c
 tools/check && test -s docs/bindings.md && grep -q 'nudge' docs/bindings.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. README
 

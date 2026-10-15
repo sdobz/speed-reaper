@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# tools/gen_bindings_doc — regenerate docs/bindings.md from the registry
+# (42-release-prep §2). Assembles:
+#   1. the static header (file location, syntax, gestures, step=, actions)
+#   2. the key list  (build/plugin/verb_list --list-keys, from
+#      src/speed_editor/key_map.h)
+#   3. the verb table (build/plugin/verb_list --list-verbs, from
+#      MakeDefaultRegistry in plugin/src/verb_registry.cpp)
+#   4. the default bindings file verbatim (plugin/src/default_bindings.ini,
+#      the text embedded at build time)
+# Usage: tools/gen_bindings_doc [outfile]      (default: docs/bindings.md)
+# tools/check runs this against a temp file and fails if the committed
+# docs/bindings.md differs.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+OUT="${1:-docs/bindings.md}"
+BIN=build/plugin/verb_list
+if [[ ! -x $BIN ]]; then
+  echo "gen_bindings_doc: $BIN not built — run: cmake --build build/plugin" >&2
+  exit 1
+fi
+{
+  cat <<'EOF'
+# Speed Reaper bindings reference
+
+This file is **generated** — do not edit it. `tools/check` regenerates it
+and fails if the committed copy differs from the registry.
+
+## Where the bindings file lives
+
+`<REAPER resource path>/speed-reaper/bindings.ini`. If it is missing, the
+first plugin run creates it seeded from the default file at the bottom of
+this document (it is never overwritten afterwards); an unreadable file
+falls back to the same default in memory.
+
+- Linux: `~/.config/REAPER/speed-reaper/bindings.ini`
+- Windows: `%APPDATA%\REAPER\speed-reaper\bindings.ini`
+
+## Syntax
+
+```ini
+[tuning]
+double_tap_ms = 300        ; double-tap window (default 300)
+hold_ms = 350              ; hold detection (default 350)
+hold_ticks_per_step = 4    ; wheel ticks per turn-verb step (default 4)
+
+[bindings]
+KEY.gesture = verb [args]  ; comments start with ;
+```
+
+- `KEY` is a key name from the table below — the `KEY_*` suffix from
+  `src/speed_editor/key_map.h`, i.e. the printed label with spaces and
+  slashes replaced (`STOP/PLAY` reads `STOP_PLAY`, `RIPL O/WR` reads
+  `RIPL_OWR`).
+- `gesture` is one of:
+  - `press` — hold and release without rotating;
+  - `tap` — a quick press;
+  - `double` — two taps within `double_tap_ms`;
+  - `turn` — hold the key and rotate the wheel (one hold = one undo step).
+  A key bound to `press` takes no other gesture.
+- `verb [args]` must be a registered verb (table below) that accepts the
+  gesture. Bad lines are skipped and reported as
+  `bindings.ini:<line>: <reason>` — they never stop parsing.
+- Turn verbs take an optional **`step=frame|grid|sample|<N>ms`** argument:
+  the time per step (default `frame` = one project frame, applied every
+  `hold_ticks_per_step` wheel ticks).
+- After editing, run **Speed Reaper: reload bindings** to apply.
+
+## Plugin actions (action list: search “Speed Reaper”)
+
+| action | does |
+| --- | --- |
+| `Speed Reaper: reload bindings` | re-reads and re-parses the file |
+| `Speed Reaper: open bindings file` | opens it in the default editor |
+| `Speed Reaper: show bindings` | prints the current bindings (and unbound keys) to the console |
+| `Speed Reaper: echo fired bindings (toggle)` | additionally messages every fired binding |
+| `Speed Reaper: learn (pick an action, then press a device key)` | binds the pressed key+gesture to the picked action, writing it to the file and reloading |
+
+## Keys
+
+EOF
+  "$BIN" --list-keys
+  cat <<'EOF'
+
+## Verbs
+
+Generated from `MakeDefaultRegistry()` (plugin/src/verb_registry.cpp).
+`args` is the argument syntax; verbs with `—` take no arguments.
+
+EOF
+  "$BIN" --list-verbs
+  cat <<'EOF'
+
+## Default bindings file
+
+`plugin/src/default_bindings.ini` — what first run seeds the file with
+(verbatim):
+
+```ini
+EOF
+  cat plugin/src/default_bindings.ini
+  echo '```'
+} > "$OUT"

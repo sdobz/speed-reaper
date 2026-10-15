@@ -14,6 +14,16 @@ tools/check_api_want
 make -C src >/dev/null
 cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror -DSPEED_REAPER_FAKE_DEVICE=ON >/dev/null
 cmake --build build/plugin
+# Bindings reference (42-release-prep §2): regenerate docs/bindings.md
+# from the registry; fail if the committed copy differs.
+doc_tmp=$(mktemp)
+if ! tools/gen_bindings_doc "$doc_tmp"; then rm -f "$doc_tmp"; exit 1; fi
+if ! cmp -s "$doc_tmp" docs/bindings.md; then
+  echo "docs/bindings.md is stale — run tools/gen_bindings_doc and commit" >&2
+  rm -f "$doc_tmp"
+  exit 1
+fi
+rm -f "$doc_tmp"
 nm -D build/plugin/reaper_speed_reaper.so | grep -q ' T ReaperPluginEntry'
 ctest --test-dir build/plugin --output-on-failure ${1:+-R "$1"}
 # Windows cross build (MinGW): catches POSIX-only code / missing sources.

@@ -183,6 +183,23 @@ if(NOT WIN32 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/plugin_host.cpp)
   endif()
 endif()
 
+# Verb/key table generator (42-release-prep §2): the pure sources only
+# (same list as hid_probe), no REAPER, no device. Emits the Markdown
+# tables tools/gen_bindings_doc splices into docs/bindings.md; tools/check
+# fails if the committed copy drifts from the registry.
+if(NOT CMAKE_CROSSCOMPILING AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/verb_list.cpp)
+  add_executable(verb_list tools/verb_list.cpp ${PLUGIN_PURE_SOURCES})
+  target_include_directories(verb_list PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${REPO_ROOT}/src
+  )
+  if(UNIX AND NOT APPLE)
+    target_include_directories(verb_list SYSTEM PRIVATE ${HIDAPI_INCLUDE_DIRS})
+    target_link_libraries(verb_list PRIVATE PkgConfig::HIDAPI)
+  endif()
+endif()
+
 # SWS convention: reaper_<name>.so (no lib prefix).
 set_target_properties(speed_reaper PROPERTIES
   PREFIX ""
