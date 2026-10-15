@@ -195,3 +195,11 @@ Facts:
 - Native build needs `nix develop` (no cmake on PATH); running in bgrun job `build50`.
 
 Result: full Verify (job `verify50`) exited 0 — `tools/check session` (build warning-free, session_test passed, Windows static oracle, host oracle), onTimer = 11 lines ≤ 15, `reaper-oracle --layer reaper` (load scenario) PASS. Line 81 ticked; committed as `40-cleanup: 5. Pure Session: the timer loop becomes testable`.
+
+Result: exit 0; done; log: logs/40-cleanup-L81-a2-1792033252016.log
+
+### Done — 2026-10-15 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+```
