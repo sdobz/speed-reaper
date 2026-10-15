@@ -1,6 +1,6 @@
-// ReaperProject: IProject over the REAPER host API
-// (docs/plugin-design-m5-m9.md §2). API signatures: docs/reaper-api-subset.md
-// §2 (cursor), §8 (tracks & media items), §9 (undo).
+// ReaperProject: IProject over the REAPER host API.
+// API signatures: docs/reaper-api-subset.md (cursor, tracks & media
+// items, undo).
 // SDK/Swell headers: their min/max macros break <algorithm>/<set>
 // (same gotcha as main.cpp — include STL before the macros land).
 #include <algorithm>
@@ -15,8 +15,8 @@
 
 namespace {
 
-// Ripple commands (design §3): 40310 = "Set ripple editing per-track",
-// 40311 = "Set ripple editing all tracks" (names: docs/reaper-actions.tsv).
+// Ripple commands: 40310 = "Set ripple editing per-track",
+// 40311 = "Set ripple editing all tracks".
 constexpr int kRipplePerTrack = 40310;
 constexpr int kRippleAll = 40311;
 
@@ -77,7 +77,7 @@ std::vector<ItemInfo> ReaperProject::Items() {
   for (size_t i = 0; i < items.size(); i++) {
     MediaItem *item = items[i];
     ItemInfo info;
-    info.id = static_cast<int>(i);  // index in Items() order (design §2)
+    info.id = static_cast<int>(i);  // index in Items() order
     info.track = TrackIndex(GetMediaItem_Track(item));
     info.pos = GetMediaItemInfo_Value(item, "D_POSITION");
     info.len = GetMediaItemInfo_Value(item, "D_LENGTH");
@@ -127,7 +127,7 @@ int ReaperProject::RippleMode() {
   return 0;
 }
 
-// Write primitives (40-cleanup §8) — the multi-step actions that combine
+// Write primitives — the multi-step actions that combine
 // them (duplicate, view toggles, LED snapshot) are the pure ops in
 // project_ops.cpp.
 int ReaperProject::TrackCount() { return CountTracks(nullptr); }
@@ -154,7 +154,7 @@ int ReaperProject::CopyItemToTrack(int item_id, int track) {
   if (GetItemStateChunk(src, chunk, static_cast<int>(sizeof chunk), false))
     SetItemStateChunk(ni, chunk, false);
   // Same position (the state chunk may carry take/item geometry; keep
-  // the item's edit position explicit per design §3).
+  // the item's edit position explicit).
   SetMediaItemInfo_Value(ni, "D_POSITION",
                          GetMediaItemInfo_Value(src, "D_POSITION"));
   UpdateItemInProject(ni);

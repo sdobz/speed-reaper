@@ -1,5 +1,5 @@
-// verbs.h — recognized gesture → REAPER command id (design §7), plus
-// composite verbs that need the project (M5 design §2).
+// verbs.h — recognized gesture → REAPER command id, plus composite verbs
+// that need the project.
 //
 // Pure: VerbRouter holds an IActionSink and an IProject (both REAPER-free
 // interfaces) and maps (key, kind) pairs through the tables at the top of
@@ -15,7 +15,7 @@
 
 #include "action_sink.h"
 #include "gesture.h"
-#include "nudge.h"        // HoldNudge (tick→step accumulator, M7 design §4)
+#include "nudge.h"        // HoldNudge (tick→step accumulator)
 #include "project.h"
 #include "project_ops.h"  // IsolateView / SoloView (view-toggle state)
 
@@ -24,8 +24,8 @@ class VerbRouter {
   VerbRouter(IActionSink &sink, IProject &project) : sink_(sink), project_(project) {}
 
   // Run the gesture's verb, if the (key, kind) pair is in a table: composite
-  // rows win over id rows. Unmapped pairs are no-ops. Hold* kinds (M7,
-  // design §4): the mapped hold keys (SPLIT/MOVE, TRIM IN, TRIM OUT,
+  // rows win over id rows. Unmapped pairs are no-ops. Hold* kinds:
+  // the mapped hold keys (SPLIT/MOVE, TRIM IN, TRIM OUT,
   // SLIP SRC, SLIP DEST, AUDIO LEVEL) resolve their targets ONCE at
   // HoldStart (snapshotting the selection, opening the hold's single undo
   // block); each HoldRotate nudges the targets by whole steps of 1/Fps()
@@ -34,12 +34,12 @@ class VerbRouter {
   // no-target holds do nothing (no undo block opened).
   void OnGesture(const Gesture &g);
 
-  // TIMELINE hold+rotate ticks since the last select step (M5 design §1.2;
-  // one step per ±kSelectStepTicks, remainder kept). Public because the
+  // TIMELINE hold+rotate ticks since the last select step (one step per
+  // ±kSelectStepTicks, remainder kept). Public because the
   // composite rows in verbs.cpp are free functions.
   int select_delta_ = 0;
 
-  // View-toggle state (40-cleanup §8): the saved previous flags for the
+  // View-toggle state: the saved previous flags for the
   // re-tap restore live in these pure ops (project_ops.h). The Session
   // reads them for the LED bar (ReadLedState's isolate/solo bits).
   bool IsolateActive() const { return isolate_view_.IsActive(); }
@@ -50,7 +50,7 @@ class VerbRouter {
   SoloView solo_view_;        // AUDIO_ONLY saved state (project_ops.h)
 
  private:
-  // One active hold (M7, design §4): the targets resolved at HoldStart,
+  // One active hold: the targets resolved at HoldStart,
   // the selection snapshot to restore at HoldEnd, and the tick
   // accumulator (kHoldTicksPerStep = 4 ticks per step).
   struct HoldState {
@@ -64,7 +64,7 @@ class VerbRouter {
   std::map<std::uint16_t, HoldState> holds_;  // active holds, by key
 };
 
-// The keys whose tap waits for a second press (design §7: IN, OUT, ESC).
+// The keys whose tap waits for a second press (IN, OUT, ESC).
 // Feed this to GestureEngine::SetDoubleTapKeys.
 std::vector<std::uint16_t> VerbDoubleTapKeys();
 

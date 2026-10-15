@@ -1,4 +1,4 @@
-// button_diff.cpp — pure held-key-set diff (docs/plugin-design-m1-m3.md §6).
+// button_diff.cpp — pure held-key-set diff.
 #include "button_diff.h"
 
 #include <algorithm>

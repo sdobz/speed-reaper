@@ -129,4 +129,4 @@ tools/check && ! rg -q 'DuplicateItemsAbove|ToggleSoloTracks|ToggleIsolateTracks
 tools/check && ! rg -n 'M[0-9]+\b|task [0-9]|design §|§[0-9]' plugin/src
 ```
 
-- [ ] Done
+- [x] Done

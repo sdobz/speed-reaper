@@ -4,19 +4,20 @@
 #include <cmath>      // std::log10 (AUDIO LEVEL read-out)
 #include <cstdio>     // std::snprintf (CAM undo labels, AUDIO LEVEL message)
 
-#include "nudge.h"                 // Nudge* hold+rotate math (M7, design §4)
+#include "nudge.h"                 // Nudge* hold+rotate math
 #include "speed_editor/key_map.h"  // KEY_* button codes (verbatim driver copy)
-#include "project_ops.h"           // DuplicateItemsAbove (pure op, 40-cleanup §8)
-#include "target.h"                // TargetItems, WithTargetSelected (M5 design §1.1)
+#include "project_ops.h"           // DuplicateItemsAbove (pure op)
+#include "target.h"                // TargetItems, WithTargetSelected
 #include "trace.h"                 // Trace (no-target diagnostics)
 
 namespace {
 
-// The verb table (design §7): (key, kind) → REAPER command id.
-// Ids are candidates confirmed by behavior via the M3 oracle / hand test;
+// The verb table: (key, kind) → REAPER command id.
+// Ids are candidates confirmed by behavior via the oracle / hand test;
 // a wrong id is a one-line fix here. Look ids up by number/name in
-// docs/reaper-actions.tsv (REAPER 7.82 action list, grep it; do not guess). (M5 design §3: TRIM IN / TRIM OUT
-// live in the composite table kCompositeTable, which wins over id rows.)
+// docs/reaper-actions.tsv (REAPER 7.82 action list, grep it; do not
+// guess). TRIM IN / TRIM OUT live in the composite table kCompositeTable,
+// which wins over id rows.
 struct VerbRow {
   std::uint16_t key;
   GestureKind kind;
@@ -33,11 +34,11 @@ constexpr VerbRow kVerbTable[] = {
     {KEY_ESC,      GestureKind::Tap,       40635},  // Time selection: Remove (unselect) time selection
     {KEY_ESC,      GestureKind::DoubleTap, 40029},  // Edit: Undo
     {KEY_AUDIO_LEVEL, GestureKind::DoubleTap, 40157},  // Markers: Insert marker at current position
-    {KEY_FULL_VIEW, GestureKind::Tap, 40346},  // Toggle fullscreen (REAPER's name for 40346; NOT 'maximize arrange' — no such action in docs/reaper-actions.tsv; settled by M6 task 6)
+    {KEY_FULL_VIEW, GestureKind::Tap, 40346},  // Toggle fullscreen (REAPER's name for 40346; NOT 'maximize arrange' — no such action in docs/reaper-actions.tsv)
 };
 
 // Command id for a (key, kind) pair, or -1 when the gesture is unmapped
-// (including every Hold* kind: the hold+rotate verbs (M7) are handled
+// (including every Hold* kind: the hold+rotate verbs are handled
 // directly in OnGesture, not through this table).
 int CommandFor(std::uint16_t key, GestureKind kind) {
   for (const auto &row : kVerbTable)
@@ -45,9 +46,9 @@ int CommandFor(std::uint16_t key, GestureKind kind) {
   return -1;
 }
 
-// Composite verbs (M5 design §2): function-pointer rows next to the
-// command-id table; a composite row wins over an id row for the same
-// (key, kind). M5 §3 "T" verbs: run inside WithTargetSelected plus one
+// Composite verbs: function-pointer rows next to the command-id table;
+// a composite row wins over an id row for the same (key, kind). "T" verbs:
+// run inside WithTargetSelected plus one
 // undo block, so the implicit-target selection never sticks.
 struct CompositeRow {
   std::uint16_t key;
@@ -55,7 +56,7 @@ struct CompositeRow {
   void (*run)(VerbRouter &, IActionSink &, IProject &, const Gesture &);
 };
 
-// TRIM IN / TRIM OUT (M5 design §3): the same ids as before (40511 / 40512),
+// TRIM IN / TRIM OUT: the same ids as before (40511 / 40512),
 // now wrapped so they act on the implicit targets and undo in one step.
 void TrimIn(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &) {
   project.Undo_Begin();
@@ -69,7 +70,7 @@ void TrimOut(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &
   project.Undo_End("Speed Reaper: trim");
 }
 
-// RIPL DEL (M5 design §3): with a time selection, remove its contents and
+// RIPL DEL: with a time selection, remove its contents and
 // close the gap on all tracks (40201). Else T: remove the target items AND
 // close the gap — if ripple is off, switch to per-track (40310), remove
 // (40006), restore (40309); else just 40006. No targets → trace
@@ -80,7 +81,7 @@ void RiplDel(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &
     return;
   }
   if (TargetItems(project).empty()) {
-    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
     return;
   }
   const bool ripple_off = project.RippleMode() == 0;
@@ -95,7 +96,7 @@ void RiplDel(VerbRouter &, IActionSink &sink, IProject &project, const Gesture &
 
 constexpr int kSelectStepTicks = 20;  // wheel ticks per TIMELINE select step
 
-// TIMELINE select verbs (M5 design §1.2): explicit selection — unlike the
+// TIMELINE select verbs: explicit selection — unlike the
 // implicit "T" verbs, these deliberately change the selection.
 void TimelineTap(VerbRouter &, IActionSink &, IProject &project, const Gesture &) {
   const std::vector<int> target = CursorTargetItem(project);
@@ -116,15 +117,18 @@ void TimelineDoubleTap(VerbRouter &, IActionSink &sink, IProject &, const Gestur
   sink.RunCommand(40289);  // deselect all items
 }
 
-// CAM 1–9 (M6 design §3): set the active take N (I_CURTAKE = N-1) on each
-// target item; items with fewer than N takes keep theirs. N is derived from
-// the key (KEY_CAM1..KEY_CAM9 are contiguous), so one function serves all
-// nine rows. No targets → trace `target none` and do nothing.
+// CAM 1–9: set the active take N (I_CURTAKE = N-1) on each target item;
+// items with fewer than N takes keep theirs. N is derived from the key
+// (the nine CAM keycodes are contiguous, key_map.h), so one function
+// serves all nine rows. No targets → trace `target none` and do nothing.
+// First of the nine contiguous CAM keycodes (0x0033, key_map.h).
+constexpr std::uint16_t kCamFirst = 0x0033;
+
 void CamSetTake(VerbRouter &, IActionSink &, IProject &project, const Gesture &g) {
-  const int n = static_cast<int>(g.key - KEY_CAM1) + 1;  // 1..9
+  const int n = static_cast<int>(g.key - kCamFirst) + 1;  // 1..9
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
-    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
     return;
   }
   project.Undo_Begin();
@@ -138,7 +142,7 @@ void CamSetTake(VerbRouter &, IActionSink &, IProject &project, const Gesture &g
   project.Undo_End(label);
 }
 
-// AUDIO LEVEL Tap (M6 design §3): read out the first target item's volume
+// AUDIO LEVEL Tap: read out the first target item's volume
 // as `Volume: <x.x> dB` (20*log10(D_VOL)) via IActionSink::Message
 // (REAPER: ShowConsoleMsg). No targets → trace `target none` and do
 // nothing. Selection untouched (pure read-out, no undo block).
@@ -155,7 +159,7 @@ void AudioLevelTap(VerbRouter &, IActionSink &sink, IProject &project,
   sink.Message(msg);
 }
 
-// PLACE ON TOP Tap (M6 design §3): duplicate the target items onto one new
+// PLACE ON TOP Tap: duplicate the target items onto one new
 // track above each source track, same position (the pure op
 // DuplicateItemsAbove from project_ops.h, on IProject primitives); the original
 // selection is restored. No targets → trace `target none` and do nothing.
@@ -163,7 +167,7 @@ void PlaceOnTopTap(VerbRouter &, IActionSink &, IProject &project,
                    const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
-    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
     return;
   }
   project.Undo_Begin();
@@ -173,7 +177,7 @@ void PlaceOnTopTap(VerbRouter &, IActionSink &, IProject &project,
   project.Undo_End("Speed Reaper: place on top");
 }
 
-// SMTH CUT Tap (M6 design §3): 40916, but only with a time selection —
+// SMTH CUT Tap: 40916, but only with a time selection —
 // the verb has nothing to smooth-cut without one, so trace `no time
 // selection` and do nothing.
 void SmthCutTap(VerbRouter &, IActionSink &sink, IProject &project,
@@ -185,7 +189,7 @@ void SmthCutTap(VerbRouter &, IActionSink &sink, IProject &project,
   Trace("no time selection");
 }
 
-// VIDEO_ONLY Tap (M6 design §3): toggle the isolate view — hide every track
+// VIDEO_ONLY Tap: toggle the isolate view — hide every track
 // except the target items' tracks; the second tap restores the saved
 // per-track visibility (the saved state is plugin memory only, so no undo
 // block). No targets → trace `target none` and do nothing.
@@ -193,19 +197,19 @@ void VideoOnlyTap(VerbRouter &router, IActionSink &, IProject &project,
                   const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
-    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
     return;
   }
   router.isolate_view_.Toggle(project, targets);
 }
 
-// AUDIO_ONLY Tap (M6 design §3): toggle solo on the target items' tracks;
+// AUDIO_ONLY Tap: toggle solo on the target items' tracks;
 // the second tap restores the saved solo flags.
 void AudioOnlyTap(VerbRouter &router, IActionSink &, IProject &project,
                   const Gesture &) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
-    Trace("target none");  // §1.1 rule 3: the verb does nothing
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
     return;
   }
   router.solo_view_.Toggle(project, targets);
@@ -246,10 +250,10 @@ void TimelineHoldRotate(VerbRouter &router, IActionSink &,
   }
 }
 
-// The composite rows (M5 design §2/§3), built at first use: the M5 verbs
-// plus CAM 1–9 generated as a loop — the keys are contiguous
-// (KEY_CAM1..KEY_CAM9) and CamSetTake derives the take number from the key,
-// so no nine-row copy-paste.
+// The composite rows, built at first use: the trim/delete/select verbs
+// plus CAM 1–9 generated as a loop — the keycodes are contiguous and
+// CamSetTake derives the take number from the key, so no nine-row
+// copy-paste.
 const std::vector<CompositeRow> &CompositeRows() {
   static const std::vector<CompositeRow> rows = [] {
     std::vector<CompositeRow> r;
@@ -260,13 +264,13 @@ const std::vector<CompositeRow> &CompositeRows() {
     r.push_back({KEY_TIMELINE, GestureKind::DoubleTap, TimelineDoubleTap});  // deselect all
     r.push_back({KEY_TIMELINE, GestureKind::HoldRotate, TimelineHoldRotate});  // step selection
     for (int n = 1; n <= 9; ++n)
-      r.push_back({static_cast<std::uint16_t>(KEY_CAM1 + n - 1), GestureKind::Tap,
-                   CamSetTake});  // M6: active take N on the targets
-    r.push_back({KEY_AUDIO_LEVEL, GestureKind::Tap, AudioLevelTap});  // M6: volume read-out
-    r.push_back({KEY_SMTH_CUT, GestureKind::Tap, SmthCutTap});  // M6: 40916 if time sel
-    r.push_back({KEY_PLACE_ON_TOP, GestureKind::Tap, PlaceOnTopTap});  // M6: duplicate onto a new track above
-    r.push_back({KEY_VIDEO_ONLY, GestureKind::Tap, VideoOnlyTap});  // M6: toggle isolate view
-    r.push_back({KEY_AUDIO_ONLY, GestureKind::Tap, AudioOnlyTap});  // M6: toggle solo on target tracks
+      r.push_back({static_cast<std::uint16_t>(kCamFirst + n - 1), GestureKind::Tap,
+                   CamSetTake});  // active take N on the targets
+    r.push_back({KEY_AUDIO_LEVEL, GestureKind::Tap, AudioLevelTap});  // volume read-out
+    r.push_back({KEY_SMTH_CUT, GestureKind::Tap, SmthCutTap});  // 40916 if time sel
+    r.push_back({KEY_PLACE_ON_TOP, GestureKind::Tap, PlaceOnTopTap});  // duplicate onto a new track above
+    r.push_back({KEY_VIDEO_ONLY, GestureKind::Tap, VideoOnlyTap});  // toggle isolate view
+    r.push_back({KEY_AUDIO_ONLY, GestureKind::Tap, AudioOnlyTap});  // toggle solo on target tracks
     return r;
   }();
   return rows;
@@ -280,7 +284,7 @@ const CompositeRow *CompositeFor(std::uint16_t key, GestureKind kind) {
   return nullptr;
 }
 
-// Hold+rotate verbs (M7, design §4): one hold = one undo block (Undo_Begin
+// Hold+rotate verbs: one hold = one undo block (Undo_Begin
 // at HoldStart, Undo_End at HoldEnd). The target set is resolved ONCE at
 // HoldStart and the selection is snapshotted there, restored at HoldEnd.
 // Each step is one project frame (1/Fps()); 4 wheel ticks per step, the
@@ -322,7 +326,7 @@ void VerbRouter::OnGesture(const Gesture &g) {
       hold.targets = targets;
       for (const ItemInfo &item : project_.Items())
         if (item.selected) hold.selection.push_back(item.id);
-      project_.Undo_Begin();  // one hold = one undo block (design §4)
+      project_.Undo_Begin();  // one hold = one undo block
       holds_[g.key] = std::move(hold);
       return;
     }

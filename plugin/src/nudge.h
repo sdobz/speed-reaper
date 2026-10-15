@@ -1,4 +1,4 @@
-// nudge.h — pure hold+rotate nudge math (M7, design §4).
+// nudge.h — pure hold+rotate nudge math.
 // Pure: no REAPER API, no HID. HoldNudge turns wheel ticks into whole verb
 // steps; each verb function takes the item geometry before the step, a signed
 // number of steps (from HoldNudge::Add), and the step size in seconds

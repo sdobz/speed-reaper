@@ -1,5 +1,5 @@
 // ReaperPlayheadSink / ReaperActionSink over the REAPER host API
-// (moved out of main.cpp, 40-cleanup §4; no logic change).
+// (moved out of main.cpp; no logic change).
 //
 // REAPER host APIs come from reaper_api.h — the single API list
 // (REAPERAPI_MINIMAL + one WANT line per function). This TU includes it
@@ -20,7 +20,7 @@ void ReaperPlayheadSink::ScrubBySeconds(double dt) {
 double ReaperPlayheadSink::PlayPosition() const { return GetPlayPosition(); }
 
 void ReaperActionSink::RunCommand(int cmd) {
-  Trace("cmd %d", cmd); // oracle greps (docs/plugin-oracle-design.md §2)
+  Trace("cmd %d", cmd); // oracle greps
   Main_OnCommand(cmd, 0);
 }
 
@@ -33,7 +33,7 @@ void ReaperActionSink::ScrollBySeconds(double dt) {
   t1 += dt;
   GetSet_ArrangeView2(proj, true, 0, 0, &t0, &t1);
   UpdateArrange();
-  Trace("scroll dt=%.4f", dt); // oracle greps (design §2)
+  Trace("scroll dt=%.4f", dt); // oracle greps
 }
 
 void ReaperActionSink::ApplyShuttleRate(double rate) {

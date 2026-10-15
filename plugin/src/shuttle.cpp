@@ -1,4 +1,4 @@
-// shuttle.cpp — see shuttle.h (M4, design §8).
+// shuttle.cpp — see shuttle.h.
 #include "shuttle.h"
 
 #include <algorithm>

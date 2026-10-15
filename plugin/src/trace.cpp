@@ -1,4 +1,4 @@
-// trace.cpp — implementation of Trace (docs/plugin-oracle-design.md §2).
+// trace.cpp — implementation of Trace.
 //
 // Behavior: if env SPEED_REAPER_TRACE names a file, append
 // "<ms since first trace> <message>\n" to it and fflush immediately (a

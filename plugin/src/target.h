@@ -1,4 +1,4 @@
-// Implicit-target rule for item verbs (docs/plugin-design-m5-m9.md §1.1):
+// Implicit-target rule for item verbs:
 // the Speed Editor has no select button, so every item verb resolves its
 // targets without a selection. The device never silently changes the
 // selection: WithTargetSelected snapshots, selects only when there was no
@@ -10,7 +10,7 @@
 
 #include "project.h"
 
-// §1.1, in order: (1) selected items, unchanged; (2) the item on the target
+// The rule, in order: (1) selected items, unchanged; (2) the item on the target
 // track containing the cursor — pos <= cursor < pos+len, or cursor exactly
 // at the end of that track's last item; a boundary between two items belongs
 // to the one starting there. Target track = first selected track, else
@@ -20,7 +20,7 @@ std::vector<int> TargetItems(IProject &project);
 // Target track = first selected track, else last-touched track; -1 if none.
 int TargetTrack(IProject &project);
 
-// Rule 2 only (M5 design §1.2, for the explicit TIMELINE select verbs):
+// Rule 2 only (for the explicit TIMELINE select verbs):
 // the item on the target track containing the cursor, ignoring any existing
 // selection. 0 or 1 element.
 std::vector<int> CursorTargetItem(IProject &project);

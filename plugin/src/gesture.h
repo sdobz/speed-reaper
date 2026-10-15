@@ -1,6 +1,6 @@
 // gesture.h — button press/release + wheel input → gesture events.
 //
-// Pure (docs/plugin-design-m1-m3.md §7): all time is passed in as `now_ms`;
+// Pure: all time is passed in as `now_ms`;
 // the engine owns no clock and calls no REAPER API. main.cpp feeds it
 // ButtonChange edges and wheel deltas, calls Poll() every timer tick, and
 // hands popped gestures to the verb router.
@@ -32,7 +32,7 @@ class GestureEngine {
   explicit GestureEngine(GestureConfig c = {}) : cfg_(c) {}
 
   // Keys whose tap waits for a possible second press instead of firing at
-  // release (design §7: IN, OUT, ESC). A second press inside the window
+  // release (IN, OUT, ESC). A second press inside the window
   // yields exactly one DoubleTap and no Tap.
   void SetDoubleTapKeys(std::vector<std::uint16_t> keys);
 

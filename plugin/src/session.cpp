@@ -1,10 +1,10 @@
-// session.cpp — pure `Session` (40-cleanup §5); see session.h.
+// session.cpp — pure `Session`; see session.h.
 #include "session.h"
 
 #include <algorithm>
 
 #include "led_state.h"
-#include "project_ops.h"  // ReadLedState (pure op on IProject, 40-cleanup §8)
+#include "project_ops.h"  // ReadLedState (pure op on IProject)
 #include "speed_editor/key_map.h"  // KEY_* codes for the router-key split
 #include "trace.h"
 #include "wheel_mode.h"
@@ -19,7 +19,7 @@ constexpr double kTimerMs = 8.0;
 constexpr double kMaxCatchUpMs = 50.0;
 // Don't spiral after a stall: the backlog itself is capped.
 constexpr double kAccCapMs = 250.0;
-// LED bar (M8): poll the REAPER state every ~250 ms (time-based, not
+// LED bar: poll the REAPER state every ~250 ms (time-based, not
 // tick-count) and push the main-panel mask only when it changes.
 constexpr std::int64_t kLedPollMs = 250;
 
@@ -54,7 +54,7 @@ Session::Session(IDevice &device, IActionSink &actions, IProject &project,
       verbs_(actions, project),
       dispatcher_(device, gestures_, router_),
       engine_(dispatcher_, sink) {
-  gestures_.SetDoubleTapKeys(VerbDoubleTapKeys());  // IN, OUT, ESC (design §7)
+  gestures_.SetDoubleTapKeys(VerbDoubleTapKeys());  // IN, OUT, ESC
 }
 
 void Session::ApplyModeToHid(WheelMode m) {
@@ -62,13 +62,13 @@ void Session::ApplyModeToHid(WheelMode m) {
   device_.RequestWheelMode(ProtocolMode(m));
   const std::uint8_t jog_bits =
       (m == WheelMode::Jog ? 1u : m == WheelMode::Scrl ? 4u : 2u);
-  Trace("led jog=%x main=%x", jog_bits, 0u);  // no main-panel LEDs until M3
+  Trace("led jog=%x main=%x", jog_bits, 0u);  // jog-mode LED only; the main-panel mask comes from the LED poll
   device_.RequestJogLeds(m == WheelMode::Jog, m == WheelMode::Shtl,
                          m == WheelMode::Scrl);
 }
 
 void Session::Tick(std::int64_t now_ms) {
-  // Buttons (design §6/§7): router keys (JOG/SCRL/SHTL/STOP-PLAY) go only
+  // Buttons: router keys (JOG/SCRL/SHTL/STOP-PLAY) go only
   // to the Router (press semantics live there); every other key goes only
   // to the gesture engine.
   ButtonChange btn;
@@ -101,7 +101,7 @@ void Session::Tick(std::int64_t now_ms) {
     led_mask_ = -1;
   }
   was_connected_ = connected;
-  // LED bar (M8, design §5): poll the REAPER state every ~250 ms and push
+  // LED bar: poll the REAPER state every ~250 ms and push
   // the main-panel mask only when it changes or after a reconnect edge
   // (no point pushing while the device is not connected).
   if (connected && (led_mask_ < 0 || now_ms - last_led_ms_ >= kLedPollMs)) {
@@ -110,7 +110,7 @@ void Session::Tick(std::int64_t now_ms) {
         project_, verbs_.IsolateActive(), verbs_.SoloActive()));
     if (static_cast<std::uint32_t>(led_mask_) != mask) {
       led_mask_ = static_cast<int>(mask);
-      Trace("led main=%x", mask);  // oracle greps (M3 edit verbs task 5)
+      Trace("led main=%x", mask);  // oracle greps
       device_.RequestLeds(mask);
     }
   }
@@ -125,9 +125,9 @@ void Session::Tick(std::int64_t now_ms) {
   if ((++calls_ % 100) == 1) Trace("timer call=%d", calls_);  // heartbeat
   double consumed_ms = 0.0;
   while (acc_ms_ >= kTimerMs && consumed_ms < kMaxCatchUpMs) {
-    // The dispatcher (40-cleanup §6) routes each step's wheel input:
+    // The dispatcher routes each step's wheel input:
     // hold → gestures, else by mode Jog → engine / Scrl → view scroll /
-    // Shtl → OnShuttleOffset(absolute) (M4 SHTL law).
+    // Shtl → OnShuttleOffset(absolute) (SHTL law).
     engine_.Tick();
     acc_ms_ -= kTimerMs;
     consumed_ms += kTimerMs;

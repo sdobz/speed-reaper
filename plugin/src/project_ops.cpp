@@ -1,5 +1,5 @@
-// project_ops.cpp — pure project actions on IProject primitives
-// (40-cleanup §8). The REAPER side (ReaperProject) supplies the
+// project_ops.cpp — pure project actions on IProject primitives. The
+// REAPER side (ReaperProject) supplies the
 // primitives; this file owns the sequencing and the saved view state, so
 // it runs unchanged against the test fake.
 #include "project_ops.h"
@@ -108,7 +108,7 @@ LedState ReadLedState(IProject &p, bool isolate, bool solo) {
   s.trim_behind = p.ToggleState(kTrimBehindCmd);
   // active_take: the 1-based active take shared by ALL selected items,
   // else 0 (nothing selected, mixed, no active take, or take > 9 — the
-  // main panel has only CAM1..9 bits).
+  // main panel has only the CAM 1..9 bits).
   int shared = 0;
   for (const ItemInfo &item : p.Items()) {
     if (!item.selected) continue;

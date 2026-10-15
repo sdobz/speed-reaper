@@ -43,7 +43,7 @@ class IPlayheadSink {
 // Scale (measured on a real Speed Editor, docs/notes/m1-wheel-scale.md):
 // one wheel revolution = ~1,474,560 units (4096 detents x 360). Mapping is
 // "seconds of timeline per revolution"; candidate user parameter
-// `jog.seconds_per_rev` (docs/plugin-configuration.md §2.2).
+// `jog.seconds_per_rev`.
 class JogEngine {
  public:
   JogEngine(IWheelSource &source, IPlayheadSink &sink) : source_(source), sink_(sink) {}

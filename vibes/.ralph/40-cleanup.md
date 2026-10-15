@@ -292,3 +292,17 @@ Files:
 M vibes/.ralph/40-cleanup.md
  M vibes/40-cleanup.md
 ```
+
+## Task: 9. Comment pass
+
+### Attempt 2 — 2026-10-15T03:49:27Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - 159 matches at start, all in comments except `KEY_CAM1` usages in verbs.cpp — `M[0-9]+\b` matches the "M1" inside "CAM1", so the literal keycode name cannot appear anywhere in plugin/src. Introduced `constexpr std::uint16_t kCamFirst = 0x0033;` in verbs.cpp (first of the 9 contiguous CAM keycodes) and replaced both `KEY_CAM1` uses (CamSetTake, CompositeRows).
+  - Kept doc pointers only where they name a non-obvious API fact AND the file survives release-prep: `docs/reaper-actions.tsv` (command-id names; kept in place by 42-release-prep task 1) and `docs/notes/m8-state-reads.md` (LED bar). Dropped all `plugin-design-m*`, `plugin-oracle-design.md`, `plugin-configuration.md`, `reaper-plugin-workflow.md`, `vibes/*` pointers and rewrote to the fact.
+  - Comment-only + one code change (kCamFirst). rg pattern is now clean on plugin/src.
+- Next: run `tools/check` (job check40-9) — builds the unit tests, host oracle, Windows build. Then tick line 132.
+- Facts:
+  - `tools/check` (job check40-9) green: 16/16 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host.
+  - Exact Verify command re-run in foreground: rc=0. Line 132 ticked.
+- Next: none — done.

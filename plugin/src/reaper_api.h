@@ -30,10 +30,10 @@
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
 #define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ToggleState/RippleMode (ops:ReadLedState 1157/41117, ripple 40310/40311)
-#define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop (M4)
-#define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace (M4)
-#define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless, M4 task 3)
-#define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek (M4 decision)
+#define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop
+#define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace
+#define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless)
+#define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek
 #define REAPERAPI_WANT_CountMediaItems // ReaperProject::Items/SetSelectedItems
 #define REAPERAPI_WANT_GetMediaItem // ReaperProject::Items/SetSelectedItems
 #define REAPERAPI_WANT_GetMediaItem_Track // ReaperProject::Items

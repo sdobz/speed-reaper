@@ -1,6 +1,6 @@
-// trace.h — REAPER-free tracing for the Speed Reaper plugin
-// (docs/plugin-oracle-design.md §2). Pure: no REAPER API, no GUI; linked
-// into both the plugin and the unit tests.
+// trace.h — REAPER-free tracing for the Speed Reaper plugin.
+// Pure: no REAPER API, no GUI; linked into both the plugin and the
+// unit tests.
 //
 // Trace("loadapi missing=%d", n); appends one line
 // "<ms since first trace> loadapi missing=0\n" to the file named by env

@@ -1,10 +1,10 @@
-// REAPER-backed IProject (docs/plugin-design-m5-m9.md §2).
+// REAPER-backed IProject.
 //
 // Not in PLUGIN_PURE_SOURCES: it calls the REAPER host API, so it is linked
 // into the plugin target only (plugin/CMakeLists.txt). main.cpp constructs
-// the global g_project and hands it to VerbRouter (M5 step 3).
+// the global g_project and hands it to VerbRouter.
 //
-// 40-cleanup §8: this class implements STATE and primitives only. The
+// This class implements STATE and primitives only. The
 // multi-step verbs (duplicate-onto-new-track, isolate/solo toggles, the LED
 // snapshot) are pure ops in project_ops.h built on these primitives, so
 // their saved-state and sequencing never live here.

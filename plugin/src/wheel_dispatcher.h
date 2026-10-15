@@ -1,11 +1,11 @@
 // wheel_dispatcher.h — one pure class decides where each tick's wheel input
-// goes (40-cleanup §6). Replaces the old hold/mode decorator chain. Priority
-// order, per engine tick:
+// goes. Replaces the old hold/mode decorator chain. Priority order, per
+// engine tick:
 //   active hold → GestureEngine::OnWheel (a held key owns the wheel)
-//   else by mode (design §6):
+//   else by mode:
 //     Jog  → pass the delta through (JogEngine: playhead moves 1:1)
 //     Scrl → Router::OnWheel (view scroll; engine sees 0)
-//     Shtl → Router::OnShuttleOffset(absolute) (M4 SHTL law, design §8)
+//     Shtl → Router::OnShuttleOffset(absolute) (SHTL law)
 //
 // Pure: the device is injected (IWheelDevice, satisfied by HidWheelSource
 // and the test fakes); no HID, no REAPER, no clock.
@@ -40,7 +40,7 @@ class WheelDispatcher final : public IWheelSource {
     WheelSample s;
     device_.Tick(&s);
     if (gestures_.HoldActive()) {
-      // A held key beats every mode (design §7): the wheel drives the
+      // A held key beats every mode: the wheel drives the
       // held key's HoldRotate; the jog/scroll/shuttle paths see nothing.
       gestures_.OnWheel(s.delta, 0);  // now_ms is unused by OnWheel
       s.delta = 0;
@@ -52,7 +52,7 @@ class WheelDispatcher final : public IWheelSource {
       router_.OnWheel(s.delta);
       s.delta = 0;
     } else {  // WheelMode::Shtl
-      // SHTL law (M4): absolute offset → ShuttleRate → sink, re-applied
+      // SHTL law: absolute offset → ShuttleRate → sink, re-applied
       // every tick (absolute: no integration). No playhead motion.
       router_.OnShuttleOffset(device_.AbsolutePosition());
       s.delta = 0;

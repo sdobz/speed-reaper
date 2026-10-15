@@ -1,4 +1,4 @@
-// router.h — press-semantics buttons + wheel mode routing (design §6).
+// router.h — press-semantics buttons + wheel mode routing.
 //
 // Router owns the current WheelMode and translates button edges / wheel
 // deltas into IActionSink calls. Unit-testable: no HID, no REAPER.
@@ -6,7 +6,7 @@
 // Press rules (down edge only; releases ignored):
 //   JOG       → mode = Jog (from Shtl: also ApplyShuttleRate(1.0) hand-off)
 //   SCRL      → mode = Scrl (from Shtl: also ApplyShuttleRate(1.0) hand-off)
-//   SHTL      → mode = Shtl (M4; remembers the prior mode for STOP/PLAY exit)
+//   SHTL      → mode = Shtl (remembers the prior mode for STOP/PLAY exit)
 //   STOP/PLAY → RunCommand(40044); in Shtl: HardStop() + exit to the prior mode
 // Initial mode: Jog.
 //
@@ -29,15 +29,15 @@ class Router {
  public:
   explicit Router(IActionSink &sink);
 
-  // One button edge from the worker (design §2). Down edges act;
+  // One button edge from the worker. Down edges act;
   // releases are ignored. Unknown keys are ignored.
   void OnButton(const ButtonChange &change);
 
   // Accumulate a wheel delta (Scrl mode only, see above).
   void OnWheel(std::int32_t delta);
 
-  // SHTL law (M4, design §8, docs/plugin-design-m4-shuttle-impl.md): the
-  // absolute wheel offset maps through ShuttleRate() to the sink. Called
+  // SHTL law: the absolute wheel offset maps through ShuttleRate() to the
+  // sink. Called
   // every engine tick (main.cpp); a no-op outside Shtl mode. rate 0
   // (dead band, |offset| < 40) → HardStop() once (no rewind; re-armed when
   // the wheel leaves the band or the mode changes). rate ≠ 0 →

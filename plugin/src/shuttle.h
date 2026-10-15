@@ -1,4 +1,4 @@
-// shuttle.h — shuttle playback-rate law (M4, design §8).
+// shuttle.h — shuttle playback-rate law.
 // Pure: no REAPER API, no HID. Input is the absolute jog offset in
 // [−4096, 4096]; dead band |offset| < 40 → stop; ±1.0 at the dead-band
 // edge; ±8.0 at |offset| ≥ 4096; smoothstep in between.

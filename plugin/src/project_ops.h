@@ -1,5 +1,5 @@
 // project_ops.h — the multi-step project actions as PURE functions /
-// small state holders built on IProject primitives (40-cleanup §8).
+// small state holders built on IProject primitives.
 //
 // Before this split, IProject itself exposed these verbs, and the test
 // fake had to re-implement each one's full logic. Now IProject is state
@@ -16,12 +16,12 @@
 #include "led_state.h"  // LedState (ReadLedState)
 #include "project.h"    // IProject, TrackFlag
 
-// PLACE ON TOP (M6 design §3): duplicate the given ids onto one new track
+// PLACE ON TOP: duplicate the given ids onto one new track
 // above each source track, same position; the originals and their
 // selection are left alone. Bad ids are ignored.
 void DuplicateItemsAbove(IProject &p, const std::vector<int> &ids);
 
-// Isolate view (M6, VIDEO_ONLY): hide every track except the target
+// Isolate view (VIDEO_ONLY): hide every track except the target
 // items' tracks (B_SHOWINTCP/B_SHOWINMIXER). The first Toggle saves the
 // previous per-track flags and the second restores exactly those; the
 // saved state lives HERE (plugin memory only, not REAPER undo). Bad ids
@@ -39,7 +39,7 @@ class IsolateView {
   std::vector<std::pair<bool, bool>> saved_;
 };
 
-// Solo (M6, AUDIO_ONLY): I_SOLO on the target items' tracks. Same
+// Solo (AUDIO_ONLY): I_SOLO on the target items' tracks. Same
 // save/restore contract as IsolateView (only the target tracks' previous
 // flags are saved).
 class SoloView {
@@ -52,7 +52,7 @@ class SoloView {
   std::vector<std::pair<int, int>> saved_;  // (track, previous I_SOLO)
 };
 
-// LED bar (M8, docs/notes/m8-state-reads.md): pure aggregate of the
+// LED bar (docs/notes/m8-state-reads.md): pure aggregate of the
 // primitives — snap / trim-behind toggles (1157 / 41117), ripple mode,
 // the 1-based active take shared by ALL selected items (I_CURTAKE only,
 // else 0; also 0 when the shared take is > 9 — no CAM LED for it) — plus

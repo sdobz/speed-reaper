@@ -1,5 +1,5 @@
 // session.h — pure `Session`: everything the REAPER timer callback does,
-// in one testable object (40-cleanup §5). Owns the GestureEngine, Router,
+// in one testable object. Owns the GestureEngine, Router,
 // VerbRouter, JogEngine, the LED-mask state and the connect edge.
 //
 // Pure: all time is passed in via Tick(now_ms); no clock, no REAPER API,
@@ -42,7 +42,7 @@ class Session {
   Session(IDevice &device, IActionSink &actions, IProject &project,
           IPlayheadSink &sink);
 
-  // One timer callback's worth of work (40-cleanup §5): button routing
+  // One timer callback's worth of work: button routing
   // (router keys → Router, everything else → gesture engine), gesture
   // poll → verbs, mode change → device, (re)connect re-send of mode +
   // LEDs, LED poll every ~250 ms (time-based, push on change), and
@@ -58,11 +58,11 @@ class Session {
   IDevice &device_;
   IProject &project_;
   IPlayheadSink &sink_;
-  GestureEngine gestures_;  // tap / double-tap / hold recognition (design §7)
-  Router router_;           // owns the wheel mode (Jog/Scrl/Shtl) (design §6)
-  VerbRouter verbs_;        // gestures → verbs (design §7; M5 composites)
-  WheelDispatcher dispatcher_;  // hold → gestures; else Jog/Scrl/Shtl (§6)
-  JogEngine engine_;             // driven by the dispatcher (design §4)
+  GestureEngine gestures_;  // tap / double-tap / hold recognition
+  Router router_;           // owns the wheel mode (Jog/Scrl/Shtl)
+  VerbRouter verbs_;        // gestures → verbs (incl. composite verbs)
+  WheelDispatcher dispatcher_;  // hold → gestures; else Jog/Scrl/Shtl
+  JogEngine engine_;             // driven by the dispatcher
 
   bool was_connected_ = false;  // false→true edge re-sends mode + LEDs
   int led_mask_ = -1;           // last pushed mask; -1 = not sent (force)

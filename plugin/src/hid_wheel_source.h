@@ -1,14 +1,14 @@
-// hid_wheel_source.h — real Speed Editor wheel source (docs/plugin-design-m1-m3.md
-// §4). Wraps the hidraw driver (src/speed_editor/hid_device.h, "SpeedEditorHID")
-// in a worker thread and adapts it to IWheelSource so the existing
+// hid_wheel_source.h — real Speed Editor wheel source. Wraps the hidraw
+// driver (src/speed_editor/hid_device.h, "SpeedEditorHID") in a worker
+// thread and adapts it to IWheelSource so the existing
 // IWheelSource → JogEngine → IPlayheadSink pipeline needs no changes.
 //
-// Threading (design §2): only the REAPER timer callback (main thread) may
-// touch REAPER; the worker thread only talks to hidapi. Cross-thread data
+// Threading: only the REAPER timer callback (main thread) may touch
+// REAPER; the worker thread only talks to hidapi. Cross-thread data
 // crosses via atomics and mutex-protected queues declared below.
 //
-// M1 task 3 ships a STUB implementation (hid_wheel_source.cpp): correct
-// interface, no worker thread. Task 5 fills in the worker loop.
+// The first implementation was a stub (hid_wheel_source.cpp): correct
+// interface, no worker thread; the worker loop was filled in later.
 
 #ifndef SPEED_REAPER_HID_WHEEL_SOURCE_H
 #define SPEED_REAPER_HID_WHEEL_SOURCE_H
@@ -35,16 +35,16 @@ class HidWheelSource : public IDevice {
   void Start();                // spawn worker; idempotent
   void Stop();                 // set flag, join; idempotent; closes device (LEDs off)
   void Tick(WheelSample *out) override;  // main thread; delta = accumulated since last Tick
-  bool PopButton(ButtonChange *out);     // main thread; false if empty   (used from M2)
+  bool PopButton(ButtonChange *out);     // main thread; false if empty
   bool PopLog(std::string *out);         // main thread; false if empty
   bool Connected() const;                // atomic
-  std::int32_t AbsolutePosition() const;  // latest mode 1/3 reading (used from M4)
-  void RequestWheelMode(std::uint8_t protocolMode);  // from M2
-  void RequestJogLeds(bool jog, bool shtl, bool scrl);  // from M2
-  void RequestLeds(std::uint32_t mainMask);  // bit i = LED bit i of key_map.h; from M3
+  std::int32_t AbsolutePosition() const;  // latest mode 1/3 reading
+  void RequestWheelMode(std::uint8_t protocolMode);
+  void RequestJogLeds(bool jog, bool shtl, bool scrl);
+  void RequestLeds(std::uint32_t mainMask);  // bit i = LED bit i of key_map.h
 
  private:
-  // Main → worker pending outputs (design §2): request* setters mark dirty
+  // Main → worker pending outputs: request* setters mark dirty
   // under pending_mutex_; the worker applies them between reads.
   struct PendingOutput {
     bool wheel_mode_dirty = false;
@@ -74,7 +74,7 @@ class HidWheelSource : public IDevice {
   std::mutex pending_mutex_;
   PendingOutput pending_;
 
-  // Worker-thread-only helpers (design §4 steps 1–5).
+  // Worker-thread-only helpers (device open/read/write/close steps).
   void WorkerLoop();
   void PushLog(const std::string &line);  // enqueue + Trace
   void ApplyPending();                    // apply + clear dirty flags

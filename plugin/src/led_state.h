@@ -1,4 +1,4 @@
-// led_state.h — main-panel LED bitmask from REAPER state (M8 LED bar).
+// led_state.h — main-panel LED bitmask from REAPER state (LED bar).
 // Pure: no REAPER API, no HID. main.cpp's timer polls REAPER state into a
 // LedState and pushes the mask via HidWheelSource::RequestLeds.
 #ifndef SPEED_REAPER_PLUGIN_LED_STATE_H
@@ -6,8 +6,7 @@
 
 #include <cstdint>
 
-// Snapshot of the REAPER state mirrored on the main-panel LED bar
-// (docs/plugin-design-m5-m9.md §5).
+// Snapshot of the REAPER state mirrored on the main-panel LED bar.
 struct LedState {
   bool snap = false;
   int ripple = 0;      // 0 off, 1 per-track, 2 all

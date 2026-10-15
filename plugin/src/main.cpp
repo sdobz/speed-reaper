@@ -18,9 +18,9 @@
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
 #include "reaper_api.h"  // the single REAPER API list (MINIMAL + WANT_*, see that file)
 #include "hid_wheel_source.h"
-#include "reaper_project.h" // ReaperProject (M5 design §2)
-#include "reaper_sinks.h"  // ReaperPlayheadSink / ReaperActionSink (40-cleanup §4)
-#include "session.h" // pure Session: everything the timer callback does (40-cleanup §5)
+#include "reaper_project.h" // ReaperProject
+#include "reaper_sinks.h"  // ReaperPlayheadSink / ReaperActionSink
+#include "session.h" // pure Session: everything the timer callback does
 #include "trace.h"
 
 #include <cstdlib>
@@ -39,9 +39,9 @@ IPlayheadSink *g_sink = nullptr;
 Session *g_session = nullptr;
 
 ReaperPlayheadSink g_reaper_sink;
-HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)
+HidWheelSource g_hid; // Speed Editor HID wheel (worker thread)
 ReaperActionSink g_action_sink;
-ReaperProject g_project; // IProject over the REAPER API (M5 design §2)
+ReaperProject g_project; // IProject over the REAPER API
 
 // --- callbacks driven by REAPER ---------------------------------------
 
@@ -64,8 +64,8 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
     REAPER_PLUGIN_HINSTANCE hInstance, reaper_plugin_info_t *rec) {
   (void)hInstance;
 
-  // Trace everything the oracle scenario cannot see through REAPER's API
-  // (docs/plugin-oracle-design.md §2). Every return goes through `done`.
+  // Trace everything the oracle scenario cannot see through REAPER's API.
+  // Every return goes through `done`.
   auto done = [](int result) -> int {
     Trace("entry result=%d", result);
     return result;
@@ -81,7 +81,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   }
 
   Trace("entry rec=non-null");
-  // Oracle test hook (docs/plugin-oracle-design.md §2): prove crash capture.
+  // Oracle test hook: prove crash capture.
   if (const char *crash = std::getenv("SPEED_REAPER_TEST_CRASH")) {
     if (std::strcmp(crash, "entry") == 0) std::abort();
   }

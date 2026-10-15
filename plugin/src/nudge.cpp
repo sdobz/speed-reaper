@@ -1,4 +1,4 @@
-// nudge.cpp — pure hold+rotate nudge math (M7, design §4).
+// nudge.cpp — pure hold+rotate nudge math.
 //
 // Every verb moves an edge (or offset) by steps * step_seconds; before
 // applying, the raw delta is clamped so the invariants hold:
@@ -117,7 +117,7 @@ ItemGeom NudgeVolume(const ItemGeom &g, int steps, double step_seconds) {
   return out;
 }
 
-// HoldNudge: tick→step accumulator (M7, design §4).
+// HoldNudge: tick→step accumulator.
 HoldNudge::HoldNudge(int ticks_per_step)
     : ticks_per_step_(ticks_per_step > 0 ? ticks_per_step : 1), remainder_(0) {}
 

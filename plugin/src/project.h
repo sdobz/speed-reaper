@@ -1,5 +1,5 @@
-// Pure, REAPER-free view of the project STATE that item verbs need
-// (docs/plugin-design-m5-m9.md §2): state reads plus the smallest
+// Pure, REAPER-free view of the project STATE that item verbs need:
+// state reads plus the smallest
 // write primitives. Multi-step actions (duplicate-onto-new-track, view
 // toggles, the LED snapshot) are pure ops in project_ops.h built on
 // these primitives, so fake_project.h re-implements no verb logic.
@@ -19,7 +19,7 @@ struct ItemInfo {
   bool selected;
 };
 
-// Item geometry (M7): item-level pos/len/vol plus active-take start offset
+// Item geometry: item-level pos/len/vol plus active-take start offset
 // and play rate. A bad id yields {0, 0, 0, 1, 1} (or zeros on the Reaper
 // side, mirroring ItemVolume's 0.0).
 struct ItemGeom {
@@ -30,8 +30,8 @@ struct ItemGeom {
   double vol;        // D_VOL, linear (1.0 = 0 dB)
 };
 
-// Track-level flags the view ops toggle (40-cleanup §8: the primitives
-// behind project_ops.h).
+// Track-level flags the view ops toggle (the primitives behind
+// project_ops.h).
 enum class TrackFlag : int {
   ShowTcp = 0,    // B_SHOWINTCP (visible in TCP)
   ShowMixer = 1,  // B_SHOWINMIXER (visible in mixer)
@@ -50,20 +50,20 @@ class IProject {
   virtual int RippleMode() = 0;  // 0 off, 1 per-track, 2 all
   virtual void Undo_Begin() = 0;  // Undo_BeginBlock2
   virtual void Undo_End(const char *label) = 0;  // Undo_EndBlock2 (one step)
-  // Takes (M6). id is an Items() id; a missing id is a no-op /
+  // Takes. id is an Items() id; a missing id is a no-op /
   // reports 0 takes and no active take (-1).
   virtual int ItemTakeCount(int id) = 0;  // CountTakes
   virtual int ItemActiveTake(int id) = 0;  // 0-based (I_CURTAKE); -1 if none
   virtual void SetItemActiveTake(int id, int take) = 0;  // I_CURTAKE + UpdateItemInProject
   virtual double ItemVolume(int id) = 0;  // D_VOL, linear (1.0 = 0 dB)
   virtual double Fps() = 0;  // TimeMap_curFrameRate; 30.0 if unknown
-  // Item geometry (M7). pos/len/vol are item properties (D_POSITION,
+  // Item geometry. pos/len/vol are item properties (D_POSITION,
   // D_LENGTH, D_VOL); startoffs/playrate come from the active take
   // (D_STARTOFFS, D_PLAYRATE). SetGeom writes all five and calls
   // UpdateItemInProject; a bad id is a no-op.
   virtual ItemGeom GetGeom(int id) = 0;
   virtual void SetGeom(int id, const ItemGeom &g) = 0;
-  // Write primitives (40-cleanup §8): the building blocks the pure ops
+  // Write primitives: the building blocks the pure ops
   // in project_ops.h combine. Track indices are the Items()/track-list
   // index (master excluded); item ids are Items() ids.
   virtual int TrackCount() = 0;  // CountTracks

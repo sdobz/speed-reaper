@@ -1,6 +1,5 @@
-// hid_wheel_source.cpp — real worker-thread implementation
-// (docs/plugin-design-m1-m3.md §4 steps 1–5, §2 threading rule;
-// vibes/20-m1-wheel-playhead.md task 5).
+// hid_wheel_source.cpp — real worker-thread implementation (device
+// open/read/write/close steps; the threading rule is in the header).
 //
 // Threading: the worker thread only talks to the driver (hid_device.h,
 // which is included here only). It crosses data to the REAPER timer thread
@@ -34,7 +33,7 @@ void HidWheelSource::Start() {
 void HidWheelSource::Stop() {
   if (!running_.exchange(false)) return;  // never started, or already stopped
   if (worker_.joinable()) worker_.join();
-  // The worker closed the device on exit (design §4 step 5).
+  // The worker closed the device on exit.
 }
 
 void HidWheelSource::WorkerLoop() {
@@ -98,7 +97,7 @@ void HidWheelSource::WorkerLoop() {
           break;
         }
         default:
-          break;  // battery / unknown: ignored in M1
+          break;  // battery / unknown: ignored
       }
     }
   }

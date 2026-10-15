@@ -1,4 +1,4 @@
-// REAPER-backed playhead/action sinks (moved out of main.cpp, 40-cleanup §4).
+// REAPER-backed playhead/action sinks (moved out of main.cpp).
 //
 // Not in PLUGIN_PURE_SOURCES: the method bodies call the REAPER host API
 // (reaper_sinks.cpp includes reaper_api.h without REAPERAPI_IMPLEMENT —
@@ -14,8 +14,8 @@
 
 class ReaperPlayheadSink : public IPlayheadSink {
  public:
-  // Jog = move the edit cursor by dt seconds (docs/reaper-plugin-workflow.md
-  // §3). Measured in the headless oracle: SetEditCurPos moves the cursor
+  // Jog = move the edit cursor by dt seconds. Measured in the headless
+  // oracle: SetEditCurPos moves the cursor
   // exactly and linearly, while CSurf_ScrubAmt does not move it when the
   // transport is stopped (docs/notes/oracle-limits.md). While playing,
   // seek the playhead instead so playback follows the wheel.
@@ -23,7 +23,7 @@ class ReaperPlayheadSink : public IPlayheadSink {
   double PlayPosition() const override;
 };
 
-// IActionSink over the REAPER API (design §6).
+// IActionSink over the REAPER API.
 class ReaperActionSink : public IActionSink {
  public:
   // STOP/PLAY (40044) and friends: run a REAPER command.
@@ -34,7 +34,7 @@ class ReaperActionSink : public IActionSink {
   // distance per wheel unit as the cursor, at any zoom level (seconds,
   // not screen lines — CSurf_OnScroll's line steps do not track zoom).
   void ScrollBySeconds(double dt) override;
-  // Shuttle rate (M4 decision, rule 2: docs/plugin-design-m4-shuttle-impl.md).
+  // Shuttle rate (the ShuttleRate law, shuttle.h).
   // Forward: CSurf_OnPlayRateChange, clamped to REAPER's 4.0x read-back cap
   // (the 4…8x outer half of the ShuttleRate law is flat at 4.0x in transport
   // terms; no std::min here — the SDK min/max macros are in force). Reverse: synthesized — the playhead steps back |rate|·dt where dt
@@ -45,10 +45,10 @@ class ReaperActionSink : public IActionSink {
   // stopped is scrub — JOG/SCRL's job).
   void ApplyShuttleRate(double rate) override;
   // Hard stop: SHTL dead band and STOP/PLAY-while-shuttling. OnStopButton,
-  // never Main_OnCommand(40045) (blocks the script/defer queue headless,
-  // M4 task 3); rate back to 1.0 for the next start.
+  // never Main_OnCommand(40045) (blocks the script/defer queue headless);
+  // rate back to 1.0 for the next start.
   void HardStop() override;
-  // One-line user message (M6, AUDIO LEVEL read-out): REAPER console.
+  // One-line user message (AUDIO LEVEL read-out): REAPER console.
   void Message(const char *msg) override;
 
  private:

@@ -1,8 +1,8 @@
-// button_diff.h — pure held-key-set diff (docs/plugin-design-m1-m3.md §6).
+// button_diff.h — pure held-key-set diff.
 // REAPER-free and HID-free: unit-testable in isolation.
 //
-// The worker thread calls DiffHeldKeys for every button event (design §4
-// step 4): `prev` = keycodes held before the event, `cur` = keycodes held
+// The worker thread calls DiffHeldKeys for every button event: `prev` =
+// keycodes held before the event, `cur` = keycodes held
 // after it. Output order: releases first (in `prev` order), then presses
 // (in `cur` order), so a key released and re-pressed between two events
 // is reported as a release before any new press.
@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <vector>
 
-// One button edge, worker → main (design §2). key = KEY_* from key_map.h.
+// One button edge, worker → main. key = KEY_* from key_map.h.
 struct ButtonChange {
   std::uint16_t key;
   bool down;

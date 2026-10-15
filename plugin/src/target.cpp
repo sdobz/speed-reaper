@@ -1,4 +1,4 @@
-// Implicit-target rule (docs/plugin-design-m5-m9.md §1.1). See target.h.
+// Implicit-target rule. See target.h.
 #include "target.h"
 
 #include <cmath>

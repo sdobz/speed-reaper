@@ -1,4 +1,4 @@
-// MakeTransport (vibes/19-oracle-device-windows.md task 3). See the header.
+// MakeTransport. See the header.
 #include "transport_factory.h"
 
 #include "speed_editor/hidapi_transport.h"
