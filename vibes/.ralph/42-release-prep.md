@@ -47,3 +47,11 @@ Facts:
 - Verified: last ini fence in docs/bindings.md is byte-identical to default_bindings.ini (awk+diff); full Verify `tools/check && test -s docs/bindings.md && grep -q nudge docs/bindings.md` rc=0 (job r42t2verify, ~1 min).
 Next:
 - (task complete; line 29 ticked)
+
+Result: exit 0; done; log: logs/42-release-prep-L29-a2-1792086298054.log
+
+### Done — 2026-10-15 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/42-release-prep.md
+```
