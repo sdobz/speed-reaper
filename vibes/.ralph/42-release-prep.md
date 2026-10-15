@@ -74,3 +74,17 @@ Files:
 M vibes/.ralph/42-release-prep.md
  M vibes/42-release-prep.md
 ```
+
+## Task: 4. License
+
+### Attempt 4 — 2026-10-15T17:54:17Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- No partial work left (clean tree except this record).
+- Vendored licenses: `src/speed_editor/LICENSE` + `docs/speed-editor-examples/{python-driver,cpp-driver}/LICENSE` all BSD-3-Clause © 2026 John Howard (pinned 28057b4). `vendor/reaper-sdk/sdk/LICENSE` = MIT-flavored grant. `vendor/WDL` = MIT upstream (justinfrankel/WDL) but the vendored copy ships **without** the LICENSE file; headers-only SYSTEM include root (`plugin/CMakeLists.txt:120`), no WDL `.cpp` compiled/linked. `vendor/reaper-sdk/reaper-plugins/` sources unused by the build.
+- `docs/speed-editor-examples/python-bmd/` has **no license** (all rights reserved, per its own README table) — flagged in the note as reference-only, not ported into shipped code, explicitly excluded from the root license; no permissive license can cover it, but it doesn't block the choice since every *licensed* vendored file is permissive.
+- Chose **BSD-3-Clause** root (identical to the largest vendored component; © line = repo author Vincent Khougaz per `git log`); LICENSE footer lists the vendored components + pointer to the note.
+- `docs/notes/licensing.md` written with the per-component compatibility table (6 rows) + why-BSD-3 rationale.
+- Verify `test -s LICENSE && test -s docs/notes/licensing.md` exits 0.
+Next:
+- (task complete; line 51 ticked)

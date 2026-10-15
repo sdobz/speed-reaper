@@ -48,7 +48,7 @@ tools/check && test -s README.md && grep -q 'bindings.ini' README.md && grep -qi
 test -s LICENSE && test -s docs/notes/licensing.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Test suite: full and fast
 
