@@ -57,3 +57,11 @@ Files:
   - Pre-existing verdict instead via code inspection: the 2 failing `verbs` checks depend only on `verbs.cpp` RunRippleDelete (ripple wrap 40310/40006/40309 when ripple off — fresh-project default) and `ReadLedState`/`MainLedMask` (selected single-take items → active_take=1 → LED_CAM1 bit 0x4000; scenario expects only 0x20/0x00). `git diff --stat` on verbs.cpp/reaper_project.cpp/led_state.*/gesture.*/verbs.lua = empty: my diff touches none of it. ⇒ `--layer all` verbs failure predates this task (no full-suite run since M8 landed the LED bits + ripple wrap). The task Verify command runs `--layer reaper` = `load` scenario only, which passes.
 - Next:
   - DONE: verify40-2 (exact Verify command) rc=0 — tools/check green (14/14 unit tests, host + Windows oracle PASS), grep clean, `ORACLE PASS reaper/load`. Line 39 of vibes/40-cleanup.md ticked. Job names: check40-2 (tools/check), oracle40-2 (--layer reaper), suite40-2 (--layer all, verbs pre-existing failure), verify40-2 (exact Verify).
+
+Result: exit 0; done; log: logs/40-cleanup-L39-a2-1792031203704.log
+
+### Done — 2026-10-15 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+```
