@@ -7,7 +7,7 @@ Workers update their own `## Task:` section; ralph writes results.
 
 Durable facts every task should know (keep short).
 
-- `tools/check` includes the Windows oracle, which `nix build`s the packed working tree: any new .cpp listed in CMakeLists must be committed (tracked) or CMake Generate fails with "Cannot find source file".
+- `tools/check` includes the Windows oracle, which `nix build`s the packed working tree: any new .cpp listed in CMakeLists must be committed (tracked) or CMake Generate fails with "Cannot find source file". Same for files read at configure time: plugin/src/default_bindings.ini is file(READ) by CMakeLists, and the nix build failed until the .ini was tracked.
 - Lambda factories with a multi-statement body returning a braced `VerbBuildResult` need an explicit `-> VerbBuildResult` (return-type deduction doesn't work from braced-init-lists).
 - In test CHECK macros, wrap `x == std::vector<T>{a, b}` comparisons in extra parentheses — commas inside `{}` split the macro argument.
 - Declaring any copy ctor (even `= delete`) suppresses the implicit default AND move ctors — when making a class non-copyable, also add `Ctor() = default;` / `Ctor(Ctor&&) = default;` or `return local;` by value breaks.
@@ -119,3 +119,4 @@ M vibes/.ralph/41-action-registry.md
 - Next: reconfigure, build, ctest -R default_bindings, then full tools/check default_bindings (bgrun, Windows oracle + host layer).
 - Facts: unit test `default_bindings_test` passes (zero parse errors; derived double-tap set = {IN, OUT, TIMELINE, AUDIO_LEVEL, ESC} by key code; all 40 (key,gesture) rows match today's tables). Windows oracle `nix build .#reaper-plugin-windows` packs only tracked files → the untracked default_bindings.ini broke file(READ) at configure; committed the files, re-running full tools/check.
 - Next: tools/check default_bindings must exit 0; if green, done.
+- Done: tools/check default_bindings exits 0 (ctest default_bindings_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host). Committed dc6d5a7.
