@@ -37,7 +37,7 @@ tools/check && test -s docs/bindings.md && grep -q 'nudge' docs/bindings.md
 tools/check && test -s README.md && grep -q 'bindings.ini' README.md && grep -qi 'udev' README.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. License
 
