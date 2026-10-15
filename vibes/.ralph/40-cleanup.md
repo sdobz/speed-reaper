@@ -246,3 +246,11 @@ Facts:
 - `plugin/CMakeLists.txt` PLUGIN_PURE_SOURCES: hold_nudge.cpp line removed.
 - No new files, so no `git add` needed before the nix Windows build.
 - DONE: verify7 (exact Verify) rc=0 in 14s — tools/check nudge: 13/13 tests build warning-free, nudge_test PASS (with merged HoldNudge cases), WINDOWS ORACLE PASS static, ORACLE PASS host; `ls plugin/src/hold_nudge.*` finds nothing. Line 104 ticked.
+
+Result: exit 0; done; log: logs/40-cleanup-L104-a4-1792034468002.log
+
+### Done — 2026-10-15 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+```
