@@ -98,3 +98,11 @@ M vibes/.ralph/41-action-registry.md
 - Facts: `nudge` factory takes exactly one arg until task 7 adds `step=` — the design's example line `nudge trim_in step=frame` must not appear in task-2 test fixtures (would be a parse error today).
 - Dead ends: parser must Trim inside `KEY . gesture` (whitespace-tolerant means `SPLIT   . tap` parses); `std::move(built.verb)` with a `const` `built` still copies (const rvalue) — keep the Build result non-const.
 - Done: plugin/src/bindings.{h,cpp} (Tuning, BoundVerb, Bindings, ParseBindings, KeyByName/KeyName; sections [tuning]/[bindings], `;`/`#` comments, press-exclusivity, `bindings.ini:<n>: <reason>` errors, derived double_tap_keys); plugin/test/bindings_test.cpp (12 tests incl. the design's example file — minus `step=frame`, see above); action/targeted accept `_named` commands via new non-pure IActionSink::RunCommandByName (default no-op; REAPER impl = task 4); src/bindings.cpp added to PLUGIN_PURE_SOURCES. `SKIP_WINDOWS=1 tools/check bindings` PASS + all 19 plugin suites pass. Line 86 ticked; committed 667d8d3; full `tools/check bindings` (incl. Windows oracle) PASS rc=0 (job 41-bindings-final).
+
+Result: exit 0; done; log: logs/41-action-registry-L86-a1-1792038947156.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/41-action-registry.md
+```
