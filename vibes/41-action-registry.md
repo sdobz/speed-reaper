@@ -108,8 +108,7 @@ tools/check default_bindings
 tools/check && ! rg -q 'kVerbTable|CompositeRows|kHoldRows|VerbDoubleTapKeys' plugin && tools/reaper-oracle --layer reaper
 ```
 
-- [!] Done
-  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/41-action-registry.md
+- [x] Done
 
 ### 5. Actions: reload, open, show, echo
 

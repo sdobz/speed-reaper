@@ -24,6 +24,15 @@ void ReaperActionSink::RunCommand(int cmd) {
   Main_OnCommand(cmd, 0);
 }
 
+void ReaperActionSink::RunCommandByName(const std::string &name) {
+  const int id = NamedCommandLookup(name.c_str());
+  if (id <= 0) {
+    Trace("bind unresolved %s", name.c_str());
+    return;
+  }
+  RunCommand(id);
+}
+
 void ReaperActionSink::ScrollBySeconds(double dt) {
   ReaProject *proj = nullptr;
   proj = EnumProjects(-1, nullptr, 0); // idx −1 = current project

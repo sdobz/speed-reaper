@@ -20,6 +20,9 @@
 
 #define REAPERAPI_MINIMAL
 // --- REAPERAPI_WANT list: one line per function, comment = caller ---
+#define REAPERAPI_WANT_GetResourcePath // main: bindings.ini location
+#define REAPERAPI_WANT_NamedCommandLookup // ReaperActionSink::RunCommandByName
+#define REAPERAPI_WANT_RecursiveCreateDirectory // main: bindings dir
 #define REAPERAPI_WANT_GetPlayState // ReaperPlayheadSink::ScrubBySeconds
 #define REAPERAPI_WANT_GetCursorPosition // ReaperPlayheadSink::ScrubBySeconds, ReaperProject::CursorPos
 #define REAPERAPI_WANT_SetEditCurPos // ReaperPlayheadSink::ScrubBySeconds

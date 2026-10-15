@@ -12,7 +12,7 @@
 #include <map>
 #include <vector>
 
-enum class GestureKind { Tap, DoubleTap, HoldStart, HoldRotate, HoldEnd };
+enum class GestureKind { Press, Tap, DoubleTap, HoldStart, HoldRotate, HoldEnd };
 
 // One recognized gesture. `delta` is only meaningful for HoldRotate (wheel
 // ticks while a key is held); it is 0 for every other kind.
@@ -35,6 +35,10 @@ class GestureEngine {
   // release (IN, OUT, ESC). A second press inside the window
   // yields exactly one DoubleTap and no Tap.
   void SetDoubleTapKeys(std::vector<std::uint16_t> keys);
+
+  // Keys bound with `press`: fire a Press on the down edge, nothing else
+  // (no tap wait, no hold/double tracking).
+  void SetPressKeys(std::vector<std::uint16_t> keys);
 
   void OnKey(std::uint16_t key, bool down, std::int64_t now_ms);
   void OnWheel(std::int32_t delta, std::int64_t now_ms);
@@ -60,6 +64,7 @@ class GestureEngine {
 
   GestureConfig cfg_;
   std::vector<std::uint16_t> double_tap_keys_;
+  std::vector<std::uint16_t> press_keys_;
   std::map<std::uint16_t, KeyState> keys_;  // sorted: deterministic emit order
   std::vector<Gesture> pending_;
 };

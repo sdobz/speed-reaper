@@ -1,71 +1,66 @@
-// verbs.h — recognized gesture → REAPER command id, plus composite verbs
-// that need the project.
+// verbs.h — gesture → bound verb routing (41-action-registry §4).
 //
-// Pure: VerbRouter holds an IActionSink and an IProject (both REAPER-free
-// interfaces) and maps (key, kind) pairs through the tables at the top of
-// verbs.cpp; composite rows win over id rows for the same (key, kind).
-// Unmapped gestures do nothing. main.cpp pops gestures from the
-// GestureEngine and hands each to OnGesture.
+// Pure: VerbRouter parses a bindings.ini text (the embedded default when
+// none is given) against the default VerbRegistry and routes each
+// recognized Gesture to the verb bound to (key, gesture). Unbound
+// gestures do nothing. Session pops gestures from the GestureEngine and
+// hands each to OnGesture.
 
 #ifndef SPEED_REAPER_VERBS_H
 #define SPEED_REAPER_VERBS_H
 
-#include <map>
+#include <cstdint>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "action_sink.h"
+#include "bindings.h"
 #include "gesture.h"
-#include "nudge.h"        // HoldNudge (tick→step accumulator)
 #include "project.h"
-#include "project_ops.h"  // IsolateView / SoloView (view-toggle state)
+#include "verb_registry.h"
+
+// The embedded default bindings.ini text (plugin/src/default_bindings.ini).
+std::string_view DefaultBindingsText();
 
 class VerbRouter {
  public:
-  VerbRouter(IActionSink &sink, IProject &project) : sink_(sink), project_(project) {}
+  // Empty `bindings_text` = the embedded default.
+  VerbRouter(IActionSink &sink, IProject &project,
+             std::string_view bindings_text = {});
+  VerbRouter(const VerbRouter &) = delete;
+  VerbRouter &operator=(const VerbRouter &) = delete;
 
-  // Run the gesture's verb, if the (key, kind) pair is in a table: composite
-  // rows win over id rows. Unmapped pairs are no-ops. Hold* kinds:
-  // the mapped hold keys (SPLIT/MOVE, TRIM IN, TRIM OUT,
-  // SLIP SRC, SLIP DEST, AUDIO LEVEL) resolve their targets ONCE at
-  // HoldStart (snapshotting the selection, opening the hold's single undo
-  // block); each HoldRotate nudges the targets by whole steps of 1/Fps()
-  // (4 wheel ticks per step, remainder accumulated); HoldEnd restores the
-  // snapshot selection and closes the block. Unmapped hold keys and
-  // no-target holds do nothing (no undo block opened).
+  // Run the verb bound to the gesture, if any. Press/Tap/DoubleTap → Run;
+  // HoldStart/HoldRotate/HoldEnd → Begin/Step/End of the key's `turn`
+  // verb. Unbound pairs are no-ops.
   void OnGesture(const Gesture &g);
 
-  // TIMELINE hold+rotate ticks since the last select step (one step per
-  // ±kSelectStepTicks, remainder kept). Public because the
-  // composite rows in verbs.cpp are free functions.
-  int select_delta_ = 0;
+  const Tuning &tuning() const { return bindings_.tuning; }
+  // Keys whose tap waits for a second press (derived from `.double`).
+  const std::vector<std::uint16_t> &DoubleTapKeys() const {
+    return bindings_.double_tap_keys;
+  }
+  // Keys bound with `press` (fire on the down edge).
+  const std::vector<std::uint16_t> &PressKeys() const { return press_keys_; }
+  // "bindings.ini:<n>: <reason>" per skipped line.
+  const std::vector<std::string> &errors() const { return bindings_.errors; }
 
-  // View-toggle state: the saved previous flags for the
-  // re-tap restore live in these pure ops (project_ops.h). The Session
-  // reads them for the LED bar (ReadLedState's isolate/solo bits).
-  bool IsolateActive() const { return isolate_view_.IsActive(); }
-  bool SoloActive() const { return solo_view_.IsActive(); }
-  // Public (like select_delta_) because the composite rows in verbs.cpp
-  // are free functions that toggle them.
-  IsolateView isolate_view_;  // VIDEO_ONLY saved state (project_ops.h)
-  SoloView solo_view_;        // AUDIO_ONLY saved state (project_ops.h)
+  // The wheel mode shared by the wheel / transport verbs.
+  WheelState &wheel_state() { return registry_.wheel_state; }
+
+  // View-toggle state for the LED bar.
+  bool IsolateActive() const;
+  bool SoloActive() const;
 
  private:
-  // One active hold: the targets resolved at HoldStart,
-  // the selection snapshot to restore at HoldEnd, and the tick
-  // accumulator (kHoldTicksPerStep = 4 ticks per step).
-  struct HoldState {
-    std::vector<int> targets;
-    std::vector<int> selection;
-    HoldNudge nudge{4};
-  };
+  BoundVerb *Find(std::uint16_t key, BindingGesture g);
 
   IActionSink &sink_;
   IProject &project_;
-  std::map<std::uint16_t, HoldState> holds_;  // active holds, by key
+  VerbRegistry registry_;  // before bindings_: verbs capture its WheelState
+  Bindings bindings_;
+  std::vector<std::uint16_t> press_keys_;
 };
-
-// The keys whose tap waits for a second press (IN, OUT, ESC).
-// Feed this to GestureEngine::SetDoubleTapKeys.
-std::vector<std::uint16_t> VerbDoubleTapKeys();
 
 #endif  // SPEED_REAPER_VERBS_H

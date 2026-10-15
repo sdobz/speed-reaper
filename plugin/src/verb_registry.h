@@ -44,6 +44,7 @@ struct WheelState {
   WheelMode mode = WheelMode::Jog;
   WheelMode shuttle_prev = WheelMode::Jog;  // mode to return to on SHTL exit
   bool mode_change_pending = false;
+  unsigned changes = 0;  // bumped on every real change (Router re-arms its dead-band stop)
 
   // Re-pressing the active mode is not a change; otherwise sets mode
   // and arms mode_change_pending.
@@ -62,6 +63,9 @@ class Verb {
   virtual void Begin(VerbContext &) {}
   virtual void Step(VerbContext &, int) {}
   virtual void End(VerbContext &) {}
+  // View-toggle state for the LED bar (isolate_tracks / solo_tracks).
+  virtual bool IsolateActive() const { return false; }
+  virtual bool SoloActive() const { return false; }
 };
 
 // Result of a factory: exactly one of verb / error. verb is null iff

@@ -8,19 +8,21 @@
 // (hid_wheel_source.h needs <string> & friends; button_diff.h needs
 // <vector>; include them here so they parse before the macros land).
 #include <chrono>
+#include <fstream>
+#include <sstream>
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
+#include "session.h" // pure Session (before the SDK: its headers define min/max)
 #include "reaper_plugin.h"
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
 #include "reaper_api.h"  // the single REAPER API list (MINIMAL + WANT_*, see that file)
 #include "hid_wheel_source.h"
 #include "reaper_project.h" // ReaperProject
 #include "reaper_sinks.h"  // ReaperPlayheadSink / ReaperActionSink
-#include "session.h" // pure Session: everything the timer callback does
 #include "trace.h"
 
 #include <cstdlib>
@@ -42,6 +44,28 @@ ReaperPlayheadSink g_reaper_sink;
 HidWheelSource g_hid; // Speed Editor HID wheel (worker thread)
 ReaperActionSink g_action_sink;
 ReaperProject g_project; // IProject over the REAPER API
+
+// <resource>/speed-reaper/bindings.ini: read it; if missing, write the
+// embedded default (first run; never overwritten afterwards) and use that.
+// Unreadable → empty text = the embedded default.
+std::string LoadBindingsText() {
+  const std::string dir = std::string(GetResourcePath()) + "/speed-reaper";
+  const std::string path = dir + "/bindings.ini";
+  {
+    std::ifstream in(path, std::ios::binary);
+    if (in) {
+      std::ostringstream ss;
+      ss << in.rdbuf();
+      return ss.str();
+    }
+  }
+  RecursiveCreateDirectory(dir.c_str(), 0);
+  std::ofstream out(path, std::ios::binary);
+  const std::string_view def = DefaultBindingsText();
+  if (out) out.write(def.data(), static_cast<std::streamsize>(def.size()));
+  Trace("bindings written %s", path.c_str());
+  return std::string(def);
+}
 
 // --- callbacks driven by REAPER ---------------------------------------
 
@@ -98,7 +122,8 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   rec->Register("ext_vendor", (void *)"speed-reaper");
   Trace("register ext_vendor ok");
 
-  g_session = new Session(g_hid, g_action_sink, g_project, g_reaper_sink);
+  g_session = new Session(g_hid, g_action_sink, g_project, g_reaper_sink,
+                          LoadBindingsText());
   g_sink = &g_reaper_sink;
 
   g_register("timer", (void *)&onTimer); // SDK: timer takes only void(*)()

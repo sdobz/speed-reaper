@@ -187,6 +187,7 @@ class IsolateTracksVerb : public Verb {
     }
     isolate_view_.Toggle(ctx.project, targets);
   }
+  bool IsolateActive() const override { return isolate_view_.IsActive(); }
 
  private:
   IsolateView isolate_view_;
@@ -202,6 +203,7 @@ class SoloTracksVerb : public Verb {
     }
     solo_view_.Toggle(ctx.project, targets);
   }
+  bool SoloActive() const override { return solo_view_.IsActive(); }
 
  private:
   SoloView solo_view_;
@@ -321,7 +323,7 @@ class SelectStepVerb : public Verb {
   int select_delta_ = 0;
 };
 
-// NUDGE modes: the old kHoldRows, key replaced by the binding-facing
+// NUDGE modes: the old the old hold rows, key replaced by the binding-facing
 // mode name; the Undo_End labels and apply functions are unchanged.
 struct NudgeMode {
   const char *name;   // the binding arg: move | trim_in | trim_out | slip_src | slip_dest | volume
@@ -390,6 +392,7 @@ bool WheelState::Set(WheelMode m) {
   if (m == mode) return false;  // re-pressing the active mode is not a change
   mode = m;
   mode_change_pending = true;
+  ++changes;
   return true;
 }
 

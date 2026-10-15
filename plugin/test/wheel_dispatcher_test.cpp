@@ -47,7 +47,6 @@ class FakeSink : public IActionSink {
   int hard_stops = 0;
 };
 
-ButtonChange Down(std::uint16_t key) { return {key, true}; }
 
 void DrainWheel(GestureEngine &g) {
   Gesture gest;
@@ -63,7 +62,8 @@ int main() {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
-    Router r(sink);
+    WheelState ws;
+    Router r(sink, ws);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;  // parked off-center: must not trigger a rate call
@@ -88,10 +88,11 @@ int main() {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
-    Router r(sink);
+    WheelState ws;
+    Router r(sink, ws);
     WheelDispatcher d(dev, gestures, r);
 
-    r.OnButton(Down(KEY_SCRL));
+    ws.Set(WheelMode::Scrl);
     r.TakeModeChange(nullptr);
 
     dev.sample_ = WheelSample{45};
@@ -108,7 +109,7 @@ int main() {
     CHECK(sink.scroll_calls == 2);  // same magnitude, opposite direction
     CHECK(sink.scroll_dt_sum == 0.0);  // exact round trip
 
-    r.OnButton(Down(KEY_JOG));
+    ws.Set(WheelMode::Jog);
     r.TakeModeChange(nullptr);
     dev.sample_ = WheelSample{7};
     out = {};
@@ -124,10 +125,11 @@ int main() {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
-    Router r(sink);
+    WheelState ws;
+    Router r(sink, ws);
     WheelDispatcher d(dev, gestures, r);
 
-    r.OnButton(Down(KEY_SHTL));
+    ws.Set(WheelMode::Shtl);
     r.TakeModeChange(nullptr);
 
     dev.abs_ = 2068;
@@ -156,7 +158,8 @@ int main() {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
-    Router r(sink);
+    WheelState ws;
+    Router r(sink, ws);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;  // off-center from the start
@@ -181,7 +184,7 @@ int main() {
           gest.key == KEY_SNAP && gest.delta == 45);
 
     // Scrl + hold: the view is not scrolled either.
-    r.OnButton(Down(KEY_SCRL));
+    ws.Set(WheelMode::Scrl);
     r.TakeModeChange(nullptr);
     dev.sample_ = WheelSample{9};
     out = {};
@@ -192,7 +195,7 @@ int main() {
           gest.delta == 9);
 
     // Shtl + hold: no shuttle rate traffic either.
-    r.OnButton(Down(KEY_SHTL));
+    ws.Set(WheelMode::Shtl);
     r.TakeModeChange(nullptr);
     dev.sample_ = WheelSample{5};
     out = {};

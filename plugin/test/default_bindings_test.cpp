@@ -1,9 +1,9 @@
 // default_bindings_test.cpp — golden test (41-action-registry §3): the
 // embedded default bindings reproduce today's behavior exactly. Parses the
 // build-time-embedded default_bindings.ini (generated header) with zero
-// errors; the derived double-tap set equals today's VerbDoubleTapKeys
+// errors; the derived double-tap set equals today's the former double-tap set
 // (IN, OUT, ESC, TIMELINE, AUDIO_LEVEL); and every (key, gesture) today's
-// tables (kVerbTable, CompositeRows, kHoldRows, Router press rules) map is
+// tables (the old id table, the old composite rows, the old hold rows, Router press rules) map is
 // bound to the matching verb — with no extras.
 #include <cstdint>
 #include <cstdio>
@@ -28,16 +28,16 @@ struct Expected {
 // Every (key, gesture) today's tables map, with the verb + args the
 // default bindings must bind it to:
 //  - Router press rules (router.cpp OnButton): JOG/SCRL/SHTL/STOP_PLAY
-//  - kVerbTable (verbs.cpp): (key, tap/double) → command id
-//  - CompositeRows (verbs.cpp): the function-verb rows
-//  - kHoldRows (verbs.cpp): hold + wheel nudge modes
+//  - the old id table (verbs.cpp): (key, tap/double) → command id
+//  - the old composite rows (verbs.cpp): the function-verb rows
+//  - the old hold rows (verbs.cpp): hold + wheel nudge modes
 const std::vector<Expected> kExpected = {
     // Router press rules
     {KEY_JOG, BindingGesture::Press, "wheel", {"jog"}},
     {KEY_SCRL, BindingGesture::Press, "wheel", {"scrl"}},
     {KEY_SHTL, BindingGesture::Press, "wheel", {"shtl"}},
     {KEY_STOP_PLAY, BindingGesture::Press, "transport", {"play_stop"}},
-    // kVerbTable
+    // the old id table
     {KEY_SPLIT, BindingGesture::Tap, "action", {"40012"}},
     {KEY_IN, BindingGesture::Tap, "action", {"40625"}},
     {KEY_OUT, BindingGesture::Tap, "action", {"40626"}},
@@ -48,7 +48,7 @@ const std::vector<Expected> kExpected = {
     {KEY_ESC, BindingGesture::Double, "action", {"40029"}},
     {KEY_AUDIO_LEVEL, BindingGesture::Double, "action", {"40157"}},
     {KEY_FULL_VIEW, BindingGesture::Tap, "action", {"40346"}},
-    // CompositeRows
+    // the old composite rows
     {KEY_TRIM_IN, BindingGesture::Tap, "targeted", {"40511"}},
     {KEY_TRIM_OUT, BindingGesture::Tap, "targeted", {"40512"}},
     {KEY_RIPL_DEL, BindingGesture::Tap, "ripple_delete", {}},
@@ -68,7 +68,7 @@ const std::vector<Expected> kExpected = {
     {KEY_PLACE_ON_TOP, BindingGesture::Tap, "place_on_top", {}},
     {KEY_VIDEO_ONLY, BindingGesture::Tap, "isolate_tracks", {}},
     {KEY_AUDIO_ONLY, BindingGesture::Tap, "solo_tracks", {}},
-    // kHoldRows (the turn verbs)
+    // the old hold rows (the turn verbs)
     {KEY_SPLIT, BindingGesture::Turn, "nudge", {"move"}},
     {KEY_TRIM_IN, BindingGesture::Turn, "nudge", {"trim_in"}},
     {KEY_TRIM_OUT, BindingGesture::Turn, "nudge", {"trim_out"}},
@@ -88,7 +88,7 @@ int main() {
   CHECK(b.errors.empty());
 
   // 2) The derived double-tap set (sorted by key code) equals today's
-  // VerbDoubleTapKeys: {IN, OUT, ESC, TIMELINE, AUDIO_LEVEL}.
+  // the former double-tap set: {IN, OUT, ESC, TIMELINE, AUDIO_LEVEL}.
   CHECK((b.double_tap_keys ==
          std::vector<std::uint16_t>{KEY_IN, KEY_OUT, KEY_TIMELINE,
                                     KEY_AUDIO_LEVEL, KEY_ESC}));

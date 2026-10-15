@@ -6,12 +6,21 @@ void GestureEngine::SetDoubleTapKeys(std::vector<std::uint16_t> keys) {
   double_tap_keys_ = std::move(keys);
 }
 
+void GestureEngine::SetPressKeys(std::vector<std::uint16_t> keys) {
+  press_keys_ = std::move(keys);
+}
+
 bool GestureEngine::IsDoubleTapKey(std::uint16_t key) const {
   return std::find(double_tap_keys_.begin(), double_tap_keys_.end(), key) !=
          double_tap_keys_.end();
 }
 
 void GestureEngine::OnKey(std::uint16_t key, bool down, std::int64_t now_ms) {
+  if (std::find(press_keys_.begin(), press_keys_.end(), key) !=
+      press_keys_.end()) {
+    if (down) Emit(Gesture{key, GestureKind::Press, 0});
+    return;
+  }
   KeyState &st = keys_[key];
   if (down) {
     if (st.waiting_second) {

@@ -1,14 +1,11 @@
-// router.h — press-semantics buttons + wheel mode routing.
+// router.h — wheel laws (Scrl scroll, Shtl shuttle) over the shared wheel mode.
 //
-// Router owns the current WheelMode and translates button edges / wheel
+// Router translates wheel deltas into IActionSink calls. Unit-testable: no HID, no REAPER.
 // deltas into IActionSink calls. Unit-testable: no HID, no REAPER.
 //
-// Press rules (down edge only; releases ignored):
-//   JOG       → mode = Jog (from Shtl: also ApplyShuttleRate(1.0) hand-off)
-//   SCRL      → mode = Scrl (from Shtl: also ApplyShuttleRate(1.0) hand-off)
-//   SHTL      → mode = Shtl (remembers the prior mode for STOP/PLAY exit)
-//   STOP/PLAY → RunCommand(40044); in Shtl: HardStop() + exit to the prior mode
-// Initial mode: Jog.
+// The wheel mode itself (Jog/Scrl/Shtl) lives in the shared WheelState
+// (verb_registry.h): the `wheel` / `transport` verbs change it, the Router
+// only reads it and applies the Scrl / Shtl wheel laws.
 //
 // OnWheel is only meaningful in Scrl mode: it scrolls the arrange view by
 // delta × JogEngine::kSecondsPerWheelUnit seconds — the same timeline scale
@@ -22,16 +19,12 @@
 #include <cstdint>
 
 #include "action_sink.h"
-#include "button_diff.h"
+#include "verb_registry.h"  // WheelState
 #include "wheel_mode.h"
 
 class Router {
  public:
-  explicit Router(IActionSink &sink);
-
-  // One button edge from the worker. Down edges act;
-  // releases are ignored. Unknown keys are ignored.
-  void OnButton(const ButtonChange &change);
+  Router(IActionSink &sink, WheelState &wheel);
 
   // Accumulate a wheel delta (Scrl mode only, see above).
   void OnWheel(std::int32_t delta);
@@ -44,19 +37,16 @@ class Router {
   // ApplyShuttleRate(rate), re-applied every tick (absolute: no integration).
   void OnShuttleOffset(std::int32_t offset);
 
-  WheelMode Mode() const { return mode_; }
+  WheelMode Mode() const { return wheel_.mode; }
 
   // True exactly once after each mode change (consumed); *m receives the
   // new mode. main.cpp forwards it via RequestWheelMode + RequestJogLeds.
-  bool TakeModeChange(WheelMode *m);
+  bool TakeModeChange(WheelMode *m) { return wheel_.TakeModeChange(m); }
 
  private:
-  void SetMode(WheelMode m);
-
   IActionSink &sink_;
-  WheelMode mode_ = WheelMode::Jog;
-  bool mode_change_pending_ = false;
-  WheelMode shuttle_prev_ = WheelMode::Jog; // mode to return to on SHTL exit
+  WheelState &wheel_;
+  unsigned seen_changes_ = 0;  // wheel_.changes at the last shuttle tick
   bool deadband_stop_ = false; // Shtl: dead-band HardStop already issued
 };
 

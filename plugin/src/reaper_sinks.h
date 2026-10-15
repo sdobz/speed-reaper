@@ -28,6 +28,8 @@ class ReaperActionSink : public IActionSink {
  public:
   // STOP/PLAY (40044) and friends: run a REAPER command.
   void RunCommand(int cmd) override;
+  // `_Named` command (action verb): NamedCommandLookup; unresolved → trace.
+  void RunCommandByName(const std::string &name) override;
   // Scroll the arrange view by dt seconds of timeline (+ = right/later).
   // Same scale as the jog cursor (Router passes delta ×
   // JogEngine::kSecondsPerWheelUnit): the view travels the same on-screen

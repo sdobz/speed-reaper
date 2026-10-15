@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <deque>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "action_sink.h"
@@ -39,12 +40,13 @@ class IDevice : public IWheelDevice {
 
 class Session {
  public:
+  // `bindings_text` = the bindings.ini contents; empty = the embedded
+  // default. Bad lines are skipped and reported via actions.Message.
   Session(IDevice &device, IActionSink &actions, IProject &project,
-          IPlayheadSink &sink);
+          IPlayheadSink &sink, std::string_view bindings_text = {});
 
   // One timer callback's worth of work: button routing
-  // (router keys → Router, everything else → gesture engine), gesture
-  // poll → verbs, mode change → device, (re)connect re-send of mode +
+  // (every key → gesture engine), gesture poll → bound verbs, mode change → device, (re)connect re-send of mode +
   // LEDs, LED poll every ~250 ms (time-based, push on change), and
   // fixed-step engine catch-up (8 ms steps, ≤50 ms per call, backlog
   // capped at 250 ms).
@@ -58,9 +60,9 @@ class Session {
   IDevice &device_;
   IProject &project_;
   IPlayheadSink &sink_;
-  GestureEngine gestures_;  // tap / double-tap / hold recognition
-  Router router_;           // owns the wheel mode (Jog/Scrl/Shtl)
-  VerbRouter verbs_;        // gestures → verbs (incl. composite verbs)
+  VerbRouter verbs_;        // bindings table: (key, gesture) → verb
+  GestureEngine gestures_;  // press / tap / double-tap / hold recognition
+  Router router_;           // Scrl / Shtl wheel laws over verbs_' wheel mode
   WheelDispatcher dispatcher_;  // hold → gestures; else Jog/Scrl/Shtl
   JogEngine engine_;             // driven by the dispatcher
 

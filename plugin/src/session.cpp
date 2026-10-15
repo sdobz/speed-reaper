@@ -5,7 +5,6 @@
 
 #include "led_state.h"
 #include "project_ops.h"  // ReadLedState (pure op on IProject)
-#include "speed_editor/key_map.h"  // KEY_* codes for the router-key split
 #include "trace.h"
 #include "wheel_mode.h"
 
@@ -25,6 +24,7 @@ constexpr std::int64_t kLedPollMs = 250;
 
 const char *GestureKindName(GestureKind k) {
   switch (k) {
+    case GestureKind::Press: return "press";
     case GestureKind::Tap: return "tap";
     case GestureKind::DoubleTap: return "double_tap";
     case GestureKind::HoldStart: return "hold_start";
@@ -46,15 +46,22 @@ const char *WheelModeName(WheelMode m) {
 }  // namespace
 
 Session::Session(IDevice &device, IActionSink &actions, IProject &project,
-                 IPlayheadSink &sink)
+                 IPlayheadSink &sink, std::string_view bindings_text)
     : device_(device),
       project_(project),
       sink_(sink),
-      router_(actions),
-      verbs_(actions, project),
+      verbs_(actions, project, bindings_text),
+      gestures_(GestureConfig{verbs_.tuning().double_tap_ms,
+                              verbs_.tuning().hold_ms}),
+      router_(actions, verbs_.wheel_state()),
       dispatcher_(device, gestures_, router_),
       engine_(dispatcher_, sink) {
-  gestures_.SetDoubleTapKeys(VerbDoubleTapKeys());  // IN, OUT, ESC
+  gestures_.SetDoubleTapKeys(verbs_.DoubleTapKeys());
+  gestures_.SetPressKeys(verbs_.PressKeys());
+  for (const std::string &e : verbs_.errors()) {
+    Trace("%s", e.c_str());
+    actions.Message((e + "\n").c_str());
+  }
 }
 
 void Session::ApplyModeToHid(WheelMode m) {
@@ -68,23 +75,10 @@ void Session::ApplyModeToHid(WheelMode m) {
 }
 
 void Session::Tick(std::int64_t now_ms) {
-  // Buttons: router keys (JOG/SCRL/SHTL/STOP-PLAY) go only
-  // to the Router (press semantics live there); every other key goes only
-  // to the gesture engine.
+  // Buttons: every key goes to the gesture engine; the bindings decide
+  // what each (key, gesture) does.
   ButtonChange btn;
-  while (device_.PopButton(&btn)) {
-    switch (btn.key) {
-      case KEY_JOG:
-      case KEY_SCRL:
-      case KEY_SHTL:
-      case KEY_STOP_PLAY:
-        router_.OnButton(btn);
-        break;
-      default:
-        gestures_.OnKey(btn.key, btn.down, now_ms);
-        break;
-    }
-  }
+  while (device_.PopButton(&btn)) gestures_.OnKey(btn.key, btn.down, now_ms);
   gestures_.Poll(now_ms);  // every tick: advance tap-defer/hold timers
   Gesture gest;
   while (gestures_.Pop(&gest)) {

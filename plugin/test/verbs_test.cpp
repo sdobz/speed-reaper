@@ -103,7 +103,7 @@ void test_trim_composites() {
   CHECK(sink.commands[0] == 40511);
   CHECK(project.undo_begins == 1);
   CHECK(project.undo_ends == 1);
-  CHECK(project.last_undo_label == "Speed Reaper: trim");
+  CHECK(project.last_undo_label == "Speed Reaper: targeted 40511");
   // WithTargetSelected: select the implicit target, then restore the empty
   // original selection.
   CHECK(project.selected_calls.size() == 2);
@@ -116,7 +116,7 @@ void test_trim_composites() {
   CHECK(sink.commands[1] == 40512);
   CHECK(project.undo_begins == 2);
   CHECK(project.undo_ends == 2);
-  CHECK(project.last_undo_label == "Speed Reaper: trim");
+  CHECK(project.last_undo_label == "Speed Reaper: targeted 40512");
 
   // Rule 1: an existing selection wins; the verb runs with it and restores
   // it unchanged.
@@ -239,13 +239,13 @@ void test_ripl_del_composite() {
 }
 
 void test_double_tap_keys() {
-  auto keys = VerbDoubleTapKeys();
+  FakeSink sink;
+  FakeProject project;
+  VerbRouter r(sink, project);  // default bindings: the derived set
+  auto keys = r.DoubleTapKeys();
   CHECK(keys.size() == 5);
-  CHECK(keys[0] == KEY_IN);
-  CHECK(keys[1] == KEY_OUT);
-  CHECK(keys[2] == KEY_ESC);
-  CHECK(keys[3] == KEY_TIMELINE);
-  CHECK(keys[4] == KEY_AUDIO_LEVEL);
+  for (const auto k : {KEY_IN, KEY_OUT, KEY_ESC, KEY_TIMELINE, KEY_AUDIO_LEVEL})
+    CHECK(std::find(keys.begin(), keys.end(), k) != keys.end());
 }
 
 // M5 design §1.2: TIMELINE explicit-select composites. The FakeProject does
