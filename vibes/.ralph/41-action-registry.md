@@ -10,6 +10,7 @@ Durable facts every task should know (keep short).
 - `tools/check` includes the Windows oracle, which `nix build`s the packed working tree: any new .cpp listed in CMakeLists must be committed (tracked) or CMake Generate fails with "Cannot find source file".
 - Lambda factories with a multi-statement body returning a braced `VerbBuildResult` need an explicit `-> VerbBuildResult` (return-type deduction doesn't work from braced-init-lists).
 - In test CHECK macros, wrap `x == std::vector<T>{a, b}` comparisons in extra parentheses — commas inside `{}` split the macro argument.
+- Declaring any copy ctor (even `= delete`) suppresses the implicit default AND move ctors — when making a class non-copyable, also add `Ctor() = default;` / `Ctor(Ctor&&) = default;` or `return local;` by value breaks.
 
 
 ## Task: 1. `VerbRegistry` (pure)
@@ -76,4 +77,4 @@ M vibes/.ralph/41-action-registry.md
 <!-- worker: add Facts / Dead ends / Next bullets below while you work -->
 - Facts: prior subtask (turn verbs) committed (20f5ab1). wheel_mode.h defines `enum class WheelMode{Jog,Shtl,Scrl}`; Router::OnButton (router.cpp:17-47): jog/scrl hand-off ApplyShuttleRate(1.0) only from Shtl; shtl press sets shuttle_prev when not already Shtl; play_stop in Shtl = HardStop + Set(shuttle_prev), else RunCommand(40044).
 - Facts: done — `WheelState` struct + public `wheel_state` member + deleted copy ctor in verb_registry.h; WheelVerb/TransportPlayStopVerb + `wheel`/`transport` press specs in verb_registry.cpp (factories capture `&reg.wheel_state`); kStopPlayCommand=40044 at file scope; tests extended (14 names, press-only gesture checks, press bad-args, new test_wheel_transport_behaviors); FakeSink records shuttle_rates.
-- Next: `tools/check verb_registry`, then tick line 69.
+- Done: `tools/check verb_registry` PASS (host + Windows oracle); line 69 ticked; committed 57b6bfc. (Fix along the way: deleting the copy ctor also suppressed the implicit default+move ctors — added explicit `= default` for both.)
