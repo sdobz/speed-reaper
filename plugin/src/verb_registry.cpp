@@ -14,6 +14,10 @@
 #include "project_ops.h"  // DuplicateItemsAbove, IsolateView, SoloView
 #include "target.h"       // TargetItems, TargetTrack, WithTargetSelected
 #include "trace.h"        // Trace (no-target diagnostics)
+#include "wheel_mode.h"   // WheelMode
+
+// REAPER command 40044: toggle play/stop (transport).
+constexpr int kStopPlayCommand = 40044;
 
 namespace {
 
@@ -331,6 +335,62 @@ class NudgeVerb : public Verb {
 
 }  // namespace
 
+bool WheelState::Set(WheelMode m) {
+  if (m == mode) return false;  // re-pressing the active mode is not a change
+  mode = m;
+  mode_change_pending = true;
+  return true;
+}
+
+bool WheelState::TakeModeChange(WheelMode *m) {
+  if (!mode_change_pending) return false;
+  mode_change_pending = false;
+  if (m != nullptr) *m = mode;
+  return true;
+}
+
+// --- wheel + transport verbs (moved verbatim from Router::OnButton) ----
+
+// The wheel-mode buttons (jog/scrl/shtl). JOG/SCRL tap while shuttling
+// hands off (rate back to 1.0); an SHTL press remembers the prior mode
+// when not already in Shtl. The shared WheelState carries the mode
+// between presses.
+class WheelVerb : public Verb {
+ public:
+  WheelVerb(WheelMode mode, WheelState *state) : mode_(mode), state_(state) {}
+  void Run(VerbContext &ctx) override {
+    if (mode_ != WheelMode::Shtl) {
+      if (state_->mode == WheelMode::Shtl) ctx.sink.ApplyShuttleRate(1.0);
+    } else {
+      if (state_->mode != WheelMode::Shtl) state_->shuttle_prev = state_->mode;
+    }
+    state_->Set(mode_);
+  }
+
+ private:
+  WheelMode mode_;
+  WheelState *state_;
+};
+
+// transport play_stop: in SHTL, hard stop (OnStopButton in REAPER, never
+// 40045) and back to the prior mode; outside SHTL, the plain toggle
+// command.
+class TransportPlayStopVerb : public Verb {
+ public:
+  explicit TransportPlayStopVerb(WheelState *state) : state_(state) {}
+  void Run(VerbContext &ctx) override {
+    if (state_->mode == WheelMode::Shtl) {
+      ctx.sink.HardStop();
+      state_->Set(state_->shuttle_prev);
+    } else {
+      ctx.sink.RunCommand(kStopPlayCommand);
+    }
+  }
+
+ private:
+  WheelState *state_;
+};
+
 const char *GestureName(BindingGesture g) {
   switch (g) {
     case BindingGesture::Press: return "press";
@@ -480,6 +540,33 @@ VerbRegistry MakeDefaultRegistry() {
                  if (mode == nullptr)
                    return {nullptr, "nudge: unknown mode '" + args[0] + "' (expected one of move|trim_in|trim_out|slip_src|slip_dest|volume)"};
                  return {std::make_unique<NudgeVerb>(mode), ""};
+               }});
+
+  reg.Register({"wheel", {BindingGesture::Press},
+               "Switch the wheel mode: <jog|scrl|shtl>",
+               [&reg](std::vector<std::string> args) -> VerbBuildResult {
+                 if (args.size() != 1)
+                   return {nullptr, "wheel: expected one of jog|scrl|shtl, got " +
+                                         std::to_string(args.size()) + " argument(s)"};
+                 WheelMode mode = WheelMode::Jog;
+                 if (args[0] == "jog") mode = WheelMode::Jog;
+                 else if (args[0] == "scrl") mode = WheelMode::Scrl;
+                 else if (args[0] == "shtl") mode = WheelMode::Shtl;
+                 else
+                   return {nullptr, "wheel: unknown mode '" + args[0] +
+                                         "' (expected one of jog|scrl|shtl)"};
+                 return {std::make_unique<WheelVerb>(mode, &reg.wheel_state), ""};
+               }});
+
+  reg.Register({"transport", {BindingGesture::Press},
+               "Transport <play_stop> (a SHTL play_stop is a hard stop back to the prior mode)",
+               [&reg](std::vector<std::string> args) -> VerbBuildResult {
+                 if (args.size() != 1)
+                   return {nullptr, "transport: expected 'play_stop', got " +
+                                         std::to_string(args.size()) + " argument(s)"};
+                 if (args[0] != "play_stop")
+                   return {nullptr, "transport: unknown action '" + args[0] + "' (expected 'play_stop')"};
+                 return {std::make_unique<TransportPlayStopVerb>(&reg.wheel_state), ""};
                }});
 
   return reg;

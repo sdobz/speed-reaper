@@ -18,19 +18,20 @@ class FakeSink : public IActionSink {
  public:
   void RunCommand(int cmd) override { commands.push_back(cmd); }
   void ScrollBySeconds(double dt) override { (void)dt; }
-  void ApplyShuttleRate(double rate) override { (void)rate; }
+  void ApplyShuttleRate(double rate) override { shuttle_rates.push_back(rate); }
   void HardStop() override { ++hard_stops; }
   void Message(const char *msg) override { messages.push_back(msg); }
 
   std::vector<int> commands;
   std::vector<std::string> messages;
+  std::vector<double> shuttle_rates;
   int hard_stops = 0;
 };
 
 const char *kAllNames[] = {
     "action",         "targeted",    "ripple_delete",   "select_cursor_item",
     "take",           "volume_readout", "smooth_cut",   "place_on_top",
-    "isolate_tracks", "solo_tracks",
+    "isolate_tracks", "solo_tracks", "wheel",           "transport",
 };
 
 const char *kNudgeModes[] = {"move", "trim_in", "trim_out",
@@ -39,14 +40,25 @@ const char *kNudgeModes[] = {"move", "trim_in", "trim_out",
 // Every name resolves and Builds under a gesture it accepts.
 void test_all_names_resolve() {
   VerbRegistry reg = MakeDefaultRegistry();
-  CHECK(reg.Names().size() == 12);
+  CHECK(reg.Names().size() == 14);
   for (const char *name : kAllNames) {
     std::vector<std::string> args;
     if (std::string(name) == "action" || std::string(name) == "targeted")
       args = {"40012"};
     if (std::string(name) == "take") args = {"2"};
+    if (std::string(name) == "wheel") args = {"jog"};
+    if (std::string(name) == "transport") args = {"play_stop"};
+    const bool press_only =
+        std::string(name) == "wheel" || std::string(name) == "transport";
     CHECK(reg.Find(name) != nullptr);
-    VerbBuildResult r = reg.Build(name, BindingGesture::Tap, args);
+    VerbBuildResult r =
+        reg.Build(name, press_only ? BindingGesture::Press : BindingGesture::Tap, args);
+    CHECK(r.error.empty());
+    CHECK(r.verb != nullptr);
+  }
+  // The wheel verb resolves under all three modes.
+  for (const char *m : {"jog", "scrl", "shtl"}) {
+    VerbBuildResult r = reg.Build("wheel", BindingGesture::Press, {m});
     CHECK(r.error.empty());
     CHECK(r.verb != nullptr);
   }
@@ -69,6 +81,11 @@ void test_all_names_resolve() {
     if (std::string(name) == "action" || std::string(name) == "targeted") {
       CHECK(reg.Build(name, BindingGesture::Press, {"40012"}).error.empty());
       CHECK(reg.Build(name, BindingGesture::Double, {"40012"}).error.empty());
+    } else if (std::string(name) == "wheel" || std::string(name) == "transport") {
+      // press only: every other gesture is rejected.
+      CHECK(!reg.Build(name, BindingGesture::Tap, std::vector<std::string>{"x"}).error.empty());
+      CHECK(!reg.Build(name, BindingGesture::Double, std::vector<std::string>{"x"}).error.empty());
+      CHECK(!reg.Build(name, BindingGesture::Turn, std::vector<std::string>{"x"}).error.empty());
     } else if (std::string(name) == "ripple_delete" || std::string(name) == "take") {
       std::vector<std::string> dbl_args =
           std::string(name) == "take" ? std::vector<std::string>{"2"}
@@ -105,6 +122,11 @@ void test_wrong_gesture_rejected() {
   CHECK(!reg.Build("nudge", BindingGesture::Press, {"move"}).error.empty());
   // the tap verbs reject turn
   CHECK(!reg.Build("ripple_delete", BindingGesture::Turn, {}).error.empty());
+  // the press verbs reject the one-shot and turn gestures
+  CHECK(!reg.Build("wheel", BindingGesture::Tap, {"jog"}).error.empty());
+  CHECK(!reg.Build("wheel", BindingGesture::Turn, {"jog"}).error.empty());
+  CHECK(!reg.Build("transport", BindingGesture::Tap, {"play_stop"}).error.empty());
+  CHECK(!reg.Build("transport", BindingGesture::Turn, {"play_stop"}).error.empty());
 }
 
 // Bad args are rejected with a non-empty message starting with the verb
@@ -141,6 +163,22 @@ void test_bad_args_rejected() {
   };
   for (const Case &c : turn_cases) {
     VerbBuildResult r = reg.Build(c.name, BindingGesture::Turn, c.args);
+    CHECK(r.verb == nullptr);
+    CHECK(!r.error.empty());
+    CHECK(r.error.compare(0, std::strlen(c.name), c.name) == 0);
+  }
+  // The press verbs' bad args (built under their accepted gesture, so the
+  // factory — not the gesture check — rejects).
+  const Case press_cases[] = {
+      {"wheel", {"foo"}},                // unknown mode
+      {"wheel", {}},                     // missing arg
+      {"wheel", {"jog", "x"}},           // too many
+      {"transport", {"foo"}},            // unknown action
+      {"transport", {}},                 // missing arg
+      {"transport", {"play_stop", "x"}},  // too many
+  };
+  for (const Case &c : press_cases) {
+    VerbBuildResult r = reg.Build(c.name, BindingGesture::Press, c.args);
     CHECK(r.verb == nullptr);
     CHECK(!r.error.empty());
     CHECK(r.error.compare(0, std::strlen(c.name), c.name) == 0);
@@ -488,6 +526,64 @@ void test_turn_verb_behaviors() {
   }
 }
 
+// The press verbs: the wheel mode routing moved verbatim from
+// Router::OnButton over the shared WheelState (the SHTL dead-band
+// HardStop stays in Router::OnShuttleOffset and is not covered here).
+void test_wheel_transport_behaviors() {
+  VerbRegistry reg = MakeDefaultRegistry();
+  WheelState &ws = reg.wheel_state;
+  FakeProject project;
+  FakeSink s;
+  VerbContext c{s, project};
+  auto run = [&](const char *name, const char *arg) {
+    VerbBuildResult r = reg.Build(name, BindingGesture::Press, {arg});
+    CHECK(r.error.empty());
+    r.verb->Run(c);
+  };
+  WheelMode m;
+  CHECK(ws.mode == WheelMode::Jog);
+
+  // shtl press: mode Shtl, one pending change, consumed exactly once.
+  run("wheel", "shtl");
+  CHECK(ws.mode == WheelMode::Shtl);
+  CHECK(ws.TakeModeChange(&m));
+  CHECK(m == WheelMode::Shtl);
+  CHECK(!ws.TakeModeChange(&m));
+  // Re-press shtl while already in Shtl: not a change.
+  run("wheel", "shtl");
+  CHECK(!ws.TakeModeChange(&m));
+
+  // jog press from Shtl: hand-off (rate back to 1.0), mode Jog, one change.
+  run("wheel", "jog");
+  CHECK(ws.mode == WheelMode::Jog);
+  CHECK((s.shuttle_rates == std::vector<double>{1.0}));
+  CHECK(ws.TakeModeChange(&m));
+  CHECK(m == WheelMode::Jog);
+  CHECK(!ws.TakeModeChange(&m));
+
+  // play_stop outside Shtl: the plain toggle command, no hard stop.
+  run("transport", "play_stop");
+  CHECK((s.commands == std::vector<int>{40044}));
+  CHECK(s.hard_stops == 0);
+
+  // scrl press from Jog (no hand-off), then shtl: the prior mode is now
+  // Scrl, so play_stop returns there.
+  run("wheel", "scrl");
+  CHECK(ws.mode == WheelMode::Scrl);
+  CHECK(s.shuttle_rates.size() == 1);  // no hand-off rate outside Shtl
+  run("wheel", "shtl");
+  CHECK(ws.mode == WheelMode::Shtl);
+  run("transport", "play_stop");
+  CHECK(s.hard_stops == 1);
+  CHECK(ws.mode == WheelMode::Scrl);
+  CHECK(ws.TakeModeChange(&m));
+  CHECK(m == WheelMode::Scrl);
+  // play_stop again (now in Scrl): the command, not a stop.
+  run("transport", "play_stop");
+  CHECK((s.commands == std::vector<int>{40044, 40044}));
+  CHECK(s.hard_stops == 1);
+}
+
 }  // namespace
 
 int main() {
@@ -496,5 +592,6 @@ int main() {
   test_bad_args_rejected();
   test_verb_behaviors();
   test_turn_verb_behaviors();
+  test_wheel_transport_behaviors();
   return check_failures();
 }

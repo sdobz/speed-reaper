@@ -21,6 +21,7 @@
 
 #include "action_sink.h"
 #include "project.h"
+#include "wheel_mode.h"
 
 // The physical gestures a binding can offer.
 enum class BindingGesture { Press, Tap, Double, Turn };
@@ -32,6 +33,23 @@ const char *GestureName(BindingGesture g);
 struct VerbContext {
   IActionSink &sink;
   IProject &project;
+};
+
+// The wheel mode routing state (the old Router mode_ / shuttle_prev_ /
+// mode_change_pending_). Owned by the VerbRegistry; the wheel and
+// transport verbs capture a pointer to it so a jog press and the later
+// play_stop press see the same mode. The SHTL dead-band HardStop flag is
+// deliberately NOT here — it stays in Router::OnShuttleOffset.
+struct WheelState {
+  WheelMode mode = WheelMode::Jog;
+  WheelMode shuttle_prev = WheelMode::Jog;  // mode to return to on SHTL exit
+  bool mode_change_pending = false;
+
+  // Re-pressing the active mode is not a change; otherwise sets mode
+  // and arms mode_change_pending.
+  bool Set(WheelMode m);
+  // True exactly once per change (consumed); *m gets the new mode.
+  bool TakeModeChange(WheelMode *m);
 };
 
 // One bound verb. Run handles one-shot gestures (press/tap/double);
@@ -62,6 +80,17 @@ struct VerbSpec {
 
 class VerbRegistry {
  public:
+  // Non-copyable: it owns the WheelState the wheel/transport verbs share.
+  VerbRegistry() = default;
+  VerbRegistry(const VerbRegistry &) = delete;
+  VerbRegistry &operator=(const VerbRegistry &) = delete;
+  VerbRegistry(VerbRegistry &&) = default;
+  VerbRegistry &operator=(VerbRegistry &&) = default;
+
+  // Shared by the `wheel` and `transport` verbs (the factories capture
+  // a pointer to it, so it must outlive every verb they build).
+  WheelState wheel_state;
+
   void Register(VerbSpec spec);
   const VerbSpec *Find(const std::string &name) const;  // nullptr if unknown
   std::vector<std::string> Names() const;  // sorted
