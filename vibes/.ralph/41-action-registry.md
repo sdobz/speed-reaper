@@ -120,3 +120,11 @@ M vibes/.ralph/41-action-registry.md
 - Facts: unit test `default_bindings_test` passes (zero parse errors; derived double-tap set = {IN, OUT, TIMELINE, AUDIO_LEVEL, ESC} by key code; all 40 (key,gesture) rows match today's tables). Windows oracle `nix build .#reaper-plugin-windows` packs only tracked files → the untracked default_bindings.ini broke file(READ) at configure; committed the files, re-running full tools/check.
 - Next: tools/check default_bindings must exit 0; if green, done.
 - Done: tools/check default_bindings exits 0 (ctest default_bindings_test pass, WINDOWS ORACLE PASS static, ORACLE PASS host). Committed dc6d5a7.
+
+Result: exit 0; done; log: logs/41-action-registry-L98-a2-1792039777686.log
+
+### Done — 2026-10-15 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/41-action-registry.md
+```
