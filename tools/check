@@ -9,6 +9,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 if ! command -v cmake >/dev/null; then exec nix develop --command "$0" "$@"; fi
 
+# REAPER API list check (plugin/src/reaper_api.h is the single WANT_ list).
+tools/check_api_want
 make -C src >/dev/null
 cmake -S plugin -B build/plugin -G Ninja -DCMAKE_CXX_FLAGS=-Werror -DSPEED_REAPER_FAKE_DEVICE=ON >/dev/null
 cmake --build build/plugin

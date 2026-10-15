@@ -7,39 +7,11 @@
 #include <set>
 #include "reaper_project.h"
 
-// REAPERAPI_WANT for every listed host API this TU calls. REAPERAPI_MINIMAL
-// here makes a missing mirror in main.cpp's list (which owns
-// REAPERAPI_IMPLEMENT) a link error on REAPERAPI_<name> — keep both lists in
-// sync.
-#define REAPERAPI_MINIMAL
-#define REAPERAPI_WANT_CountMediaItems
-#define REAPERAPI_WANT_GetMediaItem
-#define REAPERAPI_WANT_GetMediaItem_Track
-#define REAPERAPI_WANT_GetMediaItemInfo_Value
-#define REAPERAPI_WANT_IsMediaItemSelected
-#define REAPERAPI_WANT_SetMediaItemSelected
-#define REAPERAPI_WANT_CountTracks
-#define REAPERAPI_WANT_GetTrack
-#define REAPERAPI_WANT_GetMediaTrackInfo_Value
-#define REAPERAPI_WANT_GetLastTouchedTrack
-#define REAPERAPI_WANT_Undo_BeginBlock2
-#define REAPERAPI_WANT_Undo_EndBlock2
-#define REAPERAPI_WANT_GetCursorPosition
-#define REAPERAPI_WANT_GetToggleCommandState
-#define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
-#define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
-#define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
-#define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
-#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
-#define REAPERAPI_WANT_TimeMap_curFrameRate // ReaperProject::Fps
-#define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
-#define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
-#define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
-#include "reaper_plugin_functions.h"
+// REAPER host APIs come from reaper_api.h — the single API list
+// (REAPERAPI_MINIMAL + one WANT line per function). This TU includes it
+// without REAPERAPI_IMPLEMENT (main.cpp owns the globals), so a called
+// function with no WANT line is a link error.
+#include "reaper_api.h"
 
 namespace {
 

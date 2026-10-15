@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""tools/check_api_want — every REAPER host API called in plugin/src/*.cpp
+must have a REAPERAPI_WANT_<name> line in plugin/src/reaper_api.h (the
+single API list; reaper_api.h explains why: REAPERAPI_MINIMAL + LoadAPI).
+
+"Called" = the SDK name appears as a whole word in the code of any
+plugin/src/*.cpp file, comments and string literals excluded (so prose
+mentions like "// CSurf_OnScroll ..." do not count). The name universe is
+oracle/sdk_api_names.txt (extract_api_names.py). Fails listing the missing
+REAPERAPI_WANT_ names.
+"""
+import glob
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NAMES = os.path.join(ROOT, "oracle", "sdk_api_names.txt")
+API_H = os.path.join(ROOT, "plugin", "src", "reaper_api.h")
+CPP_GLOB = os.path.join(ROOT, "plugin", "src", "*.cpp")
+
+
+def strip_comments_and_literals(src: str) -> str:
+    """Remove // and /* */ comments and string/char/raw-string literals.
+
+    A minimal state machine — enough for the plugin's C++ (no macros that
+    embed comment-looking text).
+    """
+    out = []
+    i, n = 0, len(src)
+    while i < n:
+        c = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if c == "/" and nxt == "/":
+            while i < n and src[i] != "\n":
+                i += 1
+        elif c == "/" and nxt == "*":
+            i += 2
+            while i + 1 < n and not (src[i] == "*" and src[i + 1] == "/"):
+                i += 1
+            i += 2
+        elif c == '"' or c == "'":
+            i += 1
+            while i < n and src[i] != c:
+                i += 2 if src[i] == "\\" else 1
+            i += 1
+        elif c == "R" and nxt == '"':
+            # raw string: R"delim( ... )delim"
+            j = i + 2
+            while j < n and src[j] != "(":
+                j += 1
+            delim = src[i + 2:j]
+            close = ")" + delim + '"'
+            k = src.find(close, j)
+            i = n if k == -1 else k + len(close)
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def main() -> int:
+    with open(NAMES) as f:
+        names = [ln.strip() for ln in f if ln.strip()]
+    with open(API_H) as f:
+        want = set(re.findall(r"REAPERAPI_WANT_([A-Za-z0-9_]+)", f.read()))
+    code = ""
+    for path in sorted(glob.glob(CPP_GLOB)):
+        with open(path) as f:
+            code += "\n" + strip_comments_and_literals(f.read())
+    missing = []
+    for name in names:
+        pat = r"(?<![A-Za-z0-9_])" + re.escape(name) + r"(?![A-Za-z0-9_])"
+        if re.search(pat, code) and name not in want:
+            missing.append(name)
+    if missing:
+        print("check_api_want: FAIL — called in plugin/src/*.cpp but no "
+              "REAPERAPI_WANT_ line in plugin/src/reaper_api.h:")
+        for name in sorted(missing):
+            print(f"  REAPERAPI_WANT_{name}")
+        return 1
+    print(f"check_api_want: OK ({len(want)} REAPERAPI_WANT_ lines cover every "
+          "called SDK function)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

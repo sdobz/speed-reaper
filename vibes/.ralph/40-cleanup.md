@@ -9,6 +9,7 @@ Durable facts every task should know (keep short).
 
 - `tools/reaper-oracle --layer all`: the `verbs` scenario is STALE (pre-existing since M8, as of 40-cleanup task 2): it expects exactly the 8 bare verb cmd ids (impl wraps RIPL DEL in ripple set/restore 40310/40309 when ripple is off) and `led main=` of only 0x20/0x00 (impl also sets LED_CAM1 0x4000 for selected single-take items). Expect `ORACLE FAIL all/...: verbs` until someone rewrites the scenario or the impl.
 - Clean-HEAD baselines via `git worktree` are not usable for the REAPER layer: REAPER needs an absolute `$HOME`, but `tools/reaper-oracle` passes the relative `build/oracle/home` → "Failed to get the home directory" → scenario timeout. Baseline in the main tree instead (e.g. `git stash` + run + `git stash pop`).
+- Nix builds (e.g. `nix build .#reaper-plugin-windows`, `src = ./.`) copy the repo via a path dep that IGNORES untracked files in a dirty git tree (the /nix/store/...-source copy lacks them → "fatal error: <newfile>: No such file or directory" while edited tracked files ARE present). `git add` new files before any nix build; the build then re-evaluates to a new source path.
 
 
 ## Task: 1. Repo hygiene
@@ -65,3 +66,19 @@ Files:
 ```
 M vibes/.ralph/40-cleanup.md
 ```
+
+## Task: 3. One REAPER API list
+
+### Attempt 3 — 2026-10-15T02:42:24Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+- Facts:
+  - Clean tree (only record file modified); no partial work from earlier attempts.
+  - Union of the two old lists = 39 unique names (main.cpp had 41 lines incl. 2 dupes: GetCursorPosition, GetToggleCommandState).
+  - `reaper_plugin_functions.h` lives at `vendor/reaper-sdk/sdk/` (SYSTEM include dir); guarded by `_REAPER_PLUGIN_FUNCTIONS_H_`, defines globals only when `REAPERAPI_IMPLEMENT`, else externs + `REAPERAPI_LoadAPI` declaration. Safe to include from a shared header.
+  - New `plugin/src/reaper_api.h` = MINIMAL + 39 WANT lines (comment = caller) + `#include "reaper_plugin_functions.h"`. main.cpp: `#define REAPERAPI_IMPLEMENT` then include; reaper_project.cpp: plain include. All duplicated lists + "keep in sync" comments deleted.
+  - New `tools/check_api_want` (python3): strips comments/string literals (state machine incl. raw strings) from `plugin/src/*.cpp`, whole-word-matches names from `oracle/sdk_api_names.txt`, fails listing missing WANT names. Comment-only mentions (CSurf_OnScroll, CSurf_ScrubAmt, plugin_register) do NOT count — that's why stripping is required. Negative-tested (removing a line → FAIL rc=1).
+  - Wired `tools/check_api_want` into `tools/check` right after the nix-develop guard, before the build.
+  - check40-3 FAILED at the Windows cross build: nix source copy lacked the untracked `reaper_api.h` (see Learnings). Fixed by `git add plugin/src/reaper_api.h tools/check_api_want`; rebuild win40-3 rc=0.
+  - Also fixed before verify: the comment in reaper_project.cpp originally contained the literal `REAPERAPI_WANT_*` — the Verify `rg -c` counts comment occurrences too, so it would have made 2 files match; reworded the comment.
+  - DONE: verify40-3 (exact Verify command) rc=0 — tools/check green (check_api_want OK, 14/14 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host), `rg -c` count = 1 (only reaper_api.h), ORACLE PASS reaper/load. Line 51 ticked.

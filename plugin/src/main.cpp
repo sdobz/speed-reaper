@@ -16,58 +16,7 @@
 #include <vector>
 #include "reaper_plugin.h"
 #define REAPERAPI_IMPLEMENT // exactly one TU provides the REAPERAPI_* globals
-// REAPERAPI_MINIMAL: REAPERAPI_LoadAPI only probes the functions below
-// instead of all ~877 SDK names. Without this, the entry refuses to load
-// on any host whose GetFunc lacks even one SDK name (docs/notes/
-// oracle-load-diagnosis.md).
-// RULE: every REAPER API function a milestone adds to this plugin MUST get
-// its REAPERAPI_WANT_<name> line in the same change, or LoadAPI probes it
-// as missing and the plugin refuses to load.
-#define REAPERAPI_MINIMAL
-// --- REAPERAPI_WANT list: keep in sync with REAPER functions called here ---
-#define REAPERAPI_WANT_GetPlayState // ReaperPlayheadSink::ScrubBySeconds
-#define REAPERAPI_WANT_GetCursorPosition // ReaperPlayheadSink::ScrubBySeconds
-#define REAPERAPI_WANT_SetEditCurPos // ReaperPlayheadSink::ScrubBySeconds
-#define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
-#define REAPERAPI_WANT_ShowConsoleMsg // onTimer: HID worker log lines
-#define REAPERAPI_WANT_Main_OnCommand // ReaperActionSink::RunCommand (Router STOP/PLAY)
-#define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
-#define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
-#define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
-#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ReadLedState (1157 snap, 41117 trim-behind)
-#define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop (M4)
-#define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace (M4)
-#define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless, M4 task 3)
-#define REAPERAPI_WANT_GetPlayPositionEx // shuttle reverse: stepped seek (M4 decision)
-// ReaperProject (reaper_project.cpp; M5 design §2) — keep in sync with that file's list.
-#define REAPERAPI_WANT_CountMediaItems // ReaperProject::Items/SetSelectedItems
-#define REAPERAPI_WANT_GetMediaItem // ReaperProject::Items/SetSelectedItems
-#define REAPERAPI_WANT_GetMediaItem_Track // ReaperProject::Items
-#define REAPERAPI_WANT_GetMediaItemInfo_Value // ReaperProject::Items
-#define REAPERAPI_WANT_IsMediaItemSelected // ReaperProject::Items
-#define REAPERAPI_WANT_SetMediaItemSelected // ReaperProject::SetSelectedItems
-#define REAPERAPI_WANT_CountTracks // ReaperProject::SelectedTracks
-#define REAPERAPI_WANT_GetTrack // ReaperProject::SelectedTracks/LastTouchedTrack
-#define REAPERAPI_WANT_GetMediaTrackInfo_Value // ReaperProject::SelectedTracks
-#define REAPERAPI_WANT_GetLastTouchedTrack // ReaperProject::LastTouchedTrack
-#define REAPERAPI_WANT_Undo_BeginBlock2 // ReaperProject::Undo_Begin
-#define REAPERAPI_WANT_Undo_EndBlock2 // ReaperProject::Undo_End
-#define REAPERAPI_WANT_GetCursorPosition // ReaperProject::CursorPos
-#define REAPERAPI_WANT_GetToggleCommandState // already above; ReaperProject ripple read (40310/40311)
-#define REAPERAPI_WANT_GetSet_LoopTimeRange2 // ReaperProject::HasTimeSelection
-#define REAPERAPI_WANT_CountTakes // ReaperProject::ItemTakeCount
-#define REAPERAPI_WANT_SetMediaItemInfo_Value // ReaperProject::SetItemActiveTake
-#define REAPERAPI_WANT_UpdateItemInProject // ReaperProject::SetItemActiveTake
-#define REAPERAPI_WANT_InsertTrackInProject // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_AddMediaItemToTrack // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_GetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetItemStateChunk // ReaperProject::DuplicateItemsAbove
-#define REAPERAPI_WANT_SetMediaTrackInfo_Value // ReaperProject::Toggle*Tracks
-#define REAPERAPI_WANT_TimeMap_curFrameRate // ReaperProject::Fps
-#define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
-#define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
-#define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
-#include "reaper_plugin_functions.h"
+#include "reaper_api.h"  // the single REAPER API list (MINIMAL + WANT_*, see that file)
 #include "jog_engine.h"
 #include "hid_wheel_source.h"
 #include "action_sink.h"

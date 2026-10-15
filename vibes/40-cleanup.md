@@ -48,7 +48,7 @@ tools/check && ! rg -q 'spike|jogdemo|DemoWheelSource|scrub_fwd' plugin/src tool
 tools/check && test "$(rg -c 'REAPERAPI_WANT_' plugin/src | wc -l)" -eq 1 && tools/reaper-oracle --layer reaper --scenario load
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Move the REAPER sinks out of `main.cpp`
 
