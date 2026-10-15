@@ -33,10 +33,13 @@ const char *kAllNames[] = {
     "isolate_tracks", "solo_tracks",
 };
 
+const char *kNudgeModes[] = {"move", "trim_in", "trim_out",
+                             "slip_src", "slip_dest", "volume"};
+
 // Every name resolves and Builds under a gesture it accepts.
 void test_all_names_resolve() {
   VerbRegistry reg = MakeDefaultRegistry();
-  CHECK(reg.Names().size() == 10);
+  CHECK(reg.Names().size() == 12);
   for (const char *name : kAllNames) {
     std::vector<std::string> args;
     if (std::string(name) == "action" || std::string(name) == "targeted")
@@ -46,6 +49,17 @@ void test_all_names_resolve() {
     VerbBuildResult r = reg.Build(name, BindingGesture::Tap, args);
     CHECK(r.error.empty());
     CHECK(r.verb != nullptr);
+  }
+  // The two turn verbs: both resolve under Turn (nudge under all 6 modes).
+  {
+    VerbBuildResult r = reg.Build("select_step", BindingGesture::Turn, {});
+    CHECK(r.error.empty());
+    CHECK(r.verb != nullptr);
+    for (const char *mode : kNudgeModes) {
+      VerbBuildResult m = reg.Build("nudge", BindingGesture::Turn, {mode});
+      CHECK(m.error.empty());
+      CHECK(m.verb != nullptr);
+    }
   }
   // The gesture sets: action/targeted take press+tap+double;
   // ripple_delete/take take tap+double; the other six are tap only.
@@ -86,6 +100,11 @@ void test_wrong_gesture_rejected() {
   CHECK(r2.error == "verb 'take' does not accept gesture 'turn'");
   VerbBuildResult r3 = reg.Build("isolate_tracks", BindingGesture::Double, {});
   CHECK(r3.error == "verb 'isolate_tracks' does not accept gesture 'double'");
+  // the turn verbs reject the one-shot gestures
+  CHECK(!reg.Build("select_step", BindingGesture::Tap, {}).error.empty());
+  CHECK(!reg.Build("nudge", BindingGesture::Press, {"move"}).error.empty());
+  // the tap verbs reject turn
+  CHECK(!reg.Build("ripple_delete", BindingGesture::Turn, {}).error.empty());
 }
 
 // Bad args are rejected with a non-empty message starting with the verb
@@ -111,6 +130,20 @@ void test_bad_args_rejected() {
     CHECK(r.verb == nullptr);
     CHECK(!r.error.empty());
     CHECK(r.error.compare(0, std::strlen(c.name), c.name) == 0);  // starts with the verb name
+  }
+  // The turn verbs' bad args (built under their accepted gesture, so the
+  // factory — not the gesture check — rejects).
+  const Case turn_cases[] = {
+      {"nudge", {"foo"}},         // unknown mode
+      {"nudge", {}},              // missing arg
+      {"nudge", {"move", "x"}},   // too many
+      {"select_step", {"1"}},     // no args allowed
+  };
+  for (const Case &c : turn_cases) {
+    VerbBuildResult r = reg.Build(c.name, BindingGesture::Turn, c.args);
+    CHECK(r.verb == nullptr);
+    CHECK(!r.error.empty());
+    CHECK(r.error.compare(0, std::strlen(c.name), c.name) == 0);
   }
   VerbBuildResult r = reg.Build("nope", BindingGesture::Tap, {});
   CHECK(r.verb == nullptr);
@@ -307,6 +340,154 @@ void test_verb_behaviors() {
   }
 }
 
+// The turn verbs: the moved-verbatim hold+rotate logic (the FakeProject
+// records SetSelectedItems but does not apply it, so "the state after a
+// step" is simulated by copying the last recorded selection into
+// items[].selected).
+void test_turn_verb_behaviors() {
+  VerbRegistry reg = MakeDefaultRegistry();
+
+  auto apply_selection = [](FakeProject &p) {
+    for (ItemInfo &it : p.items) it.selected = false;
+    if (p.selected_calls.empty()) return;
+    for (const int id : p.selected_calls.back())
+      if (id >= 0 && id < static_cast<int>(p.items.size())) p.items[id].selected = true;
+  };
+
+  // select_step: one step per ±20 accumulated ticks, exclusive selection,
+  // clamped at the ends; the remainder is kept across Step calls.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});   // A
+    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, false});   // B
+    project.items.push_back(ItemInfo{2, 0, 10.0, 5.0, false});  // C
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("select_step", BindingGesture::Turn, {}).verb;
+    CHECK(v != nullptr);
+
+    // 20 ticks: nothing selected on the track → the first item.
+    v->Step(c, 20);
+    CHECK(project.selected_calls.size() == 1);
+    CHECK((project.selected_calls[0] == std::vector<int>{0}));
+    apply_selection(project);
+    // the next 20 ticks: the next item.
+    v->Step(c, 20);
+    CHECK(project.selected_calls.size() == 2);
+    CHECK((project.selected_calls[1] == std::vector<int>{1}));
+    apply_selection(project);
+    // 10 + 10 ticks: the remainder is kept, so one step exactly once.
+    v->Step(c, 10);
+    CHECK(project.selected_calls.size() == 2);  // 10 < 20: no step yet
+    v->Step(c, 10);
+    CHECK(project.selected_calls.size() == 3);
+    CHECK((project.selected_calls[2] == std::vector<int>{2}));
+    apply_selection(project);
+    // clamped at the end: another +20 stays on the last item.
+    v->Step(c, 20);
+    CHECK(project.selected_calls.size() == 4);
+    CHECK((project.selected_calls[3] == std::vector<int>{2}));
+    apply_selection(project);
+    // negative: −20 → the previous item; −40 → two steps, clamped at 0.
+    v->Step(c, -20);
+    CHECK(project.selected_calls.size() == 5);
+    CHECK((project.selected_calls[4] == std::vector<int>{1}));
+    apply_selection(project);
+    v->Step(c, -40);
+    CHECK(project.selected_calls.size() == 7);
+    CHECK((project.selected_calls[5] == std::vector<int>{0}));
+    CHECK((project.selected_calls[6] == std::vector<int>{0}));
+    // no target track (nothing touched/selected): a no-op.
+    FakeProject p2;
+    FakeSink s2;
+    VerbContext c2{s2, p2};
+    v->Step(c2, 40);
+    CHECK(p2.selected_calls.empty());
+  }
+
+  // nudge move: one undo block per hold; one 1/Fps() step per 4 ticks
+  // (3-tick remainders accumulate); the selection snapshot is restored
+  // on End; stray Step/End after the hold are no-ops.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, true});  // target: selected
+    project.fps = 30.0;
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"move"}).verb;
+    CHECK(v != nullptr);
+
+    v->Begin(c);
+    CHECK(project.undo_begins == 1);  // the hold's single undo block
+    CHECK(project.undo_ends == 0);
+    v->Step(c, 3);
+    CHECK(project.items[0].pos == 0.0);  // 3 ticks < one step (4)
+    v->Step(c, 5);  // 8 total → 2 steps of 1/30 s
+    CHECK_NEAR(project.items[0].pos, 2.0 / 30.0, 1e-12);
+    CHECK(project.undo_begins == 1);  // still one block for the whole hold
+    CHECK(project.undo_ends == 0);
+    CHECK(s.commands.empty());  // pure project API, no REAPER commands
+
+    v->End(c);
+    CHECK(project.undo_ends == 1);
+    CHECK(project.last_undo_label == "Speed Reaper: move");
+    CHECK(project.selected_calls.size() == 1);  // snapshot restore on release
+    CHECK((project.selected_calls[0] == std::vector<int>{0}));
+
+    // After the hold: a stray Step/End is a no-op.
+    v->Step(c, 8);
+    v->End(c);
+    CHECK_NEAR(project.items[0].pos, 2.0 / 30.0, 1e-12);  // unchanged
+    CHECK(project.undo_begins == 1);
+    CHECK(project.undo_ends == 1);
+  }
+
+  // nudge trim_out: the mode's apply function runs (len −= steps*1/Fps())
+  // under the mode's Undo_End label.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
+    project.cursor = 2.5;  // cursor target; nothing selected
+    project.last_touched = 0;
+    project.fps = 30.0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"trim_out"}).verb;
+    CHECK(v != nullptr);
+    v->Begin(c);
+    v->Step(c, 4);  // one step
+    CHECK_NEAR(project.items[0].len, 5.0 - 1.0 / 30.0, 1e-12);
+    v->End(c);
+    CHECK(project.last_undo_label == "Speed Reaper: trim out");
+    CHECK(project.selected_calls.size() == 1);  // empty snapshot restored
+    CHECK(project.selected_calls[0].empty());
+  }
+
+  // nudge with no target (cursor in a gap, nothing selected): the whole
+  // Begin/Step/End sequence does nothing — no undo block, no selection
+  // churn, no geometry change.
+  {
+    FakeProject project;
+    project.items.push_back(ItemInfo{0, 0, 0.0, 3.0, false});
+    project.cursor = 5.0;  // in a gap
+    project.last_touched = 0;
+    FakeSink s;
+    VerbContext c{s, project};
+    auto v = reg.Build("nudge", BindingGesture::Turn, {"slip_src"}).verb;
+    CHECK(v != nullptr);
+    v->Begin(c);
+    v->Step(c, 8);
+    v->End(c);
+    CHECK(project.undo_begins == 0);
+    CHECK(project.undo_ends == 0);
+    CHECK(project.selected_calls.empty());
+    CHECK(project.items[0].pos == 0.0);
+    CHECK(project.items[0].len == 3.0);
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -314,5 +495,6 @@ int main() {
   test_wrong_gesture_rejected();
   test_bad_args_rejected();
   test_verb_behaviors();
+  test_turn_verb_behaviors();
   return check_failures();
 }

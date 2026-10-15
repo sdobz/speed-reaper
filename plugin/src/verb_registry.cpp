@@ -4,11 +4,13 @@
 // gestures, and args — it does not dispatch anything yet.
 #include "verb_registry.h"
 
+#include <algorithm> // std::clamp (TIMELINE select stepping)
 #include <cmath>     // std::log10 (AUDIO LEVEL read-out)
 #include <cstdio>    // std::snprintf (AUDIO LEVEL message)
 #include <cstdlib>   // std::strtol (int args)
 #include <climits>   // INT_MIN / INT_MAX (int-arg range)
 
+#include "nudge.h"        // HoldNudge, Nudge* hold+rotate math
 #include "project_ops.h"  // DuplicateItemsAbove, IsolateView, SoloView
 #include "target.h"       // TargetItems, TargetTrack, WithTargetSelected
 #include "trace.h"        // Trace (no-target diagnostics)
@@ -218,6 +220,115 @@ bool CheckNoArgs(const char *name, const std::vector<std::string> &args,
   return false;
 }
 
+// --- turn verbs (moved verbatim from verbs.cpp) -----------------------
+
+constexpr int kSelectStepTicks = 20;  // wheel ticks per TIMELINE select step
+
+// One hold+rotate step: move the selection to the next (dir>0) / previous
+// (dir<0) item on the target track, clamped at the ends; the cursor does
+// not move. No selection on the track: + selects the first item, - the
+// last. Exclusive selection of the single stepped-to item.
+void StepSelection(IProject &project, int dir) {
+  const int track = TargetTrack(project);
+  if (track < 0) return;
+  std::vector<int> ids;  // target-track item ids in pos order
+  int sel_idx = -1;      // first (leftmost) selected item on the track, or -1
+  for (const ItemInfo &item : project.Items()) {  // ordered by track then pos
+    if (item.track != track) continue;
+    if (item.selected && sel_idx < 0) sel_idx = static_cast<int>(ids.size());
+    ids.push_back(item.id);
+  }
+  if (ids.empty()) return;
+  const int last = static_cast<int>(ids.size()) - 1;
+  if (sel_idx < 0) {  // nothing selected on the track: step from an end
+    project.SetSelectedItems({ids[dir > 0 ? 0 : last]});
+    return;
+  }
+  const int idx = std::clamp(sel_idx + dir, 0, last);
+  project.SetSelectedItems({ids[idx]});
+}
+
+// TIMELINE select: the accumulator keeps the remainder between steps, so
+// 10 + 10 ticks steps exactly once (the old VerbRouter::select_delta_).
+class SelectStepVerb : public Verb {
+ public:
+  void Step(VerbContext &ctx, int delta) override {
+    select_delta_ += delta;
+    while (select_delta_ >= kSelectStepTicks ||
+           select_delta_ <= -kSelectStepTicks) {
+      const int dir = select_delta_ > 0 ? 1 : -1;
+      select_delta_ -= dir * kSelectStepTicks;  // keep the remainder
+      StepSelection(ctx.project, dir);
+    }
+  }
+
+ private:
+  int select_delta_ = 0;
+};
+
+// NUDGE modes: the old kHoldRows, key replaced by the binding-facing
+// mode name; the Undo_End labels and apply functions are unchanged.
+struct NudgeMode {
+  const char *name;   // the binding arg: move | trim_in | trim_out | slip_src | slip_dest | volume
+  const char *label;  // Undo_End label: "Speed Reaper: <verb>"
+  ItemGeom (*apply)(const ItemGeom &, int, double);  // nudge.h free function
+};
+
+constexpr NudgeMode kNudgeModes[] = {
+    {"move",      "Speed Reaper: move",        NudgeMove},
+    {"trim_in",   "Speed Reaper: trim in",     NudgeTrimIn},
+    {"trim_out",  "Speed Reaper: trim out",    NudgeTrimOut},
+    {"slip_src",  "Speed Reaper: slip src",    NudgeSlipSrc},
+    {"slip_dest", "Speed Reaper: slip dest",   NudgeSlipDest},
+    {"volume",    "Speed Reaper: audio level", NudgeVolume},
+};
+
+// NUDGE hold+rotate: one hold = one undo block (Undo_Begin at Begin,
+// Undo_End at End). The target set is resolved ONCE at Begin and the
+// selection is snapshotted there, restored at End. Each step is one
+// project frame (1/Fps()); 4 wheel ticks per step, the remainder
+// accumulated in HoldNudge (signed, symmetric toward zero).
+class NudgeVerb : public Verb {
+ public:
+  explicit NudgeVerb(const NudgeMode *mode) : mode_(mode) {}
+
+  void Begin(VerbContext &ctx) override {
+    const std::vector<int> targets = TargetItems(ctx.project);
+    if (targets.empty()) {
+      Trace("target none");  // no-target hold: do nothing (no undo block)
+      return;
+    }
+    active_ = true;
+    targets_ = targets;
+    for (const ItemInfo &item : ctx.project.Items())
+      if (item.selected) selection_.push_back(item.id);
+    ctx.project.Undo_Begin();  // one hold = one undo block
+  }
+
+  void Step(VerbContext &ctx, int delta) override {
+    if (!active_) return;  // unmapped / no-target hold: no-op
+    const int steps = nudge_.Add(delta);
+    if (steps == 0) return;  // below the 4-tick step threshold
+    const double step = 1.0 / ctx.project.Fps();  // one project frame
+    for (const int id : targets_)
+      ctx.project.SetGeom(id, mode_->apply(ctx.project.GetGeom(id), steps, step));
+  }
+
+  void End(VerbContext &ctx) override {
+    if (!active_) return;  // no hold active
+    ctx.project.SetSelectedItems(selection_);  // restore snapshot
+    ctx.project.Undo_End(mode_->label);
+    active_ = false;
+  }
+
+ private:
+  const NudgeMode *mode_;
+  HoldNudge nudge_{4};
+  bool active_ = false;
+  std::vector<int> targets_;
+  std::vector<int> selection_;
+};
+
 }  // namespace
 
 const char *GestureName(BindingGesture g) {
@@ -347,6 +458,28 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("solo_tracks", args, &error)) return {nullptr, error};
                  return {std::make_unique<SoloTracksVerb>(), ""};
+               }});
+
+  reg.Register({"select_step", {BindingGesture::Turn},
+               "Step the selection to the next/previous item on the target track (20 ticks per step)",
+               [](std::vector<std::string> args) -> VerbBuildResult {
+                 std::string error;
+                 if (!CheckNoArgs("select_step", args, &error)) return {nullptr, error};
+                 return {std::make_unique<SelectStepVerb>(), ""};
+               }});
+
+  reg.Register({"nudge", {BindingGesture::Turn},
+               "Hold+rotate nudge of the targets: <move|trim_in|trim_out|slip_src|slip_dest|volume>",
+               [](std::vector<std::string> args) -> VerbBuildResult {
+                 if (args.size() != 1)
+                   return {nullptr, "nudge: expected one of move|trim_in|trim_out|slip_src|slip_dest|volume, got " +
+                                         std::to_string(args.size()) + " argument(s)"};
+                 const NudgeMode *mode = nullptr;
+                 for (const NudgeMode &m : kNudgeModes)
+                   if (args[0] == m.name) mode = &m;
+                 if (mode == nullptr)
+                   return {nullptr, "nudge: unknown mode '" + args[0] + "' (expected one of move|trim_in|trim_out|slip_src|slip_dest|volume)"};
+                 return {std::make_unique<NudgeVerb>(mode), ""};
                }});
 
   return reg;
