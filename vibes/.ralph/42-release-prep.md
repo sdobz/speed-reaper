@@ -141,3 +141,11 @@ Facts:
 - New files: tools/release (executable), share/99-blackmagic-speed-editor.rules, docs/notes/reapack.md. Linux prod .so builds in build/release-linux (FAKE_DEVICE OFF; build/plugin stays the FAKE_DEVICE=ON test build). SKIP_WINDOWS=1 supported in tools/release.
 Next:
 - (task complete; line 77 ticked)
+
+Result: exit 0; done; log: logs/42-release-prep-L77-a6-1792087644123.log
+
+### Done — 2026-10-15 — 6 attempt(s)
+Files:
+```
+M vibes/.ralph/42-release-prep.md
+```
