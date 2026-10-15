@@ -49,7 +49,7 @@ Every Verify starts with `tools/check`.
 tools/check verb_registry
 ```
 
-- [ ] Done
+- [x] Done
   <!-- ralph: replanned=1 op=AND -->
   - [x] Registry core + 10 tap verbs + basic tests
     Read plugin/src/verbs.cpp (free functions to move verbatim), plugin/src/action_sink.h, plugin/test/router_test.cpp (FakeSink pattern), plugin/test/fake_project.h.
