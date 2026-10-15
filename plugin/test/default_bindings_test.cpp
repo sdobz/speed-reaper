@@ -80,6 +80,11 @@ const std::vector<Expected> kExpected = {
     {KEY_IN,       BindingGesture::Turn, "nudge", {"sel_in"}},
     {KEY_OUT,      BindingGesture::Turn, "nudge", {"sel_out"}},
     {KEY_ROLL,     BindingGesture::Turn, "nudge", {"roll"}},
+    // crossfades (docs/notes/crossfade-actions.md)
+    {KEY_TRANS,     BindingGesture::Tap, "action", {"41059"}},
+    {KEY_DIS,       BindingGesture::Tap, "action", {"40916"}},
+    {KEY_CUT,       BindingGesture::Tap, "action", {"41193"}},
+    {KEY_TRANS_DUR, BindingGesture::Tap, "action", {"43776"}},
 };
 
 }  // namespace

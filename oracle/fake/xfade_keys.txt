@@ -1,0 +1,10 @@
+# xfade_keys scenario (vibes/41-action-registry.md task 8): the default
+# crossfade bindings, one tap each (the script re-arranges selection between).
+at 400 key 0x10 down    # DIS  -> 40916 crossfade within time selection
+at 450 key 0x10 up
+at 800 key 0x22 down    # TRANS -> 41059 crossfade overlapping items
+at 850 key 0x22 up
+at 1200 key 0x0F down   # CUT  -> 41193 remove fades
+at 1250 key 0x0F up
+at 1600 key 0x0E down   # TRANS_DUR -> 43776 default crossfade length
+at 1650 key 0x0E up

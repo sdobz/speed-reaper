@@ -175,4 +175,4 @@ tools/check default_bindings && test -s docs/notes/crossfade-actions.md && tools
 tools/check && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
