@@ -6,7 +6,8 @@ foreach(src ${TEST_SOURCES})
   get_filename_component(name ${src} NAME_WE)
   add_executable(${name} ${src} ${PLUGIN_PURE_SOURCES})
   target_include_directories(${name} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_BINARY_DIR})  # default_bindings_generated.h (41 section 3)
   if(UNIX AND NOT APPLE)
     # PLUGIN_PURE_SOURCES carries the Speed Editor driver + HidWheelSource on
     # Linux (M1 task 3): same hidapi hidraw module as the plugin; SYSTEM keeps

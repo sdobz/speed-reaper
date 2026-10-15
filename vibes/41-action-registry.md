@@ -95,7 +95,7 @@ tools/check bindings
 tools/check default_bindings
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Switch over and delete the old tables
 

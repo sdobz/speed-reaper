@@ -106,3 +106,16 @@ Files:
 ```
 M vibes/.ralph/41-action-registry.md
 ```
+
+## Task: 3. Default bindings = today's behavior
+
+### Attempt 2 — 2026-10-15T04:49:37Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+- Facts: current tables → verb mapping established: press JOG/SCRL/SHTL = wheel jog/scrl/shtl, STOP_PLAY = transport play_stop; kVerbTable id rows → `action <id>` (SPLIT 40012, IN 40625, OUT 40626, IN/OUT/ESC double-tap/tap 40635, ESC double 40029, AUDIO_LEVEL double 40157, FULL_VIEW 40346); CompositeRows → targeted 40511/40512 (TRIM_IN/OUT), ripple_delete (RIPL_DEL), select_cursor_item (TIMELINE tap), action 40289 (TIMELINE double), take 1..9 (CAM1..9), volume_readout, smooth_cut, place_on_top, isolate_tracks, solo_tracks; kHoldRows → nudge move/trim_in/trim_out/slip_src/slip_dest/volume; TIMELINE turn = select_step. Total 40 (key,gesture) bindings; derived double set = IN, OUT, ESC, TIMELINE, AUDIO_LEVEL.
+- Facts: test CMakeLists globs plugin/test/*_test.cpp automatically — no test CMake edit needed. Generated header goes to ${CMAKE_CURRENT_BINARY_DIR} (= build/plugin); test side can add ${CMAKE_BINARY_DIR} as include dir.
+- Next: write plugin/src/default_bindings.ini, CMake file(READ) → generated header, plugin/test/default_bindings_test.cpp, then tools/check default_bindings.
+- Dead ends: first generated header looked fine but failed to compile with a confusing "expected ',' or ';' before 'constexpr'" in key_map.h — the real cause was a missing `;` after the C string literal in the generated header (CMake file(WRITE) line lacked it). Verified by minimal repros in /tmp. CMake string(REPLACE) escaping for `\` → `\\`, `"` → `\"`, newline → `\n` all work as expected.
+- Next: reconfigure, build, ctest -R default_bindings, then full tools/check default_bindings (bgrun, Windows oracle + host layer).
+- Facts: unit test `default_bindings_test` passes (zero parse errors; derived double-tap set = {IN, OUT, TIMELINE, AUDIO_LEVEL, ESC} by key code; all 40 (key,gesture) rows match today's tables). Windows oracle `nix build .#reaper-plugin-windows` packs only tracked files → the untracked default_bindings.ini broke file(READ) at configure; committed the files, re-running full tools/check.
+- Next: tools/check default_bindings must exit 0; if green, done.
