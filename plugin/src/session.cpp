@@ -48,6 +48,7 @@ const char *WheelModeName(WheelMode m) {
 Session::Session(IDevice &device, IActionSink &actions, IProject &project,
                  IPlayheadSink &sink, std::string_view bindings_text)
     : device_(device),
+      actions_(actions),
       project_(project),
       sink_(sink),
       verbs_(actions, project, bindings_text),
@@ -56,12 +57,42 @@ Session::Session(IDevice &device, IActionSink &actions, IProject &project,
       router_(actions, verbs_.wheel_state()),
       dispatcher_(device, gestures_, router_),
       engine_(dispatcher_, sink) {
+  ConfigureGestures();
+  ReportErrors();
+}
+
+void Session::ConfigureGestures() {
+  gestures_ = GestureEngine(GestureConfig{verbs_.tuning().double_tap_ms,
+                                          verbs_.tuning().hold_ms});
   gestures_.SetDoubleTapKeys(verbs_.DoubleTapKeys());
   gestures_.SetPressKeys(verbs_.PressKeys());
+}
+
+void Session::ReportErrors() {
   for (const std::string &e : verbs_.errors()) {
     Trace("%s", e.c_str());
-    actions.Message((e + "\n").c_str());
+    actions_.Message((e + "\n").c_str());
   }
+}
+
+void Session::ReloadBindings(std::string_view bindings_text) {
+  verbs_.Reload(bindings_text);
+  ConfigureGestures();
+  Trace("bindings loaded n=%d", verbs_.BindingCount());
+  actions_.Message(("Speed Reaper: bindings loaded n=" +
+                    std::to_string(verbs_.BindingCount()) + "\n").c_str());
+  ReportErrors();
+}
+
+void Session::ShowBindings() {
+  for (const std::string &l : verbs_.DescribeBindings())
+    actions_.Message(l.c_str());
+}
+
+bool Session::ToggleEcho() {
+  verbs_.SetEcho(!verbs_.Echo());
+  Trace("echo %s", verbs_.Echo() ? "on" : "off");
+  return verbs_.Echo();
 }
 
 void Session::ApplyModeToHid(WheelMode m) {

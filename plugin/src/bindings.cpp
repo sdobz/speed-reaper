@@ -129,6 +129,12 @@ std::string KeyName(std::uint16_t key) {
   return "";
 }
 
+std::vector<std::uint16_t> AllKeys() {
+  std::vector<std::uint16_t> keys;
+  for (const auto &k : kKeyNames) keys.push_back(k.code);
+  return keys;
+}
+
 Bindings ParseBindings(std::string_view text, const VerbRegistry &registry) {
   Bindings out;
   enum class Section { None, Tuning, Bindings };

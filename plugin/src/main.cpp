@@ -67,6 +67,74 @@ std::string LoadBindingsText() {
   return std::string(def);
 }
 
+// --- actions (action list: search "Speed Reaper") ----------------------
+
+std::string BindingsPath() {
+  return std::string(GetResourcePath()) + "/speed-reaper/bindings.ini";
+}
+
+void OpenBindingsFile() {
+  LoadBindingsText();  // creates the file from the default if missing
+  const std::string path = BindingsPath();
+#if defined(_WIN32)
+  const std::string cmd = "start \"\" \"" + path + "\"";
+#elif defined(__APPLE__)
+  const std::string cmd = "open '" + path + "' &";
+#else
+  const std::string cmd = "xdg-open '" + path + "' >/dev/null 2>&1 &";
+#endif
+  if (std::system(cmd.c_str()) != 0) Trace("open bindings failed");
+}
+
+struct SrAction {
+  const char *id;    // command_id string (A-Za-z0-9 / _ ok for lookup)
+  const char *desc;  // action list text
+  bool toggle;
+  int cmd;           // filled at registration
+  gaccel_register_t accel;
+};
+
+SrAction g_actions[] = {
+    {"SPEED_REAPER_RELOAD_BINDINGS", "Speed Reaper: reload bindings", false, 0, {}},
+    {"SPEED_REAPER_OPEN_BINDINGS", "Speed Reaper: open bindings file", false, 0, {}},
+    {"SPEED_REAPER_SHOW_BINDINGS", "Speed Reaper: show bindings", false, 0, {}},
+    {"SPEED_REAPER_ECHO", "Speed Reaper: echo fired bindings (toggle)", true, 0, {}},
+};
+
+bool onCommand(int cmd, int /*flag*/) {
+  if (cmd == 0 || !g_session) return false;
+  for (int i = 0; i < 4; ++i) {
+    if (g_actions[i].cmd != cmd) continue;
+    switch (i) {
+      case 0: g_session->ReloadBindings(LoadBindingsText()); break;
+      case 1: OpenBindingsFile(); break;
+      case 2: g_session->ShowBindings(); break;
+      default: g_session->ToggleEcho(); break;
+    }
+    return true;
+  }
+  return false;
+}
+
+int onToggleState(int cmd) {
+  for (const SrAction &a : g_actions)
+    if (a.cmd == cmd && a.toggle) return g_session && g_session->EchoOn() ? 1 : 0;
+  return -1;
+}
+
+void RegisterActions() {
+  for (SrAction &a : g_actions) {
+    a.cmd = g_register("command_id", a.id);
+    if (a.cmd == 0) continue;
+    a.accel.accel.cmd = static_cast<WORD>(a.cmd);
+    a.accel.desc = a.desc;
+    g_register("gaccel", &a.accel);
+  }
+  g_register("hookcommand", (void *)&onCommand);
+  g_register("toggleaction", (void *)&onToggleState);
+  Trace("register actions ok");
+}
+
 // --- callbacks driven by REAPER ---------------------------------------
 
 void onTimer() {
@@ -126,6 +194,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
                           LoadBindingsText());
   g_sink = &g_reaper_sink;
 
+  RegisterActions();
   g_register("timer", (void *)&onTimer); // SDK: timer takes only void(*)()
   Trace("register timer ok");
   g_hid.Start(); // all registrations above succeeded; spawn the HID worker

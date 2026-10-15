@@ -52,12 +52,24 @@ class Session {
   // capped at 250 ms).
   void Tick(std::int64_t now_ms);
 
+  // Re-read bindings (empty = embedded default); console:
+  // "Speed Reaper: bindings loaded n=<count>" + each error line.
+  void ReloadBindings(std::string_view bindings_text);
+  // Print the live table to the console (grouped by key, then unbound).
+  void ShowBindings();
+  // Echo toggle: while on, each fired binding prints KEY.gesture → verb.
+  bool ToggleEcho();
+  bool EchoOn() const { return verbs_.Echo(); }
+
  private:
   // Forward the mode to the device + the matching jog-mode LED (report
   // 0x04: bit 0 JOG, 1 SHTL, 2 SCRL).
   void ApplyModeToHid(WheelMode m);
+  void ConfigureGestures();  // tuning + press / double-tap sets
+  void ReportErrors();
 
   IDevice &device_;
+  IActionSink &actions_;
   IProject &project_;
   IPlayheadSink &sink_;
   VerbRouter verbs_;        // bindings table: (key, gesture) → verb

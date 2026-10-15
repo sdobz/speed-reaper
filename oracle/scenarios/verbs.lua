@@ -212,15 +212,16 @@ start("device", function()
         local c = l:match(" cmd (%d+)$")
         if c then table.insert(cmds, tonumber(c)) end
       end
-      local want_cmds = { 40012, 40625, 40626, 40511, 40635, 40006, 1157,
-                          40029 }
+      -- RIPL DEL with ripple off = 40310, 40006, 40309 (ripple_delete verb)
+      local want_cmds = { 40012, 40625, 40626, 40511, 40635, 40310, 40006,
+                          40309, 1157, 40029 }
       local cmd_ok = #cmds == #want_cmds
       for i = 1, #want_cmds do
         if cmds[i] ~= want_cmds[i] then cmd_ok = false end
       end
       local cmd_dump = ""
       for _, c in ipairs(cmds) do cmd_dump = cmd_dump .. c .. " " end
-      check("trace: cmd lines are the 8 verb ids in script order", cmd_ok,
+      check("trace: cmd lines are the verb ids in script order", cmd_ok,
             string.format("n=%d [%s]", #cmds, cmd_dump))
 
       -- 3) `led main=` lines (plain; not the jog lines): present, final
@@ -234,8 +235,10 @@ start("device", function()
         end
       end
       local want_main = snap_after == 1 and 0x20 or 0x00
-      check("trace: `led main=` traced, final value matches snap state",
-            led_main >= 1 and led_last == want_main,
+      -- other bits (ripple, from the undo) may be set: compare SNAP only
+      check("trace: `led main=` traced, SNAP bit matches snap state",
+            led_main >= 1 and led_last ~= nil
+                and (led_last & 0x20) == want_main,
             string.format("lines=%d last=%s want=%d snap_after=%s",
                           led_main, tostring(led_last), want_main,
                           tostring(snap_after)))

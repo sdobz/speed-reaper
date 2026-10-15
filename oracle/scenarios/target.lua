@@ -113,7 +113,7 @@ start("device", function()
       moved1 = true
       reaper.SetEditCurPos(1.0, false, false)
     end
-    if not moved2 and st > 3150 and st < 3650 then
+    if not moved2 and st > 3300 and st < 3650 then
       moved2 = true
       reaper.SetEditCurPos(2.0, false, false)
     end

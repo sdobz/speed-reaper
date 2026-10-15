@@ -46,6 +46,20 @@ class VerbRouter {
   // "bindings.ini:<n>: <reason>" per skipped line.
   const std::vector<std::string> &errors() const { return bindings_.errors; }
 
+  // Re-parse `bindings_text` (empty = embedded default), replacing the
+  // table. Wheel mode survives; view-toggle (isolate/solo) memory does not.
+  void Reload(std::string_view bindings_text);
+  // Number of bound (key, gesture) pairs.
+  int BindingCount() const { return static_cast<int>(bindings_.bindings.size()); }
+  // The live table, one line per binding grouped by key
+  // ("TRIM_IN  tap   targeted 40511   <verb description>"), then a final
+  // "Unbound: ..." line.
+  std::vector<std::string> DescribeBindings() const;
+
+  // Echo: while on, every fired binding prints `KEY.gesture → verb args`.
+  void SetEcho(bool on) { echo_ = on; }
+  bool Echo() const { return echo_; }
+
   // The wheel mode shared by the wheel / transport verbs.
   WheelState &wheel_state() { return registry_.wheel_state; }
 
@@ -55,12 +69,15 @@ class VerbRouter {
 
  private:
   BoundVerb *Find(std::uint16_t key, BindingGesture g);
+  void Load(std::string_view text);
+  void EchoFire(std::uint16_t key, BindingGesture g, const BoundVerb &b);
 
   IActionSink &sink_;
   IProject &project_;
   VerbRegistry registry_;  // before bindings_: verbs capture its WheelState
   Bindings bindings_;
   std::vector<std::uint16_t> press_keys_;
+  bool echo_ = false;
 };
 
 #endif  // SPEED_REAPER_VERBS_H

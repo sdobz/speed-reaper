@@ -71,5 +71,7 @@ Bindings ParseBindings(std::string_view text, const VerbRegistry &registry);
 // names return 0; KeyName(0) is "".
 std::uint16_t KeyByName(const std::string &name);
 std::string KeyName(std::uint16_t key);
+// Every nameable key code, in key_map order (for the show-bindings list).
+std::vector<std::uint16_t> AllKeys();
 
 #endif  // SPEED_REAPER_BINDINGS_H

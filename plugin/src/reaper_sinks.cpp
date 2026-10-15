@@ -7,6 +7,8 @@
 // function with no WANT line is a link error.
 #include "reaper_sinks.h"
 
+#include <string>
+
 #include "reaper_api.h"
 #include "trace.h"
 
@@ -75,6 +77,8 @@ void ReaperActionSink::HardStop() {
 }
 
 void ReaperActionSink::Message(const char *msg) {
-  Trace("message %s", msg);
+  std::string t(msg);
+  while (!t.empty() && t.back() == '\n') t.pop_back();
+  Trace("message %s", t.c_str());
   ShowConsoleMsg(msg);
 }

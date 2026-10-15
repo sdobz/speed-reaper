@@ -1,0 +1,9 @@
+# bindings scenario (vibes/41-action-registry.md task 5).
+# The script rewrites bindings.ini and runs "reload bindings" within the
+# first ~100 ms; the presses start at 400 ms.
+at 400 key 0x1F down   # SYNC_BIN tap -> action 40157 (marker +1)
+at 450 key 0x1F up
+at 800 key 0x04 down   # CLOSE_UP tap -> targeted 40006 (remove the cursor item)
+at 850 key 0x04 up
+at 1200 key 0x02 down  # APPND tap -> unbound: no cmd trace
+at 1250 key 0x02 up

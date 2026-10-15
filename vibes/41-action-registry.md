@@ -137,7 +137,7 @@ tools/check && tools/reaper-oracle --layer reaper --scenario bindings
 tools/check bindings && grep -q '^## Bindings' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. More `turn` handles + `step=`
 
