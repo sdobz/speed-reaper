@@ -24,6 +24,17 @@
       # non-standard "x86_64-w64-windows-gnu" is rejected by config.sub.
       pkgsWin = pkgs.pkgsCross.mingwW64;
 
+      # The release version lives in one place: plugin/CMakeLists.txt
+      # project(VERSION …) (single source of truth, also baked into the
+      # binary and printed to REAPER's console on load — see tools/release).
+      # NOTE: must stay equal to project(VERSION …) in plugin/CMakeLists.txt,
+      # which is the single source of truth for the release version (it is
+      # also baked into the binary and printed to REAPER's console on load).
+      # tools/release fails if the two drift apart (flake parsing of
+      # CMakeLists is avoided: Nix 2.34's builtins.match is anchored,
+      # which makes the lookup fragile).
+      pluginVersion = "0.1.0";
+
       # Static winapi backend (BUILD_SHARED_LIBS=OFF) so speedcli.exe has no
       # DLL dependency other than the Windows-provided hid.dll, which the hidapi
       # winapi backend LoadLibrary()s at runtime.
@@ -87,7 +98,7 @@
       makeSpeedReaperPlugin = { spkgs, targetSystem, cross, artifactSuffix, hidapi ? null }:
         spkgs.stdenv.mkDerivation {
           pname = "reaper-speed-reaper";
-          version = "0.1.0";
+          version = pluginVersion; # keep in sync with plugin/CMakeLists.txt
 
           # Whole repo: plugin/CMakeLists.txt pulls vendor/reaper-sdk +
           # vendor/WDL from the repo root via REPO_ROOT.

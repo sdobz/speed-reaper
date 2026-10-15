@@ -1,0 +1,5 @@
+# Blackmagic Speed Editor — open the hidraw node without root.
+# Install: sudo install -m644 99-blackmagic-speed-editor.rules /etc/udev/rules.d/
+#          sudo udevadm control --reload && sudo udevadm trigger
+# (or unplug/replug the editor). No /dev/hidraw* at all → sudo modprobe hidraw.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1edb", ATTRS{idProduct}=="da0e", MODE="0666"

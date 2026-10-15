@@ -4,3 +4,4 @@ result
 __pycache__/
 vibes/.ralph-logs/
 build/oracle/
+dist/

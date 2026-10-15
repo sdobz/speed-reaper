@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - Milestone design docs (`plugin-design-m*`, `plugin-configuration`, `reaper-plugin-workflow`, `reaper-plugin`) live in `docs/archive/` now; so do the vendored `REAPER actions list.htm`, `reaper-api.htm`, `ReaperUserGuide781c/`. The current architecture doc is `docs/design.md`.
+- Release version (0.1.0) is single-sourced in `plugin/CMakeLists.txt` `project(VERSION …)`: baked into the binary (`SPEED_REAPER_VERSION`), printed to REAPER's console on load, parsed by `tools/release` for the `dist/speed-reaper-<v>-<platform>.zip` names. `flake.nix`'s `pluginVersion` attr must mirror it (tools/release fails on drift). Nix 2.34's `builtins.match` is anchored (whole-string), which is why the flake does not parse the CMakeLists itself.
 
 
 ## Task: 1. Docs: keep what is still true, archive the rest
@@ -119,3 +120,24 @@ Files:
 ```
 M vibes/.ralph/42-release-prep.md
 ```
+
+## Task: 6. Cross-platform release builds
+
+### Attempt 6 — 2026-10-15T18:07:24Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- No partial work from earlier attempts (tree clean except this record). No `tools/release`, no `dist/`, no `.rules` file in repo, `plugin/CMakeLists.txt` `project()` had no VERSION.
+- Base shell: no cmake (tools/check self-reexecs into `nix develop`), nix 2.34.6 + python3 present, no `zip`/`7z` → zips via python3 `zipfile` (python3 is in the devShell too).
+- CROSS-PLATFORM.md has no macOS path → README says "unsupported, build from source".
+- Console-on-load: `ShowConsoleMsg` with `"!SHOW:"` prefix appends to REAPER console without opening the window (SDK comment, reaper_api.h already WANTs it; main.cpp onTimer uses it).
+- Plan: version 0.1.0 from `project(... VERSION ...)`; CMake `add_compile_definitions(SPEED_REAPER_VERSION=...)`; flake parses the same CMakeLists for the plugin derivation version (single source); new `share/99-blackmagic-speed-editor.rules` (content = README inline rule); `tools/release` builds Linux .so in `build/release-linux` (production, FAKE_DEVICE OFF) + Windows via `nix build .#reaper-plugin-windows`, zips `dist/speed-reaper-<v>-{linux,windows}-x86_64.zip` (binary + README.md + LICENSE + docs/bindings.md + udev rule for linux).
+- **Nix 2.34 `builtins.match` is ANCHORED** (pattern must match the whole string; `.*` does not cross newlines); returns `[]` for a groupless full match, `null` for no match, capture list otherwise. First `nix build .#reaper-plugin-windows` died with "expected a list but found null" because my unanchored whole-file pattern silently no-matched → pluginVersion null. Shell-quoting trap: nix code via `--expr` must use SINGLE quotes or the shell eats `\(` escapes (caused bogus "invalid regular expression" debug results); `nix-instantiate --eval -f` and piped `nix repl` are unusable here.
+- Decision: dropped flake-side CMakeLists parsing (too fragile under anchored match); flake keeps `pluginVersion = "0.1.0"` with a sync note, and `tools/release` fails if `nix eval .#packages.x86_64-pc-windows-gnu.reaper-plugin.version` != the CMakeLists version.
+- First verify run (job 42t6verify): everything passed up to `tools/windows-oracle --layer static`, which failed rc=1 silently — root cause = the flake eval failure above (oracle does `nix build ... 2>/dev/null` → empty path, then exits 1).
+- ReaPack index.xml: skipped, documented with why in docs/notes/reapack.md.
+- `zipfile` rejects nix-store files (epoch-0 mtime, "ZIP does not support timestamps before 1980") → tools/release writes zips with a fixed 1980-01-01 timestamp (also reproducible zips) and explicit arcnames so the binary sits at the zip root (`reaper_speed_reaper.so` / `.dll`, not build/ or /nix/store paths).
+- Debug detour: the Linux .so appeared to lack the console banner — false alarm. GCC 16 stores >15-char string literals chunked (16+4 bytes, memcpy-chunked std::string ctor), so `strings` only shows `!SHOW:Speed Reap`. Runtime printf test of the exact expression prints `!SHOW:Speed Reaper v0.1.0 loaded` correctly. (Note: a `const char* f(){ return (std::string(…) + …).c_str(); }` test shape is UB — the temp dies; the plugin's inline argument usage is safe.)
+- Final state: `tools/check && tools/release && ls dist/*.zip` = rc 0 (jobs 42t6verify3, 42t6final). dist/ has speed-reaper-0.1.0-linux-x86_64.zip (reaper_speed_reaper.so, README.md, LICENSE, docs/bindings.md, 99-blackmagic-speed-editor.rules) and speed-reaper-0.1.0-windows-x86_64.zip (dll + same docs, no udev rule). Version single-sourced in plugin/CMakeLists.txt; tools/release hard-fails if the flake's pluginVersion attr drifts.
+- New files: tools/release (executable), share/99-blackmagic-speed-editor.rules, docs/notes/reapack.md. Linux prod .so builds in build/release-linux (FAKE_DEVICE OFF; build/plugin stays the FAKE_DEVICE=ON test build). SKIP_WINDOWS=1 supported in tools/release.
+Next:
+- (task complete; line 77 ticked)

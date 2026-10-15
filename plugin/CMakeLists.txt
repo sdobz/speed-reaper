@@ -19,11 +19,17 @@
 # On Windows the output is reaper_speed_reaper.dll, installed like the .so.
 
 cmake_minimum_required(VERSION 3.13)
-project(speed_reaper LANGUAGES CXX)
+# VERSION is the single source of truth for the release version:
+# tools/release parses it for the dist/speed-reaper-<version>-<platform>.zip
+# names, the flake parses it for the plugin derivations, and it is baked
+# into the binary (SPEED_REAPER_VERSION) and printed to REAPER's console
+# on load (main.cpp).
+project(speed_reaper VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-Wall -Wextra)
+add_compile_definitions(SPEED_REAPER_VERSION="${PROJECT_VERSION}")
 
 # Transport selection (docs/plugin-oracle-design.md §6, vibes/19 task 3):
 # test builds only. When ON, the plugin, hid_probe and the unit tests get the

@@ -212,6 +212,10 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   int missing = REAPERAPI_LoadAPI(rec->GetFunc);
   Trace("loadapi missing=%d", missing);
   if (missing != 0) return done(0);
+  // Version comes from plugin/CMakeLists.txt project(VERSION …);
+  // "!SHOW:" appends to REAPER's console without popping the window.
+  ShowConsoleMsg((std::string("!SHOW:Speed Reaper v") +
+                  SPEED_REAPER_VERSION + " loaded\n").c_str());
   g_register = (plugin_register_variadic)rec->Register;
 
   rec->Register("ext_name", (void *)"Speed Reaper");

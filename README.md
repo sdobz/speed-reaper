@@ -16,12 +16,13 @@ Build once (or grab a release artifact), then put the plugin in REAPER's
 | Linux (x86-64) | `build/plugin/reaper_speed_reaper.so` | `~/.config/REAPER/UserPlugins/` |
 | Windows (x86-64) | `reaper/reaper_speed_reaper.dll` | `%APPDATA%\REAPER\UserPlugins\` |
 
-(macOS/`.dylib` is not supported yet; the driver layer is portable, only the
-platform matrix is Linux + Windows — see `CROSS-PLATFORM.md`.)
+(macOS: **unsupported — build from source**; the driver layer is portable,
+only the platform matrix is Linux + Windows — see `CROSS-PLATFORM.md`.)
 
 Linux only:
 
-- **udev rule (recommended)** so the device opens without root:
+- **udev rule (recommended)** so the device opens without root (shipped as
+  `share/99-blackmagic-speed-editor.rules`, and in the Linux release zip):
   `sudo tee /etc/udev/rules.d/99-blackmagic-speed-editor.rules`:
   ```
   SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1edb", ATTRS{idProduct}=="da0e", MODE="0666"

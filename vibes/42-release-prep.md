@@ -74,7 +74,7 @@ ORACLE_FULL=1 tools/check
 tools/check && tools/release && ls dist/*.zip
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. SMOKE-TEST.md becomes one release checklist
 
