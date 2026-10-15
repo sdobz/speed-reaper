@@ -38,3 +38,11 @@ Facts:
 - All 10 factory lambdas need explicit `-> VerbBuildResult` return type (C++ can't deduce from a braced init-list). No-arg verbs reject extra args via CheckNoArgs ("<name>: takes no arguments").
 - Dead ends: untracked source files break `tools/check`'s Windows oracle: nix packs the tree but the CMake Generate fails on the missing .cpp ("Cannot find source file") → commit before re-running the check. Also `CHECK(x == std::vector<int>{a, b})` splits the macro on the commas inside {} — wrap the whole expression in extra parens.
 - Done: `tools/check verb_registry` exits 0 (ctest, windows-oracle static, oracle host). Committed as 4703642.
+
+Result: exit 0; done; log: logs/41-action-registry-L54-a1-1792037554772.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/41-action-registry.md
+```
