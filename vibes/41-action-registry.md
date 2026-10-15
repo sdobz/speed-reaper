@@ -51,7 +51,7 @@ tools/check verb_registry
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Registry core + 10 tap verbs + basic tests
+  - [x] Registry core + 10 tap verbs + basic tests
     Read plugin/src/verbs.cpp (free functions to move verbatim), plugin/src/action_sink.h, plugin/test/router_test.cpp (FakeSink pattern), plugin/test/fake_project.h.
     Create plugin/src/verb_registry.h: `enum class BindingGesture{Press,Tap,Double,Turn}` + `GestureName()` ("press"/"tap"/"double"/"turn"); `struct VerbContext{IActionSink& sink; IProject& project;}`; `class Verb{virtual void Run(VerbContext&); Begin(VerbContext&); Step(VerbContext&,int); End(VerbContext&) — all default no-op}`; `struct VerbBuildResult{std::unique_ptr<Verb> verb; std::string error;}` (verb null iff error non-empty); `struct VerbSpec{name; std::vector<BindingGesture> gestures; std::string description; factory(std::vector<std::string> args)->VerbBuildResult}`; `class VerbRegistry{Register, Find, Names, Build(name,gesture,args)}`; `VerbRegistry MakeDefaultRegistry()`.
     Build(): unknown name -> error `unknown verb 'X'`; gesture not in spec.gestures -> `verb 'X' does not accept gesture 'y'`; else run the factory (factory errors must start with the verb name, e.g. `take: ...`).

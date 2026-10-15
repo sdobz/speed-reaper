@@ -7,6 +7,10 @@ Workers update their own `## Task:` section; ralph writes results.
 
 Durable facts every task should know (keep short).
 
+- `tools/check` includes the Windows oracle, which `nix build`s the packed working tree: any new .cpp listed in CMakeLists must be committed (tracked) or CMake Generate fails with "Cannot find source file".
+- Lambda factories with a multi-statement body returning a braced `VerbBuildResult` need an explicit `-> VerbBuildResult` (return-type deduction doesn't work from braced-init-lists).
+- In test CHECK macros, wrap `x == std::vector<T>{a, b}` comparisons in extra parentheses — commas inside `{}` split the macro argument.
+
 
 ## Task: 1. `VerbRegistry` (pure)
 
@@ -20,3 +24,17 @@ Trigger: 1 attempt(s), last: timeout after 180s without tool use (monologuing/st
 Why: Attempt 1 made no progress at all: the worker read the code fine, then drafted the whole ~600-line design (14 verbs + core + tests) in its message and monologued to the 180s timeout without writing a file. The task is 2-3x the one-sitting size and leaves design details (gesture vocabulary, error shape, wheel-state ownership) open, which is exactly what sends this model into circles.
 Rejected: BUDGET: no progress in the record (no files, no record bullets), so more time buys the same monologue. REWRITE: the task text and its Verify are sound — the problem is scope and unpinned design, not clarity, and a rewrite can't shrink it. SPIKE: no open question needs a doc; the milestone Design section plus the attempt's own monologue already settle the API, so a spike round-trip adds nothing. BLOCK: nothing needs a human decision.
 Log: logs/41-action-registry-L52-replan-1792037167047.log
+
+## Task: Registry core + 10 tap verbs + basic tests
+
+### Attempt 1 — 2026-10-15T04:12:34Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Created plugin/src/verb_registry.h (BindingGesture + GestureName, VerbContext, Verb, VerbBuildResult, VerbSpec, VerbRegistry, MakeDefaultRegistry) and plugin/src/verb_registry.cpp (10 verbs: action, targeted, ripple_delete, select_cursor_item, take, volume_readout, smooth_cut, place_on_top, isolate_tracks, solo_tracks; logic moved from verbs.cpp free functions; view verbs own their IsolateView/SoloView).
+- Added src/verb_registry.cpp to PLUGIN_PURE_SOURCES in plugin/CMakeLists.txt (between trace.cpp and verbs.cpp). Test is auto-globbed.
+- Int args parsed via strtol (full-string check + INT range); factory errors start with the verb name ("take: ...", "action: ..."); Build errors: "unknown verb 'X'" / "verb 'X' does not accept gesture 'y'".
+- Created plugin/test/verb_registry_test.cpp: 10 names resolve + Build; gesture sets enforced (action/targeted press+tap+double; ripple_delete/take tap+double; others tap); bad args rejected (take 0/abc//extra, action abc//, ripple_delete extra); behavior spot-checks per verb (FakeSink + FakeProject pattern from verbs_test.cpp).
+- All 10 factory lambdas need explicit `-> VerbBuildResult` return type (C++ can't deduce from a braced init-list). No-arg verbs reject extra args via CheckNoArgs ("<name>: takes no arguments").
+- Dead ends: untracked source files break `tools/check`'s Windows oracle: nix packs the tree but the CMake Generate fails on the missing .cpp ("Cannot find source file") → commit before re-running the check. Also `CHECK(x == std::vector<int>{a, b})` splits the macro on the commas inside {} — wrap the whole expression in extra parens.
+- Done: `tools/check verb_registry` exits 0 (ctest, windows-oracle static, oracle host). Committed as 4703642.
