@@ -85,7 +85,7 @@ tools/check && tools/release && ls dist/*.zip
 grep -q '^## Release checklist' SMOKE-TEST.md && ! grep -q '^## M[0-9]' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. Human checkpoint: hand test and tag
 

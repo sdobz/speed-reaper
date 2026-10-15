@@ -149,3 +149,26 @@ Files:
 ```
 M vibes/.ralph/42-release-prep.md
 ```
+
+## Task: 7. SMOKE-TEST.md becomes one release checklist
+
+### Attempt 7 — 2026-10-15T18:24:07Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- No partial work from earlier attempts (tree clean except this record); SMOKE-TEST.md still had the per-milestone layout (556 lines).
+- Rewrote SMOKE-TEST.md as one `## Release checklist` (12 ordered steps: clean-profile install from the zip → device found → wheel modes + LEDs → transport → split/trim/ripple → holds → takes → view → crossfade keys → bindings actions (show/echo/edit+reload/learn/restart persistence/delete→default) → unplug/replug → REAPER restart), each with Action / Expected / `- [ ] pass`; speedcli Tests 1–4 kept verbatim under `## Appendix`.
+- Facts pulled from the real sources, not memory: zip contents (binary at zip root + README/LICENSE/docs/bindings.md, linux zip adds `99-blackmagic-speed-editor.rules`), default binding groups + action ids from `plugin/src/default_bindings.ini` (SPLIT=40012, IN/OUT=40625/40626, clear=40635, TRIM 40511/40512, deselect-all 40289, undo 40029, marker 40157, volume readout, fullscreen 40346, crossfades TRANS=41059 / DIS=40916 / CUT=41193 / TRANS_DUR=43776), plugin actions + echo name from docs/bindings.md.
+- Clean-profile step: `reaper --dir /tmp/reaper-smoke` (Linux) or portable mode / move `%APPDATA%\REAPER` (Windows) — not verified against a live REAPER install, phrased with a fallback.
+- Verify command exits 0; no `^## M[0-9]` headings remain (milestone content folded into the checklist, milestone cross-references dropped).
+Next:
+- (task complete; line 88 ticked)
+
+Result: exit 0; done; 3 files changed, 288 insertions(+), 473 deletions(-); log: logs/42-release-prep-L88-a7-1792088647884.log
+
+### Done — 2026-10-15 — 7 attempt(s)
+Files:
+```
+M SMOKE-TEST.md
+ M vibes/.ralph/42-release-prep.md
+ M vibes/42-release-prep.md
+```
