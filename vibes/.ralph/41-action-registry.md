@@ -46,3 +46,18 @@ Files:
 ```
 M vibes/.ralph/41-action-registry.md
 ```
+
+## Task: Turn verbs: select_step + nudge
+
+### Attempt 1 — 2026-10-15T04:22:37Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Clean tree (only record modified); registry core + 10 tap verbs committed in 4703642.
+- StepSelection / kSelectStepTicks / kHoldRows logic still lives only in verbs.cpp — moving into verb_registry.cpp anonymous namespace, no header change.
+- nudge.cpp is already in PLUGIN_PURE_SOURCES, so verb_registry.cpp can use nudge.h directly.
+- FakeProject::SetSelectedItems records, not applies: tests must copy the last selected_calls entry into items[].selected between verb calls (verbs_test.cpp ~line 252 pattern).
+- Mode map: move/"Speed Reaper: move"/NudgeMove, trim_in/"trim in"/NudgeTrimIn, trim_out/"trim out"/NudgeTrimOut, slip_src/"slip src"/NudgeSlipSrc, slip_dest/"slip dest"/NudgeSlipDest, volume/"audio level"/NudgeVolume.
+- select_step only overrides Step (no Begin/End — the old router had no TIMELINE HoldStart state); nudge keeps an active_ flag set by Begin (no targets → inactive, no undo block, Step/End no-ops).
+- Dead ends: my first trim_out test expected `len -= 1/fps` — wrong: NudgeTrimOut is `len += steps*step` (the moved-verbatim math). Fixed the expectation, test passes.
+- Done: `tools/check verb_registry` exits 0 (job check-41-turn: ctest 100%, WINDOWS ORACLE PASS static, ORACLE PASS host). Committed as f28286b + the trim_out test-fix commit; box on line 62 of vibes/41-action-registry.md ticked.

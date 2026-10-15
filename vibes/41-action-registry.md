@@ -59,7 +59,7 @@ tools/check verb_registry
     Gestures: action+targeted = press,tap,double; ripple_delete+take = tap,double; the other six = tap. Add src/verb_registry.cpp to PLUGIN_PURE_SOURCES in plugin/CMakeLists.txt (tests are auto-globbed: no test CMake edit).
     plugin/test/verb_registry_test.cpp: every one of the 10 names resolves and Builds; wrong gesture rejected (e.g. take on turn, smooth_cut on press); bad args rejected with a non-empty message (take 0, take abc, action abc, take with no arg, unknown verb). Do NOT add select_step / nudge / wheel / transport yet.
     Verify: `tools/check verb_registry`
-  - [ ] Turn verbs: select_step + nudge
+  - [x] Turn verbs: select_step + nudge
     Extend plugin/src/verb_registry.cpp (no header change) with the two `turn` verbs, logic verbatim from plugin/src/verbs.cpp — read the HoldStart/HoldRotate/HoldEnd cases of OnGesture, kHoldRows, TimelineHoldRotate, StepSelection.
     `select_step` (Turn): per-verb `int select_delta_ = 0`; Step accumulates delta and for each ±20 ticks (keep `kSelectStepTicks = 20`) calls the moved-verbatim StepSelection (next/prev item on target track, clamped, exclusive selection).
     `nudge <move|trim_in|trim_out|slip_src|slip_dest|volume>` (Turn): per-verb state {targets, selection snapshot, `HoldNudge nudge{4}`, active flag}. Begin = HoldStart verbatim (no targets -> Trace("target none"), stay inactive, no undo block); Step = HoldRotate verbatim (one whole step per 4 ticks, step size 1/Fps(), apply the mode's ItemGeom function from nudge.h to each target); End = HoldEnd verbatim (restore snapshot, Undo_End with the kHoldRows label: "Speed Reaper: move|trim in|trim out|slip src|slip dest|audio level"). Bad args (nudge foo, wrong count) -> error starting with `nudge:`.
