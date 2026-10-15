@@ -91,4 +91,5 @@ grep -q '^## Release checklist' SMOKE-TEST.md && ! grep -q '^## M[0-9]' SMOKE-TE
 
 - The human runs `SMOKE-TEST.md` "Release checklist" on the device with the Linux zip (and Windows if available), records failures as new tasks below this one, then tags `v<version>`. Optionally squash the per-task duplicate commits per milestone before tagging.
 
-- [ ] Done
+- [!] Done
+  BLOCKED: Human checkpoint for v0.1.0: run the SMOKE-TEST.md 'Release checklist' on the device using dist/speed-reaper-0.1.0-linux-x86_64.zip (and the windows zip if available); record any failures as new tasks under section 8, and if it passes, optionally squash the per-task duplicate commits for tasks 5–6, then run `git tag v0.1.0` and tick the section 8 box. If you hit failures, add them as tasks under section 8 instead — ralph will resume from there.

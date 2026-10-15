@@ -172,3 +172,22 @@ M SMOKE-TEST.md
  M vibes/.ralph/42-release-prep.md
  M vibes/42-release-prep.md
 ```
+
+## Task: 8. Human checkpoint: hand test and tag
+
+### Attempt 8 — 2026-10-15T18:27:40Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Task 8 is a human checkpoint: it requires a human to run `SMOKE-TEST.md` "Release checklist" on the physical device, record failures, and then tag `v0.1.0`. None of that is doable by a worker (no device, no REAPER on this box, and tagging without the human's sign-off would defeat the checkpoint). Marked `- [!]` BLOCKED — this is the intended outcome for a human gate, not a failure.
+- Verified all prerequisites are in place: `dist/speed-reaper-0.1.0-linux-x86_64.zip` (380 KB) and `dist/speed-reaper-0.1.0-windows-x86_64.zip` (4.3 MB) exist and are current (rebuilt by task 6); `## Release checklist` present at SMOKE-TEST.md:26 (12 ordered steps, ~20 min); version 0.1.0 single-sourced at `plugin/CMakeLists.txt:27`; **no git tag exists yet** (`git tag -l` empty) — the human should create `v0.1.0` after the checklist passes.
+- Optional squash before tagging: per-milestone commits exist (tasks 5–6 each have 2 commits, e.g. 106ee3f + f2fe0b4); the human may `git rebase -i` them if desired, but the tags/history are not yet cut so it's safe.
+Next:
+- (human action: run SMOKE-TEST.md Release checklist on the device, file failures as new tasks under section 8, then `git tag v0.1.0`; when done, tick the box — no verify command exists for this task)
+
+Result: exit 0; worker-blocked; 2 files changed, 13 insertions(+), 1 deletion(-); log: logs/42-release-prep-L94-a8-1792088860749.log
+
+### Replan (depth 0) — BLOCK → Human checkpoint for v0.1.0: run the SMOKE-TEST.md 'Release checklist' on the device using dist/speed-reaper-0.1.0-linux-x86_64.zip (and the windows zip if available); record any failures as new tasks under section 8, and if it passes, optionally squash the per-task duplicate commits for tasks 5–6, then run `git tag v0.1.0` and tick the section 8 box. If you hit failures, add them as tasks under section 8 instead — ralph will resume from there.
+Trigger: worker marked it blocked: Human gate — requires the human to run the SMOKE-TEST.md "Release checklist" on the physical device with `dist/speed-reaper-0.1.0-{linux,windows}-x86_64.zip`, record any failures as new tasks here, and then run `git tag v0.1.0` (no tag exists yet). A worker cannot hand-test or sign off the release; all prerequisites are verified in place (see vibes/.ralph/42-release-prep.md, Attempt 8).
+Why: Task 8 is a genuine human gate: the SMOKE-TEST.md Release checklist must be run on the physical device and v0.1.0 tagged with human sign-off; attempt 8 verified all prerequisites (both dist zips current, checklist at SMOKE-TEST.md:26, no tag yet), so the worker correctly stopped instead of guessing.
+Rejected: SPLIT: no worker-doable subtasks remain — every prerequisite (zips, checklist, version) was already verified in place; SPLIT/SPIKE would invent work that does not advance the gate. REWRITE: the task text is clear and its missing Verify is intentional for a human checkpoint. BUDGET: attempt 8 finished in-budget (exit 0); time or model would not let a worker hand-test or sign off.
+Log: logs/42-release-prep-L94-replan-1792088933353.log
