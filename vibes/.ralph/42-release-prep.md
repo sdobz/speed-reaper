@@ -55,3 +55,13 @@ Files:
 ```
 M vibes/.ralph/42-release-prep.md
 ```
+
+## Task: 3. README
+
+### Attempt 3 — 2026-10-15T17:51:25Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- No partial work left (clean tree except this record); README.md did not exist.
+- Facts gathered: VID 0x1EDB PID 0xDA0E + udev rule text from SMOKE-TEST.md prereq 3; install paths `~/.config/REAPER/UserPlugins/` / `%APPDATA%\REAPER\UserPlugins\` (SMOKE-TEST.md 5-6, CROSS-PLATFORM.md); bindings at `<resource>/speed-reaper/bindings.ini` seeded first run (main.cpp LoadBindingsText); five actions verbatim from g_actions[] (reload/open/show/echo/learn); LED table from led_state.cpp + key_map.h (SNAP, CUT=ripple1, DIS=ripple2, LIVE_OWR=trim-behind, CAM1-9=active take, VIDEO_ONLY=isolate, AUDIO_ONLY=solo); troubleshooting strings verbatim: `device not found`, `auth failed` (hid_wheel_source.cpp — no "timeout" string; 1 s retry loop), `bind unresolved <name>` (reaper_sinks.cpp).
+- No macOS/dylib support anywhere (CMake/flake are Linux + Windows only) — README says macOS not supported yet rather than inventing a .dylib path.
+- Licenses: src/speed_editor/LICENSE + docs/speed-editor-examples/{python-driver,cpp-driver}/LICENSE all BSD-3-Clause © 2026 John Howard (port of John-Howard/PythonSpeedEditor, pinned 28057b4 per examples README); no repo-root LICENSE file; vendor/reaper-sdk + vendor/WDL credited under SDK terms.
