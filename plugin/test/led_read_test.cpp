@@ -1,6 +1,6 @@
 // led_read_test.cpp — the ReadLedState op (project_ops.h) against the
 // primitives-only FakeProject: the M8 LED snapshot
-// (docs/plugin-design-m5-m9.md §5, docs/notes/m8-state-reads.md).
+// (docs/archive/plugin-design-m5-m9.md §5, docs/notes/m8-state-reads.md).
 #include "fake_project.h"
 #include "project_ops.h"
 

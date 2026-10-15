@@ -1,4 +1,4 @@
-// Configurable IProject fake for unit tests (docs/plugin-design-m5-m9.md
+// Configurable IProject fake for unit tests (docs/archive/plugin-design-m5-m9.md
 // §2). Primitives only (40-cleanup §8): every member is state, and the
 // write primitives apply it directly — the multi-step actions are the
 // pure ops in plugin/src/project_ops.h, which run against this fake

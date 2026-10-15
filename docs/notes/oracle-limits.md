@@ -1,6 +1,6 @@
 # Oracle limits & REAPER-behavior findings (headless Linux REAPER 7.81)
 
-## Jog strategy (docs/reaper-plugin-workflow.md §3)
+## Jog strategy (docs/archive/reaper-plugin-workflow.md §3)
 
 - **`CSurf_ScrubAmt` does not move the edit cursor when the transport is
   stopped** (called from Lua: 5×0.5 → 0.00000; from the plugin one call gave a

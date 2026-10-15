@@ -5,7 +5,7 @@ with DaVinci Resolve. This document is the REAPER counterpart: how an editor
 actually operates REAPER, the state the workflows depend on, and which
 REAPER concepts are congruent to the device's labeled buttons (and which
 are not). It is the other half of the input for the mapping design in
-`reaper-plugin-workflow.md` (task 3). `reaper-api-subset.md` covers the API
+`docs/archive/reaper-plugin-workflow.md` (task 3). `reaper-api-subset.md` covers the API
 mechanics (function/action names); this document covers *workflows*.
 
 Sources: the REAPER action set / default keymap (verified against the

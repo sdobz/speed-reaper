@@ -2,7 +2,7 @@
 
 > Command ids: look up by number or name in `docs/reaper-actions.tsv` (columns `section	id	name`). Never guess an id.
 
-Builds on `40-cleanup.md`. Replaces `36-m10-bindings.md` (ExtState binding table for the "non-obvious" keys only) and the crossfade decision of `35-m9-crossfade-spike.md`. Dropped on purpose (from `30-backlog.md` / `docs/plugin-configuration.md`): the on-device OPTIONS mode, the obvious/non-obvious split, SOURCE focus, composite-gesture authoring.
+Builds on `40-cleanup.md`. Replaces `36-m10-bindings.md` (ExtState binding table for the "non-obvious" keys only) and the crossfade decision of `35-m9-crossfade-spike.md`. Dropped on purpose (from `30-backlog.md` / `docs/archive/plugin-configuration.md`): the on-device OPTIONS mode, the obvious/non-obvious split, SOURCE focus, composite-gesture authoring.
 
 **Goal:** the user shapes the device to their workflow, and their workflow to the device. Every key is bindable; the shipped default file *is* the manual. Fancy behaviors (place on top, take switching, …) stay available as named verbs but are just lines in the file.
 

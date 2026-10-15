@@ -84,7 +84,7 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/default_bindings_generated.h
 
 get_filename_component(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
 if(UNIX AND NOT APPLE OR WIN32)
-  # Speed Editor driver + HID wheel source (docs/plugin-design-m1-m3.md §1, §4):
+  # Speed Editor driver + HID wheel source (docs/archive/plugin-design-m1-m3.md §1, §4):
   # REAPER-free, so they belong in PLUGIN_PURE_SOURCES (linked into the plugin
   # and every unit test). M1–M4 are Linux-only; the Windows cross build keeps
   # the pre-HID source list.
@@ -151,7 +151,7 @@ if(UNIX AND NOT APPLE)
   target_include_directories(speed_reaper SYSTEM PRIVATE ${HIDAPI_INCLUDE_DIRS})
   target_link_libraries(speed_reaper PRIVATE PkgConfig::HIDAPI)
 
-  # Probe tool (docs/plugin-design-m1-m3.md §5): standalone HID exerciser,
+  # Probe tool (docs/archive/plugin-design-m1-m3.md §5): standalone HID exerciser,
   # no REAPER. Links the same sources as the plugin minus main.cpp
   # (= PLUGIN_PURE_SOURCES). Output: build/plugin/hid_probe.
   add_executable(hid_probe tools/hid_probe.cpp ${PLUGIN_PURE_SOURCES})

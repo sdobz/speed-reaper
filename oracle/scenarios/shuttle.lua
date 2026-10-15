@@ -1,5 +1,5 @@
 -- oracle/scenarios/shuttle.lua — SHTL (shuttle) end-to-end under the oracle
--- (vibes/23-m4-shuttle.md task 6; approach: docs/plugin-design-m4-shuttle-impl.md,
+-- (vibes/23-m4-shuttle.md task 6; approach: docs/archive/plugin-design-m4-shuttle-impl.md,
 -- rule 2 — forward via playrate, reverse via stepped seek).
 --
 -- The harness sources oracle/scenarios/shuttle.env, which points
@@ -75,7 +75,7 @@ start("device", function()
     -- Forward (script 700-1700 -> lua ~660-1660): playhead advances well
     -- above realtime and the read-back rate is REAPER's documented 4.0
     -- cap of the requested 8.0 (M4 spike: master playrate clamps 0.25..4.0;
-    -- docs/plugin-design-m4-shuttle-impl.md).
+    -- docs/archive/plugin-design-m4-shuttle-impl.md).
     local fa, fb = window(samples, 800, 1450)
     check("forward window sampled", fa ~= nil and fb ~= nil and fb > fa,
           string.format("fa=%s fb=%s n=%d", tostring(fa), tostring(fb), n))

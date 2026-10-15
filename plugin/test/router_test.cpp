@@ -1,5 +1,5 @@
-// Characterizes Router (docs/plugin-design-m1-m3.md §6, design §8 /
-// docs/plugin-design-m4-shuttle-impl.md for SHTL): press rules, STOP/PLAY,
+// Characterizes Router (docs/archive/plugin-design-m1-m3.md §6, design §8 /
+// docs/archive/plugin-design-m4-shuttle-impl.md for SHTL): press rules, STOP/PLAY,
 // Scrl seconds-based view scrolling (same scale as the jog cursor), and
 // SHTL shuttle-rate wiring. Wheel routing lives in WheelDispatcher
 // (wheel_dispatcher_test.cpp, 40-cleanup §6). No REAPER, no HID.

@@ -14,7 +14,7 @@ Builds on `41-action-registry.md`. Goal: a vanilla REAPER extension someone else
 tools/check && test -s docs/design.md && ! rg -n 'docs/(plugin-design-m|plugin-configuration|reaper-plugin-workflow|reaper-plugin\.md)' --glob '!docs/archive/**' --glob '!vibes/[0-3]*' .
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. Bindings reference generated from the registry
 

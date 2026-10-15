@@ -14,7 +14,7 @@ and the ReaScript runtime helpers used for prototyping.
   plugin fetch it with `rec->GetFunc("FunctionName")` — signatures match
   `vendor/reaper-sdk/sdk/reaper_plugin_functions.h`. This doc is therefore
   also the catalog of the transport-related host APIs (see
-  `docs/reaper-plugin.md` §3–§4 for which ones the plugin uses).
+  `docs/archive/reaper-plugin.md` §3–§4 for which ones the plugin uses).
 - Signatures shown are the C form; EEL2/Lua/Python variants of every
   function remain in the full `docs/reaper-api.htm` (search the function
   name — each entry has a `#Name` anchor).
@@ -1034,4 +1034,4 @@ the curated subset; look them up in `docs/reaper-api.htm`.
 - `docs/reaper-api.htm` — full REAPER API reference (REAPER v7.82/win64),
   1.1 MB HTML, 4 signature variants + full descriptions per function.
 - REAPER Extensions SDK: <https://www.reaper.fm/sdk/plugin/plugin.php>
-- Local: `docs/reaper-plugin.md` (architecture), `docs/reaper-dev-env.md` (build env).
+- Local: `docs/archive/reaper-plugin.md` (architecture), `docs/reaper-dev-env.md` (build env).

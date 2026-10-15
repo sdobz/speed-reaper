@@ -1,4 +1,4 @@
-// Implicit-target rule (docs/plugin-design-m5-m9.md §1.1) and
+// Implicit-target rule (docs/archive/plugin-design-m5-m9.md §1.1) and
 // WithTargetSelected: selected items win; cursor containment on the target
 // track; boundary belongs to the item starting there; cursor at the end of
 // the track's last item; target-track fallback to last-touched; nothing

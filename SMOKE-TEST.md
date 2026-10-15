@@ -218,7 +218,7 @@ Start from the M1 state: Speed Editor plugged in, plugin installed (M1 step 3), 
 
    **Expected:** console shows `Speed Reaper: disconnected`, then `Speed Reaper: connected (serial …)`; after reconnect **SCRL is still the active mode** and its LED is lit (mode + LEDs are re-sent automatically on the reconnect edge — no button press needed). Wheel still scrolls, cursor still frozen.
 
-6. **Tuning note — scroll speed**: SCRL deliberately shares the jog scale (`JogEngine::kSecondsPerWheelUnit` in `plugin/src/jog_engine.h`), so it matches the cursor's on-screen speed at any zoom by construction. If you want SCRL to travel faster/slower *than the cursor*, that is a deliberate divergence — record the desired ratio and the feel in `docs/notes/m2-observations.md` (a `scroll.speed_factor` parameter is its likely home, `docs/plugin-configuration.md` §2.4).
+6. **Tuning note — scroll speed**: SCRL deliberately shares the jog scale (`JogEngine::kSecondsPerWheelUnit` in `plugin/src/jog_engine.h`), so it matches the cursor's on-screen speed at any zoom by construction. If you want SCRL to travel faster/slower *than the cursor*, that is a deliberate divergence — record the desired ratio and the feel in `docs/notes/m2-observations.md` (a `scroll.speed_factor` parameter is its likely home, `docs/archive/plugin-configuration.md` §2.4).
 
 Pass bar: the jog LEDs are always truthful (exactly one of JOG/SCRL lit, SHTL never lit), SCRL scrolling never moves the edit cursor, STOP/PLAY toggles transport in both modes, and the active mode survives an unplug/replug.
 
@@ -307,7 +307,7 @@ The law, for reference (`ShuttleRate`, `plugin/src/shuttle.cpp`): the wheel's
 (dead band, ≈ the first 1% of travel) → stop; `±40` → `±1.0×`; full
 deflection `±4096` → `±8.0×` by the law, with smoothstep in between (≈ `2×`
 at ~¼ deflection, ≈ `4×` at ~½ deflection). Implementation decision
-(`docs/plugin-design-m4-shuttle-impl.md`, rule 2): forward goes through
+(`docs/archive/plugin-design-m4-shuttle-impl.md`, rule 2): forward goes through
 REAPER's master playrate, which REAPER caps at **4.0×** read-back — so the
 audible forward range is 1×–4×, flat at 4× from ~½ deflection up. Reverse is
 synthesized as stepped seeks (125 steps/s), so it sounds like a fast scrub,

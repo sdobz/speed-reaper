@@ -1,4 +1,4 @@
-// Characterizes DiffHeldKeys (docs/plugin-design-m1-m3.md §6): releases
+// Characterizes DiffHeldKeys (docs/archive/plugin-design-m1-m3.md §6): releases
 // first (in prev order), then presses (in cur order). No REAPER needed.
 #include "button_diff.h"
 #include "check.h"

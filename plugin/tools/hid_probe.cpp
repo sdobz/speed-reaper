@@ -1,5 +1,5 @@
 // hid_probe — standalone Speed Editor probe tool
-// (docs/plugin-design-m1-m3.md §5). Links HidWheelSource + driver, no REAPER.
+// (docs/archive/plugin-design-m1-m3.md §5). Links HidWheelSource + driver, no REAPER.
 //
 // Usage: hid_probe [--seconds N] [--buttons]
 //   Starts the wheel source, then every 8 ms calls Tick/PopLog/(PopButton),

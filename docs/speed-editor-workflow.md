@@ -211,7 +211,7 @@ with wheel → (double-tap TRANS DUR to make it the new default).
 ## 10. Implications for a REAPER port (what "same workflow" requires)
 
 Facts that constrain any faithful port (design decisions belong to
-`reaper-plugin-workflow.md`, task 3):
+`docs/archive/reaper-plugin-workflow.md`, task 3):
 
 1. **Double-tap and hold+rotate are app behavior.** The hardware only
    reports held keysets (report `0x04`, no auto-repeat, no repeat, no

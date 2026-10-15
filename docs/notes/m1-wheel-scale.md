@@ -27,7 +27,7 @@ mode = protocol mode 0, REAPER stopped).
    wheel stopped — it behaved like a throttle whose direction was the running
    sum of all turns.
 4. **Velocity smoothing (τ = 50 ms)** in `JogEngine` was not asked for by
-   `docs/reaper-plugin-workflow.md` §3 (small deltas = nudges, larger =
+   `docs/archive/reaper-plugin-workflow.md` §3 (small deltas = nudges, larger =
    proportional); it added glide/coast the user did not want when stopped.
 
 ## Decisions
@@ -47,7 +47,7 @@ mode = protocol mode 0, REAPER stopped).
 ## Candidate user parameter
 
 `jog.seconds_per_rev` — default 20, range ~5–60 (also see
-`docs/plugin-configuration.md` §2.2). `kUnitsPerRev` is hardware, not tunable.
+`docs/archive/plugin-configuration.md` §2.2). `kUnitsPerRev` is hardware, not tunable.
 Possible later: a second, finer scale with a modifier key; acceleration
 (speed-dependent gain).
 
