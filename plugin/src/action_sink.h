@@ -8,11 +8,18 @@
 #ifndef SPEED_REAPER_ACTION_SINK_H
 #define SPEED_REAPER_ACTION_SINK_H
 
+#include <string>
+
 class IActionSink {
  public:
   virtual ~IActionSink() = default;
   // Run a REAPER command (e.g. 40044 = STOP/PLAY toggle).
   virtual void RunCommand(int cmd) = 0;
+  // Run a named REAPER command (the `_Named` form of the action verb):
+  // the REAPER sink resolves it with NamedCommandLookup; unresolved ->
+  // trace "bind unresolved <name>", no-op. Non-pure (no-op) so the
+  // headless fakes need not implement it.
+  virtual void RunCommandByName(const std::string &name) { (void)name; }
   // Scroll the arrange view by dt seconds of timeline (+ = right/later).
   // Seconds, not lines: the same timeline distance the jog cursor travels,
   // so the on-screen speed matches the cursor at any zoom level.

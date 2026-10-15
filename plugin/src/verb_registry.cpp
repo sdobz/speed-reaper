@@ -105,26 +105,41 @@ void SmthCutTap(IActionSink &sink, IProject &project) {
 
 // The verbs.
 
+// The action/targeted verbs run either a numeric command id
+// (RunCommand -> Main_OnCommand) or a `_named` command
+// (RunCommandByName -> NamedCommandLookup in the REAPER sink).
 class ActionVerb : public Verb {
  public:
   explicit ActionVerb(int command) : command_(command) {}
-  void Run(VerbContext &ctx) override { ctx.sink.RunCommand(command_); }
+  explicit ActionVerb(const std::string &named) : named_(named) {}
+  void Run(VerbContext &ctx) override {
+    if (named_.empty()) ctx.sink.RunCommand(command_);
+    else ctx.sink.RunCommandByName(named_);
+  }
 
  private:
-  int command_;
+  int command_ = 0;
+  std::string named_;
 };
 
 class TargetedVerb : public Verb {
  public:
   explicit TargetedVerb(int command) : command_(command) {}
+  explicit TargetedVerb(const std::string &named) : named_(named) {}
   void Run(VerbContext &ctx) override {
     ctx.project.Undo_Begin();
-    WithTargetSelected(ctx.project, [&ctx, this] { ctx.sink.RunCommand(command_); });
-    ctx.project.Undo_End(("Speed Reaper: targeted " + std::to_string(command_)).c_str());
+    WithTargetSelected(ctx.project, [&ctx, this] {
+      if (named_.empty()) ctx.sink.RunCommand(command_);
+      else ctx.sink.RunCommandByName(named_);
+    });
+    ctx.project.Undo_End(("Speed Reaper: targeted " +
+                          (named_.empty() ? std::to_string(command_) : named_))
+                            .c_str());
   }
 
  private:
-  int command_;
+  int command_ = 0;
+  std::string named_;
 };
 
 class RippleDeleteVerb : public Verb {
@@ -221,6 +236,42 @@ bool CheckNoArgs(const char *name, const std::vector<std::string> &args,
                  std::string *error) {
   if (args.empty()) return true;
   *error = std::string(name) + ": takes no arguments";
+  return false;
+}
+
+// One argument: a numeric command id or a `_named` command (the design's
+// <id|_NamedCmd>). Bare non-numeric strings are rejected.
+struct CommandArg {
+  bool named = false;
+  int id = 0;
+  std::string name;
+};
+bool ParseCommandArg(const char *name, const std::vector<std::string> &args,
+                     CommandArg *out, std::string *error) {
+  if (args.size() != 1) {
+    *error = std::string(name) + ": expected one command argument, got " +
+             std::to_string(args.size());
+    return false;
+  }
+  const std::string &a = args[0];
+  char *end = nullptr;
+  const long v = std::strtol(a.c_str(), &end, 10);
+  if (end != a.c_str() && *end == '\0') {
+    if (v < INT_MIN || v > INT_MAX) {
+      *error = std::string(name) + ": argument '" + a + "' is out of range";
+      return false;
+    }
+    out->named = false;
+    out->id = static_cast<int>(v);
+    return true;
+  }
+  if (!a.empty() && a[0] == '_') {
+    out->named = true;
+    out->name = a;
+    return true;
+  }
+  *error = std::string(name) + ": argument '" + a +
+           "' is not a command id or _named command";
   return false;
 }
 
@@ -436,22 +487,24 @@ VerbRegistry MakeDefaultRegistry() {
                             BindingGesture::Double},
                "Run REAPER command <id> directly",
                [](std::vector<std::string> args) -> VerbBuildResult {
-                 int id = 0;
+                 CommandArg cmd;
                  std::string error;
-                 if (!ParseIntArg("action", args, &id, &error))
+                 if (!ParseCommandArg("action", args, &cmd, &error))
                    return {nullptr, error};
-                 return {std::make_unique<ActionVerb>(id), ""};
+                 if (cmd.named) return {std::make_unique<ActionVerb>(cmd.name), ""};
+                 return {std::make_unique<ActionVerb>(cmd.id), ""};
                }});
 
   reg.Register({"targeted", {BindingGesture::Press, BindingGesture::Tap,
                              BindingGesture::Double},
                "Run REAPER command <id> on the implicit targets, one undo step",
                [](std::vector<std::string> args) -> VerbBuildResult {
-                 int id = 0;
+                 CommandArg cmd;
                  std::string error;
-                 if (!ParseIntArg("targeted", args, &id, &error))
+                 if (!ParseCommandArg("targeted", args, &cmd, &error))
                    return {nullptr, error};
-                 return {std::make_unique<TargetedVerb>(id), ""};
+                 if (cmd.named) return {std::make_unique<TargetedVerb>(cmd.name), ""};
+                 return {std::make_unique<TargetedVerb>(cmd.id), ""};
                }});
 
   reg.Register({"ripple_delete", {BindingGesture::Tap, BindingGesture::Double},

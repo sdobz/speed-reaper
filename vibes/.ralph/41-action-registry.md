@@ -86,3 +86,15 @@ Files:
 ```
 M vibes/.ralph/41-action-registry.md
 ```
+
+## Task: 2. Bindings parser (pure)
+
+### Attempt 1 — 2026-10-15T04:35:47Z — budget 1800s
+
+- Facts: `action`/`targeted` factories only accepted numeric ids (ParseIntArg); `verb_registry_test.cpp:145` asserts `action abc` is rejected. Design says `<id|_NamedCmd>` — so accept only a `_`-prefixed named form; bare `abc` stays an error (existing test kept green).
+- Facts: named-command execution needs a sink seam: added non-pure `IActionSink::RunCommandByName(const std::string&)` (default no-op) so existing fakes in router/verbs/session tests don't break; REAPER impl (NamedCommandLookup) lands in task 4.
+- Facts: key names = `KEY_*` suffixes from src/speed_editor/key_map.h (STOP/PLAY → `STOP_PLAY`); tests can `#include "speed_editor/key_map.h"` (REPO_ROOT/src is on the test include path).
+- Dead ends: `out.bindings[{key, gesture}] = BoundVerb{...}` won't compile — `BoundVerb` is non-copyable (unique_ptr member), so map::operator[] + copy-assign hits the deleted copy. Fix: `BoundVerb` gets explicit defaulted move / deleted copy ctors and the parser uses `insert_or_assign(key, std::move(bound))`.
+- Facts: `nudge` factory takes exactly one arg until task 7 adds `step=` — the design's example line `nudge trim_in step=frame` must not appear in task-2 test fixtures (would be a parse error today).
+- Dead ends: parser must Trim inside `KEY . gesture` (whitespace-tolerant means `SPLIT   . tap` parses); `std::move(built.verb)` with a `const` `built` still copies (const rvalue) — keep the Build result non-const.
+- Done: plugin/src/bindings.{h,cpp} (Tuning, BoundVerb, Bindings, ParseBindings, KeyByName/KeyName; sections [tuning]/[bindings], `;`/`#` comments, press-exclusivity, `bindings.ini:<n>: <reason>` errors, derived double_tap_keys); plugin/test/bindings_test.cpp (12 tests incl. the design's example file — minus `step=frame`, see above); action/targeted accept `_named` commands via new non-pure IActionSink::RunCommandByName (default no-op; REAPER impl = task 4); src/bindings.cpp added to PLUGIN_PURE_SOURCES. `SKIP_WINDOWS=1 tools/check bindings` PASS + all 19 plugin suites pass. Line 86 ticked; full `tools/check bindings` (Windows oracle) running as job 41-bindings-final before commit.

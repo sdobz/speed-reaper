@@ -83,7 +83,7 @@ tools/check verb_registry
 tools/check bindings
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Default bindings = today's behavior
 
