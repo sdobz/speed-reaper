@@ -127,3 +127,20 @@ Trigger: 3 attempt(s), last: exit 0, verify-failed
 Why: Attempt 3 finished the entire task — reaper_api.h, the REAPERAPI_IMPLEMENT split, and tools/check_api_want are all in the tree and the worker's own verify passed — but ralph's re-run died on 'bash: line 1: rg: command not found': the Verify uses `rg`, which is not on PATH in the verify environment, so `test "" -eq 1` fails. Only the Verify is wrong. (Task 4's Verify also uses rg and will need the same grep fix.)
 Rejected: BUDGET: not a timeout and no time was wasted — the work was complete and the failure is a missing binary in the verify env. SPLIT/SPIKE: nothing left to build or decide. BLOCK: the fix is mechanical, no human input needed.
 Log: logs/40-cleanup-L51-replan-1792032755675.log
+
+## Task: 3. One REAPER API list (Verify without rg)
+
+### Attempt 1 — 2026-10-15T02:54:53Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Sanity-check: `grep -rl 'REAPERAPI_WANT_' plugin/src` → only `plugin/src/reaper_api.h` (1 file). No `keep in sync` comment anywhere in plugin/ or tools/. `tools/check` calls `tools/check_api_want` (line 13). Working tree clean except this record file; attempt 3's commit 44192a0 is in history.
+  - DONE: verify40-3b (corrected grep-based Verify) rc=0 in 11s (cached builds): tools/check green (14/14 unit tests, WINDOWS ORACLE PASS static, ORACLE PASS host), grep file count = 1, ORACLE PASS reaper/load. Line 51 ticked.
+
+Result: exit 0; done; 2 files changed, 9 insertions(+), 1 deletion(-); log: logs/40-cleanup-L51-a1-1792032893416.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+ M vibes/40-cleanup.md
+```
