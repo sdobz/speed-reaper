@@ -87,7 +87,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 
 - First read `docs/notes/oracle-scenario-rules.md` (shared facts and rules).
 - New scenario, one gesture: SMTH CUT `0x11` tap (cmd `40916`).
-- Setup directly through the API, no PLACE ON TOP: one track, item A [0,1.5] and item C [1.5,5] meeting at 1.5, tone PCM sources on both (copy `le16`/`le32`/`write_tone` from `oracle/scenarios/probe_sv4.lua`), both items selected via 40717 as in probe_sv4, time selection [1,2]. This is the proven working layout: it gave `D_FADEOUTLEN_AUTO`/`D_FADEINLEN_AUTO` ≈ 0.99.
+- Setup directly through the API, no PLACE ON TOP: one track, item A [0,1.5] and item C [1.5,5] meeting at 1.5, tone PCM sources on both (the probe found 40916 crossfades only item boundaries strictly inside the tsel, and only with real audio sources), both items selected via 40717, time selection [1,2]. This is the proven working layout: it gave `D_FADEOUTLEN_AUTO`/`D_FADEINLEN_AUTO` ≈ 0.99.
 - Check: after the gesture some item's `D_FADEINLEN_AUTO` or `D_FADEOUTLEN_AUTO` > 0 (record the value), and the trace has `cmd 40916`.
 - Then delete `oracle/scenarios/probe_*.lua` files that are no longer referenced by any doc, and add `smth_cut` to `REAPER_SCENARIOS` in `tools/reaper-oracle`.
 

@@ -98,7 +98,7 @@ calling `fn()` each cycle), `finish()` (writes `probe.json` to `$ORACLE_OUT`, th
 A scenario that never calls `finish()` within 60 s is a FAIL (`reason: scenario timeout`).
 
 Scenario catalogue (grows by milestone): `load` (every plugin action id resolves with
-`NamedCommandLookup("_<id_str>")` ≠ 0), `jog_demo` (§5), later `hid_wheel`, `buttons`, `verbs`, `spike_rate`.
+`NamedCommandLookup("_<id_str>")` ≠ 0), `jog_demo` (§5), later `hid_wheel`, `buttons`, `verbs` (the M4 playrate spike ran as a since-deleted one-off scenario; findings in `docs/notes/m4-shuttle-api.md`).
 
 ## §5 Behavior checks (`jog_demo`)
 

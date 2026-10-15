@@ -13,7 +13,7 @@
 -- Setup directly through the API (no PLACE ON TOP): one track, item A [0,1.5]
 -- and item C [1.5,5] meeting at 1.5, tone PCM sources on both, both items
 -- selected via 40717, time selection [1,2]. This is the proven layout
--- (probe_sv4.lua): 40916 creates auto-fades ONLY at item boundaries strictly
+-- (the probe found 40916 creates auto-fades ONLY at item boundaries strictly
 -- inside the time selection, and only with real audio sources (empty takes
 -- no-op), giving item A D_FADEOUTLEN_AUTO ~= 0.99 and item C
 -- D_FADEINLEN_AUTO ~= 0.99. See docs/notes/m5-observations.md ## M6.
@@ -76,7 +76,7 @@ start("device", function()
         reaper.CountMediaItems(nil, tr) == 2,
         "items=" .. reaper.CountMediaItems(nil, tr))
 
-  -- Select both items via 40717 (as in probe_sv4); the tap lands ~410 ms
+  -- Select both items via 40717; the tap lands ~410 ms
   -- device time, so this must settle well before then.
   reaper.defer(function()
     reaper.Main_OnCommand(40717, 0) -- select items in time selection

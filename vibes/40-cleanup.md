@@ -21,7 +21,7 @@ Rules for every task:
 tools/check && test -z "$(git ls-files vibes/.ralph-logs)" && ! ls oracle/scenarios/probe_* oracle/scenarios/spike_rate.lua 2>/dev/null && git ls-files --error-unmatch oracle/scenarios/spike_xfade.lua
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. Delete the hello-world demo and the M4 spike code
 

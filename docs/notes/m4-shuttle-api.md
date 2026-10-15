@@ -1,7 +1,7 @@
 # M4 shuttle: REAPER playrate API spike — findings
 
-Spike: `oracle/scenarios/spike_rate.lua` under `tools/reaper-oracle --layer
-reaper --scenario spike_rate --report-only` (artifacts in `build/oracle/`:
+Spike: a since-deleted one-off scenario under `tools/reaper-oracle --layer
+reaper --report-only` (artifacts in `build/oracle/`:
 `result.json`, `trace_spike_rate.txt`). Each spike action
 (`speed_reaper_spike_rate2/rate8/reverse/reset`, plugin/src/main.cpp, M4
 task 2) was run via `Main_OnCommand(NamedCommandLookup(...), 0)`, waited

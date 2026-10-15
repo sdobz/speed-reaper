@@ -39,7 +39,7 @@ tools/check && strings build/plugin/reaper_speed_reaper.so | grep -q speed_reape
 
 ### 3. Run the spike under the oracle and write the findings
 
-- Add `oracle/scenarios/spike_rate.lua`: for each spike action (2×, 8×, −1×, reset) run it via `Main_OnCommand(NamedCommandLookup(...), 0)`, wait 600 ms, and record in `check` details the `spike …` trace values plus `reaper.Master_GetPlayRate(0)`, `reaper.GetPlayState()` and two cursor samples 300 ms apart. The checks only assert that each action ran (trace line present); the *measurements* are the output.
+- Add a one-off scenario `oracle/scenarios/spike_rate.lua` (since deleted; findings in `docs/notes/m4-shuttle-api.md`): for each spike action (2×, 8×, −1×, reset) run it via `Main_OnCommand(NamedCommandLookup(...), 0)`, wait 600 ms, and record in `check` details the `spike …` trace values plus `reaper.Master_GetPlayRate(0)`, `reaper.GetPlayState()` and two cursor samples 300 ms apart. The checks only assert that each action ran (trace line present); the *measurements* are the output.
 - Run `tools/reaper-oracle --layer reaper --scenario spike_rate --report-only` and write `docs/notes/m4-shuttle-api.md` from `build/oracle/`: a table (one row per action: requested rate, read-back rate, play state, cursor moved?, reversed?), the answers to: does 8× play? does a negative rate reverse? what is read back? Include a "Limits" paragraph: headless REAPER has no audio device, so audio quality/scrub *sound* is unmeasured (human item only).
 - Then 2–3 candidate approaches (e.g. "playrate only", "playrate forward + stepped seek for reverse", "forward-only shuttle for v1") with tradeoffs, grounded in the measured table. Do not implement any approach.
 
