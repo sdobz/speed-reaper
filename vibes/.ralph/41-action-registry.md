@@ -61,3 +61,11 @@ Facts:
 - select_step only overrides Step (no Begin/End — the old router had no TIMELINE HoldStart state); nudge keeps an active_ flag set by Begin (no targets → inactive, no undo block, Step/End no-ops).
 - Dead ends: my first trim_out test expected `len -= 1/fps` — wrong: NudgeTrimOut is `len += steps*step` (the moved-verbatim math). Fixed the expectation, test passes.
 - Done: `tools/check verb_registry` exits 0 (job check-41-turn: ctest 100%, WINDOWS ORACLE PASS static, ORACLE PASS host). Committed as f28286b + the trim_out test-fix commit; box on line 62 of vibes/41-action-registry.md ticked.
+
+Result: exit 0; done; log: logs/41-action-registry-L62-a1-1792038157094.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/41-action-registry.md
+```
