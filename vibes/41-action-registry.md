@@ -50,6 +50,28 @@ tools/check verb_registry
 ```
 
 - [ ] Done
+  <!-- ralph: replanned=1 op=AND -->
+  - [ ] Registry core + 10 tap verbs + basic tests
+    Read plugin/src/verbs.cpp (free functions to move verbatim), plugin/src/action_sink.h, plugin/test/router_test.cpp (FakeSink pattern), plugin/test/fake_project.h.
+    Create plugin/src/verb_registry.h: `enum class BindingGesture{Press,Tap,Double,Turn}` + `GestureName()` ("press"/"tap"/"double"/"turn"); `struct VerbContext{IActionSink& sink; IProject& project;}`; `class Verb{virtual void Run(VerbContext&); Begin(VerbContext&); Step(VerbContext&,int); End(VerbContext&) — all default no-op}`; `struct VerbBuildResult{std::unique_ptr<Verb> verb; std::string error;}` (verb null iff error non-empty); `struct VerbSpec{name; std::vector<BindingGesture> gestures; std::string description; factory(std::vector<std::string> args)->VerbBuildResult}`; `class VerbRegistry{Register, Find, Names, Build(name,gesture,args)}`; `VerbRegistry MakeDefaultRegistry()`.
+    Build(): unknown name -> error `unknown verb 'X'`; gesture not in spec.gestures -> `verb 'X' does not accept gesture 'y'`; else run the factory (factory errors must start with the verb name, e.g. `take: ...`).
+    plugin/src/verb_registry.cpp: register 10 verbs, logic moved verbatim from verbs.cpp: `action <id>` (RunCommand; one int arg), `targeted <id>` (Undo_Begin + WithTargetSelected{RunCommand(id)} + Undo_End("Speed Reaper: targeted <id>")), `ripple_delete` (RiplDel), `select_cursor_item` (TimelineTap), `take <N>` (N>=1; CamSetTake with N from the arg; label "Speed Reaper: take N"), `volume_readout` (AudioLevelTap), `smooth_cut` (SmthCutTap), `place_on_top` (PlaceOnTopTap), `isolate_tracks` / `solo_tracks` (VideoOnlyTap/AudioOnlyTap; each verb owns its own IsolateView/SoloView member).
+    Gestures: action+targeted = press,tap,double; ripple_delete+take = tap,double; the other six = tap. Add src/verb_registry.cpp to PLUGIN_PURE_SOURCES in plugin/CMakeLists.txt (tests are auto-globbed: no test CMake edit).
+    plugin/test/verb_registry_test.cpp: every one of the 10 names resolves and Builds; wrong gesture rejected (e.g. take on turn, smooth_cut on press); bad args rejected with a non-empty message (take 0, take abc, action abc, take with no arg, unknown verb). Do NOT add select_step / nudge / wheel / transport yet.
+    Verify: `tools/check verb_registry`
+  - [ ] Turn verbs: select_step + nudge
+    Extend plugin/src/verb_registry.cpp (no header change) with the two `turn` verbs, logic verbatim from plugin/src/verbs.cpp — read the HoldStart/HoldRotate/HoldEnd cases of OnGesture, kHoldRows, TimelineHoldRotate, StepSelection.
+    `select_step` (Turn): per-verb `int select_delta_ = 0`; Step accumulates delta and for each ±20 ticks (keep `kSelectStepTicks = 20`) calls the moved-verbatim StepSelection (next/prev item on target track, clamped, exclusive selection).
+    `nudge <move|trim_in|trim_out|slip_src|slip_dest|volume>` (Turn): per-verb state {targets, selection snapshot, `HoldNudge nudge{4}`, active flag}. Begin = HoldStart verbatim (no targets -> Trace("target none"), stay inactive, no undo block); Step = HoldRotate verbatim (one whole step per 4 ticks, step size 1/Fps(), apply the mode's ItemGeom function from nudge.h to each target); End = HoldEnd verbatim (restore snapshot, Undo_End with the kHoldRows label: "Speed Reaper: move|trim in|trim out|slip src|slip dest|audio level"). Bad args (nudge foo, wrong count) -> error starting with `nudge:`.
+    Extend plugin/test/verb_registry_test.cpp: both names resolve (nudge under all 6 modes); select_step: 20 ticks selects the first item, the next 20 the next one, 10+10 ticks also steps (remainder kept); nudge: one undo block per hold, 1/fps step per 4 ticks, sub-threshold delta no-op, selection restored on End, no targets -> no undo block and no-ops.
+    FakeProject::SetSelectedItems is recorded, not applied: after a selection call, copy the last recorded selection into items[].selected before the next verb call (pattern in plugin/test/verbs_test.cpp).
+    Verify: `tools/check verb_registry`
+  - [ ] wheel + transport play_stop (shared WheelState)
+    Add to plugin/src/verb_registry.h: `struct WheelState{WheelMode mode = WheelMode::Jog; WheelMode shuttle_prev = WheelMode::Jog; bool mode_change_pending = false; bool Set(WheelMode m); bool TakeModeChange(WheelMode *m);}` — Set: re-pressing the active mode is not a change, otherwise set mode_change_pending; TakeModeChange: true exactly once per change (consumed), *m gets the new mode. Owned by VerbRegistry (make the registry non-copyable); the wheel/transport factories capture a `WheelState*`. Do NOT include the SHTL dead-band HardStop state — that stays in Router::OnShuttleOffset (unwired, unchanged).
+    Extend plugin/src/verb_registry.cpp with two press verbs, logic verbatim from Router::OnButton in plugin/src/router.cpp: `wheel <jog|scrl|shtl>` — a jog/scrl press from Shtl first calls sink.ApplyShuttleRate(1.0); an shtl press remembers the prior mode when not already in Shtl; `transport play_stop` — in Shtl: sink.HardStop() + Set(shuttle_prev), else sink.RunCommand(40044).
+    Bad args -> error starting with the verb name: wheel foo, wheel with no arg, transport foo, transport with no arg, extra args.
+    Extend plugin/test/verb_registry_test.cpp: both names resolve (press only; tap/turn rejected); press shtl -> mode Shtl + TakeModeChange once with Shtl; play_stop from Shtl -> HardStop + mode returns to Jog; press jog from Shtl -> ApplyShuttleRate(1.0) + mode Jog; play_stop outside Shtl -> RunCommand(40044).
+    Verify: `tools/check verb_registry`
 
 ### 2. Bindings parser (pure)
 
