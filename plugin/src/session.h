@@ -22,16 +22,16 @@
 #include "project.h"
 #include "router.h"
 #include "verbs.h"
+#include "wheel_dispatcher.h"
 
 // The Speed Editor as seen by the Session: button/log queues, connected
-// state, wheel tick, absolute position, and the mode/LED requests.
-class IDevice : public IWheelSource {
+// state, wheel tick (via IWheelDevice), and the mode/LED requests.
+class IDevice : public IWheelDevice {
  public:
   ~IDevice() override = default;
   virtual bool PopButton(ButtonChange *out) = 0;   // false if empty
   virtual bool PopLog(std::string *out) = 0;       // false if empty
   virtual bool Connected() const = 0;
-  virtual std::int32_t AbsolutePosition() const = 0;
   virtual void RequestWheelMode(std::uint8_t protocolMode) = 0;
   virtual void RequestJogLeds(bool jog, bool shtl, bool scrl) = 0;
   virtual void RequestLeds(std::uint32_t mainMask) = 0;
@@ -51,27 +51,6 @@ class Session {
   void Tick(std::int64_t now_ms);
 
  private:
-  // Design §7 hold+rotate: while any key is held, the wheel delta goes to
-  // the gesture engine — not the jog/scroll path.
-  class HoldGatedSource final : public IWheelSource {
-   public:
-    HoldGatedSource(IDevice &device, GestureEngine &gestures)
-        : device_(device), gestures_(gestures) {}
-    void Tick(WheelSample *out) override {
-      WheelSample s;
-      device_.Tick(&s);
-      if (gestures_.HoldActive()) {
-        gestures_.OnWheel(s.delta, 0);  // now_ms is unused by OnWheel
-        s.delta = 0;  // held key owns the wheel
-      }
-      *out = s;
-    }
-
-   private:
-    IDevice &device_;
-    GestureEngine &gestures_;
-  };
-
   // Forward the mode to the device + the matching jog-mode LED (report
   // 0x04: bit 0 JOG, 1 SHTL, 2 SCRL).
   void ApplyModeToHid(WheelMode m);
@@ -82,9 +61,8 @@ class Session {
   GestureEngine gestures_;  // tap / double-tap / hold recognition (design §7)
   Router router_;           // owns the wheel mode (Jog/Scrl/Shtl) (design §6)
   VerbRouter verbs_;        // gestures → verbs (design §7; M5 composites)
-  HoldGatedSource hold_gated_;  // HID delta → gestures while a hold is active
-  ModeGatedSource gated_;      // Jog pass-through, Scrl → Router (design §6)
-  JogEngine engine_;
+  WheelDispatcher dispatcher_;  // hold → gestures; else Jog/Scrl/Shtl (§6)
+  JogEngine engine_;             // driven by the dispatcher (design §4)
 
   bool was_connected_ = false;  // false→true edge re-sends mode + LEDs
   int led_mask_ = -1;           // last pushed mask; -1 = not sent (force)

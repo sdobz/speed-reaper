@@ -1,6 +1,7 @@
 // router.cpp — press-semantics buttons + wheel mode routing (design §6, §8).
 #include "router.h"
 
+#include "jog_engine.h"  // JogEngine::kSecondsPerWheelUnit: Scrl scroll scale
 #include "shuttle.h"  // ShuttleRate: SHTL law (M4)
 #include "speed_editor/key_map.h"  // KEY_JOG, KEY_SCRL, KEY_SHTL, KEY_STOP_PLAY
 

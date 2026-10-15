@@ -15,10 +15,6 @@
 // as the jog cursor, so the view travels the same on-screen distance per
 // wheel unit at any zoom (seconds, not lines). Other modes ignore the
 // delta.
-//
-// ModeGatedSource (design §6) wraps the HID source for the engine: in Jog
-// the delta passes through (playhead motion); otherwise it is routed to
-// Router::OnWheel and the engine sees 0, so SCRL never moves the playhead.
 
 #ifndef SPEED_REAPER_ROUTER_H
 #define SPEED_REAPER_ROUTER_H
@@ -27,7 +23,6 @@
 
 #include "action_sink.h"
 #include "button_diff.h"
-#include "jog_engine.h"  // IWheelSource, WheelSample
 #include "wheel_mode.h"
 
 class Router {
@@ -63,28 +58,6 @@ class Router {
   bool mode_change_pending_ = false;
   WheelMode shuttle_prev_ = WheelMode::Jog; // mode to return to on SHTL exit
   bool deadband_stop_ = false; // Shtl: dead-band HardStop already issued
-};
-
-// IWheelSource for the engine: passes the wrapped source's delta through in
-// Jog, routes it to the Router (horizontal scroll) and outputs 0 otherwise.
-class ModeGatedSource : public IWheelSource {
- public:
-  ModeGatedSource(IWheelSource &hid, Router &r) : hid_(hid), router_(r) {}
-
-  void Tick(WheelSample *out) override {
-    WheelSample s;
-    hid_.Tick(&s);
-    if (router_.Mode() == WheelMode::Jog) {
-      *out = s;
-    } else {
-      router_.OnWheel(s.delta);
-      out->delta = 0;
-    }
-  }
-
- private:
-  IWheelSource &hid_;
-  Router &router_;
 };
 
 #endif  // SPEED_REAPER_ROUTER_H

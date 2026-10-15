@@ -90,7 +90,7 @@ tools/check session && test "$(sed -n '/^void onTimer/,/^}/p' plugin/src/main.cp
 tools/check 'wheel_dispatcher|router|session' && ! rg -q 'ModeGatedSource|HoldGatedSource' plugin && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. Merge `hold_nudge` into `nudge`
 

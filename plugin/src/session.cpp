@@ -51,9 +51,8 @@ Session::Session(IDevice &device, IActionSink &actions, IProject &project,
       sink_(sink),
       router_(actions),
       verbs_(actions, project),
-      hold_gated_(device, gestures_),
-      gated_(hold_gated_, router_),
-      engine_(gated_, sink) {
+      dispatcher_(device, gestures_, router_),
+      engine_(dispatcher_, sink) {
   gestures_.SetDoubleTapKeys(VerbDoubleTapKeys());  // IN, OUT, ESC (design §7)
 }
 
@@ -124,10 +123,10 @@ void Session::Tick(std::int64_t now_ms) {
   if ((++calls_ % 100) == 1) Trace("timer call=%d", calls_);  // heartbeat
   double consumed_ms = 0.0;
   while (acc_ms_ >= kTimerMs && consumed_ms < kMaxCatchUpMs) {
+    // The dispatcher (40-cleanup §6) routes each step's wheel input:
+    // hold → gestures, else by mode Jog → engine / Scrl → view scroll /
+    // Shtl → OnShuttleOffset(absolute) (M4 SHTL law).
     engine_.Tick();
-    // SHTL law (M4): absolute offset → ShuttleRate → sink. A no-op outside
-    // Shtl mode; the sink only acts while the transport is playing.
-    router_.OnShuttleOffset(device_.AbsolutePosition());
     acc_ms_ -= kTimerMs;
     consumed_ms += kTimerMs;
   }

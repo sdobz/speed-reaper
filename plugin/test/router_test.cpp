@@ -1,11 +1,12 @@
-// Characterizes Router + ModeGatedSource (docs/plugin-design-m1-m3.md §6,
-// design §8 / docs/plugin-design-m4-shuttle-impl.md for SHTL): press rules,
-// STOP/PLAY, Scrl seconds-based view scrolling (same scale as the jog
-// cursor), SHTL shuttle-rate wiring, and mode gating of the engine source.
-// No REAPER, no HID.
+// Characterizes Router (docs/plugin-design-m1-m3.md §6, design §8 /
+// docs/plugin-design-m4-shuttle-impl.md for SHTL): press rules, STOP/PLAY,
+// Scrl seconds-based view scrolling (same scale as the jog cursor), and
+// SHTL shuttle-rate wiring. Wheel routing lives in WheelDispatcher
+// (wheel_dispatcher_test.cpp, 40-cleanup §6). No REAPER, no HID.
 #include "router.h"
 
 #include "check.h"
+#include "jog_engine.h"  // JogEngine::kSecondsPerWheelUnit: Scrl scroll scale
 #include "shuttle.h"  // ShuttleRate: the law the Router must forward
 #include "speed_editor/key_map.h"  // KEY_JOG, KEY_SCRL, KEY_SHTL, KEY_STOP_PLAY
 
@@ -35,13 +36,6 @@ class FakeSink : public IActionSink {
   int rate_calls = 0;
   double last_rate = 0.0;
   int hard_stops = 0;
-};
-
-// Deterministic IWheelSource: returns the configured sample on every Tick.
-class FakeWheelSource : public IWheelSource {
- public:
-  void Tick(WheelSample *out) override { *out = sample_; }
-  WheelSample sample_{};
 };
 
 ButtonChange Down(std::uint16_t key) { return {key, true}; }
@@ -270,44 +264,6 @@ int main() {
     r.OnButton(Down(KEY_JOG));
     r.TakeModeChange(nullptr);
     r.OnWheel(1000);
-    CHECK(sink.scroll_calls == 2);
-  }
-
-  // ModeGatedSource: Jog passes the delta through; Scrl outputs 0 and
-  // routes the delta to the Router (horizontal scroll).
-  {
-    FakeSink sink;
-    Router r(sink);
-    FakeWheelSource hid;
-    ModeGatedSource gated(hid, r);
-
-    hid.sample_ = {45};
-    WheelSample out{};
-    gated.Tick(&out);
-    CHECK(out.delta == 45);  // Jog: playhead motion, no scroll
-    CHECK(sink.scroll_calls == 0);
-
-    r.OnButton(Down(KEY_SCRL));
-    r.TakeModeChange(nullptr);
-    out = {};
-    gated.Tick(&out);
-    CHECK(out.delta == 0);  // Scrl: engine sees nothing
-    CHECK(sink.scroll_calls == 1);  // 45 units → one scroll right
-    CHECK(sink.scroll_dt_sum == 45.0 * JogEngine::kSecondsPerWheelUnit);
-
-    hid.sample_ = {-45};
-    out = {};
-    gated.Tick(&out);
-    CHECK(out.delta == 0);
-    CHECK(sink.scroll_calls == 2);
-    CHECK(sink.scroll_dt_sum == 0.0);  // round trip
-
-    r.OnButton(Down(KEY_JOG));
-    r.TakeModeChange(nullptr);
-    hid.sample_ = {7};
-    out = {};
-    gated.Tick(&out);
-    CHECK(out.delta == 7);  // back to Jog: passthrough
     CHECK(sink.scroll_calls == 2);
   }
 

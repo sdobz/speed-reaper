@@ -203,3 +203,24 @@ Files:
 ```
 M vibes/.ralph/40-cleanup.md
 ```
+
+## Task: 6. `WheelDispatcher` replaces the wheel decorators
+
+### Attempt 3 — 2026-10-15T03:12:39Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Clean tree at start (only the record file dirty); no partial work from attempts 1–2 (no earlier code, just a stale `### Attempt 3` heading left by ralph).
+- New `plugin/src/wheel_dispatcher.h` (header-only, no CMake source change): `IWheelDevice : IWheelSource` adds `AbsolutePosition()`; `WheelDispatcher(IWheelDevice&, GestureEngine&, Router&)` is the IWheelSource for JogEngine — Tick: hold → `gestures.OnWheel(delta, 0)` + delta 0; else Jog → passthrough, Scrl → `router.OnWheel(delta)` + 0, Shtl → `router.OnShuttleOffset(device.AbsolutePosition())` + 0.
+- `session.h`: `IDevice : IWheelDevice` (AbsolutePosition moved to the base), `HoldGatedSource` inner class deleted, `hold_gated_`/`gated_` members replaced by `WheelDispatcher dispatcher_`; `session.cpp` catch-up loop no longer calls `router_.OnShuttleOffset` (dispatcher does it per engine step).
+- `router.h`: `ModeGatedSource` + its doc paragraph + `#include "jog_engine.h"` deleted. `jog_engine.h` header comment updated.
+- `router_test.cpp`: ModeGatedSource case + FakeWheelSource deleted, header comment points at wheel_dispatcher_test.cpp.
+- New `plugin/test/wheel_dispatcher_test.cpp`: fake IWheelDevice + FakeSink + real GestureEngine/Router; one case per branch (Jog passthrough/no rate traffic, Scrl scroll + 0 to engine, Shtl delta-inert + absolute rate + dead-band HardStop) and one hold case spanning Jog→Scrl→Shtl (HoldRotate for 45/9/5, zero scroll/rate/stop traffic).
+- `SummedWheelSource`/`NullWheelSource` were already gone (task 2). `rg 'ModeGatedSource|HoldGatedSource' plugin` clean after the edits (docs/plugin-design-m1-m3.md still mentions ModeGatedSource historically; Verify only greps plugin/).
+- New files `git add`ed before the nix Windows build (untracked files are invisible to the nix source copy — see Learnings).
+- Build job: `check6` = `tools/check 'wheel_dispatcher|router|session'`.
+Dead ends:
+- router.h dropped `#include "jog_engine.h"` → compile errors in router.cpp and router_test.cpp (`JogEngine::kSecondsPerWheelUnit`) — both now include jog_engine.h themselves. Fixed.
+- The first Verify run failed on the grep step because my own wheel_dispatcher.h header comment named the deleted classes — reworded to "hold/mode decorator chain".
+Next:
+- DONE — exact Verify (job `verify6`) rc=0: tools/check 'wheel_dispatcher|router|session' green (3/3: router_test, session_test, wheel_dispatcher_test; WINDOWS ORACLE PASS static; ORACLE PASS host), grep clean, ORACLE PASS reaper/load. Line 93 ticked.

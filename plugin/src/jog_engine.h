@@ -1,9 +1,9 @@
 // jog_engine.h — wheel input → playhead motion.
 //
 // This layer is the seam for the Speed Editor: IWheelSource is the only
-// thing the engine cares about. main.cpp feeds it the HidWheelSource
-// (behind the mode/hold gating sources), which wraps the hidapi poll loop
-// behind the same interface — no other code changes needed for new
+// thing the engine cares about. The Session feeds it the WheelDispatcher
+// (wheel_dispatcher.h), which reads the HidWheelSource and routes the delta
+// (hold → gestures; else by mode) — no other code changes needed for new
 // sources.
 
 #ifndef SPEED_REAPER_JOG_ENGINE_H
