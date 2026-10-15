@@ -224,3 +224,11 @@ Dead ends:
 - The first Verify run failed on the grep step because my own wheel_dispatcher.h header comment named the deleted classes — reworded to "hold/mode decorator chain".
 Next:
 - DONE — exact Verify (job `verify6`) rc=0: tools/check 'wheel_dispatcher|router|session' green (3/3: router_test, session_test, wheel_dispatcher_test; WINDOWS ORACLE PASS static; ORACLE PASS host), grep clean, ORACLE PASS reaper/load. Line 93 ticked.
+
+Result: exit 0; done; log: logs/40-cleanup-L93-a3-1792033959148.log
+
+### Done — 2026-10-15 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/40-cleanup.md
+```
