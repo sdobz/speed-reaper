@@ -444,8 +444,8 @@ void test_turn_verb_behaviors() {
     CHECK(project.undo_ends == 1);
   }
 
-  // nudge trim_out: the mode's apply function runs (len −= steps*1/Fps())
-  // under the mode's Undo_End label.
+  // nudge trim_out: the mode's apply function runs (len += steps*1/Fps()
+  // per nudge.h) under the mode's Undo_End label.
   {
     FakeProject project;
     project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
@@ -458,7 +458,7 @@ void test_turn_verb_behaviors() {
     CHECK(v != nullptr);
     v->Begin(c);
     v->Step(c, 4);  // one step
-    CHECK_NEAR(project.items[0].len, 5.0 - 1.0 / 30.0, 1e-12);
+    CHECK_NEAR(project.items[0].len, 5.0 + 1.0 / 30.0, 1e-12);
     v->End(c);
     CHECK(project.last_undo_label == "Speed Reaper: trim out");
     CHECK(project.selected_calls.size() == 1);  // empty snapshot restored
