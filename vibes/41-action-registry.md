@@ -124,8 +124,7 @@ Register (search "Speed Reaper" in the action list):
 tools/check && tools/reaper-oracle --layer reaper --scenario bindings
 ```
 
-- [!] Done
-  BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/41-action-registry.md
+- [x] Done
 
 ### 6. Learn action
 

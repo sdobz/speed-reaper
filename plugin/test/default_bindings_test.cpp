@@ -119,5 +119,15 @@ int main() {
     CHECK(it->second.verb != nullptr);
   }
 
+  // 4) Keys whose label has no clear REAPER meaning ship unbound (any
+  // gesture); suggestions live in comments only.
+  for (const std::uint16_t key : {KEY_SMART_INSRT, KEY_APPND, KEY_RIPL_OWR,
+                                  KEY_SRC_OWR, KEY_CLOSE_UP, KEY_SYNC_BIN,
+                                  KEY_LIVE_OWR, KEY_SOURCE}) {
+    for (const BindingGesture g : {BindingGesture::Press, BindingGesture::Tap,
+                                   BindingGesture::Double, BindingGesture::Turn})
+      CHECK(b.bindings.find({key, g}) == b.bindings.end());
+  }
+
   return check_failures();
 }
