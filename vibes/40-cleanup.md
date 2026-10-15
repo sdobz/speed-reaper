@@ -65,7 +65,7 @@ tools/check && test "$(rg -c 'REAPERAPI_WANT_' plugin/src | wc -l)" -eq 1 && too
 tools/check && ! rg -q 'class Reaper(Playhead|Action)Sink' plugin/src/main.cpp && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Pure `Session`: the timer loop becomes testable
 

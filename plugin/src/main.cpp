@@ -26,6 +26,7 @@
 #include "verbs.h" // VerbRouter, VerbDoubleTapKeys (design §7)
 #include "led_state.h" // MainLedMask: SNAP LED follows REAPER's snap state
 #include "reaper_project.h" // ReaperProject (M5 design §2; not wired into VerbRouter yet)
+#include "reaper_sinks.h"  // ReaperPlayheadSink / ReaperActionSink (40-cleanup §4)
 #include "trace.h"
 #include "speed_editor/key_map.h" // KEY_* codes for the router-key split
 
@@ -54,97 +55,6 @@ constexpr double kMaxCatchUpMs = 50.0;
 
 IPlayheadSink *g_sink = nullptr;
 JogEngine *g_engine = nullptr;
-
-// --- IPlayheadSink over the REAPER API -------------------------------
-
-class ReaperPlayheadSink : public IPlayheadSink {
- public:
-  // Jog = move the edit cursor by dt seconds (docs/reaper-plugin-workflow.md
-  // §3). Measured in the headless oracle: SetEditCurPos moves the cursor
-  // exactly and linearly, while CSurf_ScrubAmt does not move it when the
-  // transport is stopped (docs/notes/oracle-limits.md). While playing,
-  // seek the playhead instead so playback follows the wheel.
-  void ScrubBySeconds(double dt) override {
-    const int playing = GetPlayState() & 1;
-    const double pos = playing ? GetPlayPosition() : GetCursorPosition();
-    const double p = (pos + dt) < 0.0 ? 0.0 : pos + dt;
-    SetEditCurPos(p, false, playing != 0);
-  }
-  double PlayPosition() const override { return GetPlayPosition(); }
-};
-
-// --- IActionSink over the REAPER API (design §6) ---------------------
-
-class ReaperActionSink : public IActionSink {
- public:
-  // STOP/PLAY (40044) and friends: run a REAPER command.
-  void RunCommand(int cmd) override {
-    Trace("cmd %d", cmd); // oracle greps (docs/plugin-oracle-design.md §2)
-    Main_OnCommand(cmd, 0);
-  }
-  // Scroll the arrange view by dt seconds of timeline (+ = right/later).
-  // Same scale as the jog cursor (Router passes delta ×
-  // JogEngine::kSecondsPerWheelUnit): the view travels the same on-screen
-  // distance per wheel unit as the cursor, at any zoom level (seconds,
-  // not screen lines — CSurf_OnScroll's line steps do not track zoom).
-  void ScrollBySeconds(double dt) override {
-    ReaProject *proj = nullptr;
-    proj = EnumProjects(-1, nullptr, 0); // idx −1 = current project
-    double t0 = 0.0, t1 = 0.0;
-    GetSet_ArrangeView2(proj, false, 0, 0, &t0, &t1);
-    t0 += dt;
-    t1 += dt;
-    GetSet_ArrangeView2(proj, true, 0, 0, &t0, &t1);
-    UpdateArrange();
-    Trace("scroll dt=%.4f", dt); // oracle greps (design §2)
-  }
-  // Shuttle rate (M4 decision, rule 2: docs/plugin-design-m4-shuttle-impl.md).
-  // Forward: CSurf_OnPlayRateChange, clamped to REAPER's 4.0x read-back cap
-  // (the 4…8x outer half of the ShuttleRate law is flat at 4.0x in transport
-  // terms; no std::min here — the SDK min/max macros are in force). Reverse: synthesized — the playhead steps back |rate|·dt where dt
-  // is one engine tick (kTimerMs = 8 ms; the Router calls this once per
-  // tick). The Router never passes 0; 1.0 is the JOG/SCRL tap hand-off.
-  // While the transport is stopped, forward/reverse park: the wheel still
-  // drives the law and playback starts on a STOP/PLAY press (reverse while
-  // stopped is scrub — JOG/SCRL's job).
-  void ApplyShuttleRate(double rate) override {
-    const int playing = GetPlayState() & 1;
-    if (rate > 0.0) {
-      if (playing == 0) return;
-      const double capped = rate < 4.0 ? rate : 4.0; // no std::min: SDK min macro
-      CSurf_OnPlayRateChange(capped);
-      if (capped != last_rate_) Trace("shuttle rate=%.3f read=%.3f", capped, Master_GetPlayRate(nullptr));
-      last_rate_ = capped;
-    } else if (rate < 0.0) {
-      if (playing == 0) return;
-      const double dt = 8.0 / 1000.0; // one engine tick (kTimerMs), in seconds
-      const double pos = GetPlayPositionEx(0);
-      const double p = pos + rate * dt; // rate < 0 → step back
-      SetEditCurPos(p < 0.0 ? 0.0 : p, false, 1); // seekplay: hold playback
-      if (rate != last_rate_) Trace("shuttle reverse=%.3f pos=%.4f", rate, p);
-      last_rate_ = rate;
-    } else {
-      CSurf_OnPlayRateChange(1.0); // hand-off: normal rate
-      last_rate_ = 1.0;
-    }
-  }
-  // Hard stop: SHTL dead band and STOP/PLAY-while-shuttling. OnStopButton,
-  // never Main_OnCommand(40045) (blocks the script/defer queue headless,
-  // M4 task 3); rate back to 1.0 for the next start.
-  void HardStop() override {
-    if (GetPlayState() != 0) OnStopButton();
-    CSurf_OnPlayRateChange(1.0);
-    last_rate_ = 1.0;
-  }
-  // One-line user message (M6, AUDIO LEVEL read-out): REAPER console.
-  void Message(const char *msg) override {
-    Trace("message %s", msg);
-    ShowConsoleMsg(msg);
-  }
-
- private:
-  double last_rate_ = 1.0; // trace dedup: the Router re-applies every tick
-};
 
 ReaperPlayheadSink g_reaper_sink;
 HidWheelSource g_hid; // Speed Editor HID wheel (task 6; worker thread)

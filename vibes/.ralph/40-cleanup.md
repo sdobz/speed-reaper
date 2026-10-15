@@ -10,6 +10,7 @@ Durable facts every task should know (keep short).
 - `tools/reaper-oracle --layer all`: the `verbs` scenario is STALE (pre-existing since M8, as of 40-cleanup task 2): it expects exactly the 8 bare verb cmd ids (impl wraps RIPL DEL in ripple set/restore 40310/40309 when ripple is off) and `led main=` of only 0x20/0x00 (impl also sets LED_CAM1 0x4000 for selected single-take items). Expect `ORACLE FAIL all/...: verbs` until someone rewrites the scenario or the impl.
 - Clean-HEAD baselines via `git worktree` are not usable for the REAPER layer: REAPER needs an absolute `$HOME`, but `tools/reaper-oracle` passes the relative `build/oracle/home` → "Failed to get the home directory" → scenario timeout. Baseline in the main tree instead (e.g. `git stash` + run + `git stash pop`).
 - Nix builds (e.g. `nix build .#reaper-plugin-windows`, `src = ./.`) copy the repo via a path dep that IGNORES untracked files in a dirty git tree (the /nix/store/...-source copy lacks them → "fatal error: <newfile>: No such file or directory" while edited tracked files ARE present). `git add` new files before any nix build; the build then re-evaluates to a new source path.
+- `tools/reaper-oracle --layer reaper` without `--scenario` runs ONLY the `load` scenario (the full 17-scenario suite is `--layer all`), so the stale `verbs` scenario doesn't affect `--layer reaper` Verify commands.
 
 
 ## Task: 1. Repo hygiene
@@ -142,5 +143,36 @@ Result: exit 0; done; 2 files changed, 9 insertions(+), 1 deletion(-); log: logs
 Files:
 ```
 M vibes/.ralph/40-cleanup.md
+ M vibes/40-cleanup.md
+```
+
+## Task: 4. Move the REAPER sinks out of `main.cpp`
+
+### Attempt 1 — 2026-10-15T02:56:08Z — budget 1800s
+
+Facts:
+- No partial work in tree; started from clean HEAD (only the record file was dirty).
+- Created `plugin/src/reaper_sinks.h` (class decls, moved verbatim from main.cpp) and `plugin/src/reaper_sinks.cpp` (method bodies verbatim; includes `reaper_api.h` without REAPERAPI_IMPLEMENT, like reaper_project.cpp; all REAPER APIs used are already in the WANT list, so reaper_api.h untouched).
+- `g_reaper_sink` / `g_action_sink` globals STAY in main.cpp (anon namespace) — they are the wiring into JogEngine/Router/VerbRouter; only the class definitions moved. `main.cpp` now `#include "reaper_sinks.h"`.
+- Added `src/reaper_sinks.cpp` to the plugin-only source list in `plugin/CMakeLists.txt` (NOT PLUGIN_PURE_SOURCES), next to reaper_project.cpp.
+- Updated the stale comment in `action_sink.h` ("REAPER implements this in main.cpp" → reaper_sinks.cpp).
+- `cmake` is not on PATH in the worker shell; `tools/check` auto-falls back to `nix develop --command`, so run tools/check (or bg-run it) rather than calling cmake directly.
+Facts:
+- First task4-verify run failed at `tools/check`'s Windows step: `nix build .#reaper-plugin-windows` couldn't see `src/reaper_sinks.cpp` (untracked file — nix path dep ignores untracked files, see Learnings). Fixed with `git add` of the two new files; re-run then passed: ORACLE PASS static, ORACLE PASS host, ORACLE PASS reaper/load, chain rc=0. `rg` IS on PATH in this env (exit 1 = no match in main.cpp).
+- `tools/reaper-oracle --layer reaper` without `--scenario` runs only the `load` scenario (the full 17-scenario suite is `--layer all`). The stale `verbs` scenario only bites `--layer all`, so it doesn't affect this task's Verify.
+Next:
+- DONE — line 68 ticked. No commit made (ralph commits).
+
+Result: exit 0; done; 7 files changed, 153 insertions(+), 93 deletions(-); log: logs/40-cleanup-L68-a1-1792032968466.log
+
+### Done — 2026-10-15 — 1 attempt(s)
+Files:
+```
+M plugin/CMakeLists.txt
+ M plugin/src/action_sink.h
+ M plugin/src/main.cpp
+A  plugin/src/reaper_sinks.cpp
+A  plugin/src/reaper_sinks.h
+ M vibes/.ralph/40-cleanup.md
  M vibes/40-cleanup.md
 ```

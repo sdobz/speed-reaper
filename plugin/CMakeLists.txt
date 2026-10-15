@@ -78,6 +78,9 @@ add_library(speed_reaper SHARED
   # REAPER-backed IProject (M5 design §2): needs the REAPER host API, so it
   # stays OUT of PLUGIN_PURE_SOURCES (the unit tests use fake_project.h).
   src/reaper_project.cpp
+  # REAPER-backed IPlayheadSink/IActionSink (40-cleanup §4): needs the REAPER
+  # host API, so it stays OUT of PLUGIN_PURE_SOURCES like reaper_project.cpp.
+  src/reaper_sinks.cpp
   ${PLUGIN_PURE_SOURCES}
 )
 

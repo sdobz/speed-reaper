@@ -1,6 +1,6 @@
 // action_sink.h — where Router button/wheel actions land (design §6).
 //
-// REAPER implements this in main.cpp: RunCommand → Main_OnCommand(cmd, 0),
+// REAPER implements this in reaper_sinks.cpp: RunCommand → Main_OnCommand(cmd, 0),
 // ScrollBySeconds → GetSet_ArrangeView2 read/shift + UpdateArrange
 // (dt: + = right/later, − = left/earlier). Unit tests provide a fake, so the
 // Router stays REAPER-free.
