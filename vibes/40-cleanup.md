@@ -78,7 +78,7 @@ tools/check && ! rg -q 'class Reaper(Playhead|Action)Sink' plugin/src/main.cpp &
 tools/check session && test "$(sed -n '/^void onTimer/,/^}/p' plugin/src/main.cpp | wc -l)" -le 15 && tools/reaper-oracle --layer reaper
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. `WheelDispatcher` replaces the wheel decorators
 

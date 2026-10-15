@@ -22,13 +22,13 @@
 #include <thread>
 
 #include "button_diff.h"
-#include "jog_engine.h"
+#include "session.h"  // IDevice: this class IS the Session's real device
 
 // The driver (src/speed_editor/hid_device.h) is included in hid_wheel_source.cpp
 // only; forward-declare so the header stays REAPER- and hidapi-header-free.
 class SpeedEditorHID;
 
-class HidWheelSource : public IWheelSource {
+class HidWheelSource : public IDevice {
  public:
   HidWheelSource();
   ~HidWheelSource() override;  // calls Stop()

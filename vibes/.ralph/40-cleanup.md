@@ -176,3 +176,22 @@ A  plugin/src/reaper_sinks.h
  M vibes/.ralph/40-cleanup.md
  M vibes/40-cleanup.md
 ```
+
+## Task: 5. Pure `Session`: the timer loop becomes testable
+
+### Attempt 2 — 2026-10-15T03:00:51Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Working tree was clean (no partial work from attempt 1).
+- Created `plugin/src/session.h/.cpp`: `IDevice : IWheelSource` (PopButton/PopLog/Connected/AbsolutePosition/RequestWheelMode/RequestJogLeds/RequestLeds) — `HidWheelSource` already satisfies it via its existing methods. `Session(IDevice&, IActionSink&, IProject&, IPlayheadSink&)` owns GestureEngine + Router + VerbRouter + nested HoldGatedSource + ModeGatedSource + JogEngine; `Tick(now_ms)` = button split (KEY_JOG/SCRL/SHTL/STOP_PLAY → router, else gestures), gesture poll → verbs, TakeModeChange → device, connect edge re-send (mode+LEDs, led_mask=-1), time-based LED poll (≥250 ms since last poll, push on change only), fixed 8 ms engine steps ≤50 ms per Tick, backlog capped at 250 ms, `timer gap`/`timer call` traces kept.
+- `main.cpp` onTimer is now 11 lines (≤15): compute now_ms, `g_session->Tick(now_ms)`, drain `g_hid.PopLog` → ShowConsoleMsg. Removed from main: HoldGatedSource, gesture/verb/router globals, LED-mask + connect-edge state, GestureKindName/WheelModeName/ApplyModeToHid.
+- Added `src/session.cpp` to PLUGIN_PURE_SOURCES (tests get it for free; session_test auto-globbed by test/CMakeLists.txt).
+- Stall math for the test (corrected): 992 ms stall → acc=250 → 7 steps (56 ms) that Tick → 8 scrubs; then 7/7/7/7/1/1 over the next six 8 ms Ticks → total at t=1048 = 38 (1 + 31 backlog + 6 steady), 39 at t=1056.
+- Verb test key: KEY_SNAP Tap → cmd 1157 (non-double-tap key, Tap fires at release).
+- `HidWheelSource` now derives from `IDevice` (was `IWheelSource`); `hid_wheel_source.h` includes `session.h` (no include cycle: session.h never includes hid headers).
+- LED poll/push is now `connected && (...)` in `Session::Tick` — pushing to an absent device is pointless; reconnect still force-pushes via `led_mask_=-1`.
+- Catch-up loop consumes 7 steps (56 ms) per Tick: the `consumed < 50` check happens before the +8 ms, and 56 is the first step-multiple above 50 — same as the pre-refactor main.cpp loop.
+- Native build needs `nix develop` (no cmake on PATH); running in bgrun job `build50`.
+
+Result: full Verify (job `verify50`) exited 0 — `tools/check session` (build warning-free, session_test passed, Windows static oracle, host oracle), onTimer = 11 lines ≤ 15, `reaper-oracle --layer reaper` (load scenario) PASS. Line 81 ticked; committed as `40-cleanup: 5. Pure Session: the timer loop becomes testable`.
