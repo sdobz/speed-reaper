@@ -108,7 +108,7 @@ tools/check && tools/reaper-oracle --layer reaper --scenario leds_ripple && tool
 tools/check && ! rg -n 'MainLedMask|ReadLedState|active_take' plugin
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 9. Oracle proof: LED follows the binding
 - Add `oracle/scenarios/leds_binding_driven.{lua,env}` + `oracle/fake/leds_binding_driven.txt`, and the name to `REAPER_SCENARIOS` in `tools/reaper-oracle` (model: `leds_ripple.*`). The scenario writes a `bindings.ini` rebinding an LED-bearing key (e.g. CLOSE_UP) to `action 40311` and asserts that key's bit tracks ripple-all state (and SNAP's own bit is unaffected).
