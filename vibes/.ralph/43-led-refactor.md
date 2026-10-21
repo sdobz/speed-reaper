@@ -84,3 +84,12 @@ Files:
 M vibes/.ralph/43-led-refactor.md
  M vibes/43-led-refactor.md
 ```
+
+## Task: 5. `BindingLedMask`
+
+### Attempt 5 — 2026-10-21T00:35:32Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: tree clean. Implemented `BindingLedMask` in led_state.{h,cpp}: 18-key→bit table (CLOSE_UP, CUT, DIS, SMTH_CUT, TRANS, SNAP, LIVE_OWR, VIDEO_ONLY, AUDIO_ONLY, CAM1–9) + gesture priority Tap→Double→Turn→Press, first bound gesture wins, `StateReadFor` present+true lights the bit. Header forward-declares Bindings/VerbRegistry/LedReadContext per design. `LedState`/`MainLedMask` untouched; session.cpp untouched.
+- Facts: test gotchas — bindings parser enforces press-exclusivity (a key bound to `press` may not have other gestures), so the priority test constructs `Bindings` directly with `BoundVerb` (null verb ok, mask never runs verbs); default registry has no turn verb with a state_read, so priority is tested with a custom registry + constant reads (tap=true, double=false, turn=true, press=false) which makes each winner unambiguous. FakeProject `active_takes` is 0-based take index (shared take = idx+1).
+- Dead ends: mask loop without `break` after the first bound gesture → last bound gesture won (press false read lit nothing); caught by the tap/turn CHECKs, fixed with break.
+- Facts: local `led_state_test` passes after the break fix. Running full verify (job check43f, `tools/check led_state`); tracked-file edits only, no new files, so no flake-source commit needed.

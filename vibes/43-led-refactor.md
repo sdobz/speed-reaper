@@ -73,7 +73,7 @@ tools/check verb_registry
 tools/check led_state
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Realign default bindings
 - `plugin/src/default_bindings.ini`: `CUT.tap = action 40310`, `DIS.tap = action 40311`, `LIVE_OWR.tap = action 41117` (comment each with the button↔LED coupling; drop the commented-out LIVE_OWR candidates that now conflict). Run `tools/gen_bindings_doc docs/bindings.md`.
