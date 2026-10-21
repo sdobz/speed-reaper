@@ -144,6 +144,8 @@ void ReaperProject::SetSelectedItems(const std::vector<int> &ids) {
   for (size_t i = 0; i < items.size(); i++)
     SetMediaItemSelected(items[i],
                                    want.count(static_cast<int>(i)) != 0);
+  UpdateArrange();  // SetMediaItemSelected does not refresh the arrange view
+
 }
 
 int ReaperProject::RippleMode() {

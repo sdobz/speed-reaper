@@ -6,6 +6,9 @@
 //   - setWheelMode() added; sendInitReports()/ledChaseDemo() removed
 //     (the CLI initialises via setWheelMode(0); the named LED chase lives in the CLI)
 //   - LED/mode writers return bool so the caller can report write failures
+//   - LedsReportBytes(): single source of truth for the report 0x02 byte
+//     split (regression: a 6-bit group split lit the wrong physical LEDs)
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -58,3 +61,18 @@ private:
     bool opened = false;  // transport->Open() succeeded, not yet Close()d
     State state = State::Disconnected;
 };
+
+// Split the 18-LED main-panel mask (bit index = LED_* in key_map.h) into
+// the three payload bytes of output report 0x02. The report is an LE32
+// bitfield — [0x02, b0, b1, b2, 0x00] — so b0 = bits 0–7, b1 = bits 8–15,
+// b2 = bits 16–17. NOT 6-bit groups: bit i lives in byte i/8 at position
+// i%8 (a 6-bit split sends bit 8 to device bit 10, lighting CAM4 when
+// CAM9 was meant — found on real hardware, 45-cam-n field test).
+// The device defines 18 LED bits; anything above bit 17 is dropped so the
+// output is always a valid report 0x02 payload.
+inline std::array<uint8_t, 3> LedsReportBytes(std::uint32_t mask) {
+    const std::uint32_t m = mask & 0x3FFFFu;
+    return {static_cast<uint8_t>(m & 0xFFu),
+            static_cast<uint8_t>((m >> 8) & 0xFFu),
+            static_cast<uint8_t>((m >> 16) & 0xFFu)};
+}

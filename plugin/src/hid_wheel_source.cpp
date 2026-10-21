@@ -125,11 +125,11 @@ void HidWheelSource::ApplyPending() {
   }
   if (p.wheel_mode_dirty) dev_->setWheelMode(p.wheel_mode);
   if (p.jog_leds_dirty) dev_->setJogLeds(p.jog, p.shtl, p.scrl);
-  if (p.leds_dirty)
-    // 18 main-panel LEDs → three 6-bit bytes (report 0x02).
-    dev_->setLeds(static_cast<std::uint8_t>(p.leds & 0x3F),
-                  static_cast<std::uint8_t>((p.leds >> 6) & 0x3F),
-                  static_cast<std::uint8_t>((p.leds >> 12) & 0x3F));
+  if (p.leds_dirty) {
+    // 18 main-panel LEDs → LE32 bitfield, report 0x02 (LedsReportBytes).
+    const auto b = LedsReportBytes(p.leds);
+    dev_->setLeds(b[0], b[1], b[2]);
+  }
 }
 
 bool HidWheelSource::SleepSliced(int ms) {

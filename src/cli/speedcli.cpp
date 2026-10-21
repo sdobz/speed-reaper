@@ -195,9 +195,8 @@ int cmdListen() {
     uint32_t mainLeds = 0;        // main-panel LED state we own (bit index = LED_*)
 
     auto sendMainLeds = [&]() {
-        return ed.setLeds((uint8_t)(mainLeds & 0xFF),
-                          (uint8_t)((mainLeds >> 8) & 0xFF),
-                          (uint8_t)((mainLeds >> 16) & 0xFF));
+        const auto b = LedsReportBytes(mainLeds);
+        return ed.setLeds(b[0], b[1], b[2]);
     };
 
     SpeedEditorEvent ev;
@@ -267,9 +266,8 @@ int cmdDemo() {
 
     std::printf("chase  : main panel LEDs (report 0x02) — watch the panel:\n");
     for (const LedInfo& led : MAIN_LEDS) {
-        uint32_t m = 1u << led.bit;
-        ed.setLeds((uint8_t)(m & 0xFF), (uint8_t)((m >> 8) & 0xFF),
-                   (uint8_t)((m >> 16) & 0xFF));
+        const auto b = LedsReportBytes(1u << led.bit);
+        ed.setLeds(b[0], b[1], b[2]);
         ed.setJogLeds(false, false, false);
         std::printf("  bit %2d  %s\n", led.bit, led.name);
         std::this_thread::sleep_for(std::chrono::milliseconds(400));
