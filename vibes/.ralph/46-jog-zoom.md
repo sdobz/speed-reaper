@@ -252,3 +252,18 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: 7. Docs
+
+### Attempt 1 — 2026-10-21T14:50:16Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+- Facts: implemented scale confirmed in `plugin/src/jog_engine.h`: `dt = (delta/360) * (k_px/pxPerSec)`, `kUnitsPerDetent = 360.0` (kUnitsPerRev kept as 4096*360 comment). `docs/bindings.md` has no `select_step`/`kSecondsPerRev` mentions (already regenerated; skip). Verify currently fails on exactly 2 spots: `docs/design.md:167` (select_step row) and `plugin/test/zoom_cursor_test.cpp:2` (header comment says "replacing select_step") — the comment fix is comment-only, code untouched.
+- Next: edit docs/jog-discovery.md (status, §4.1 formula, §7, §8 sub-items), docs/design.md (§6 row, §7 jog item, §9 TIMELINE turn), fix test comment, run verify, tick line 122.
+
+Done (attempt 1):
+- `docs/jog-discovery.md`: Status → **implemented** (m46); §4.1 formula → `dt = (delta / 360) * (k_px / pxPerSec)` with 360 units/detent; §7 rewritten as "re-baselined (done)" (no more 20 s/rev scale, hid_wheel thresholds now from measured `GetHZoomLevel`); §8 sub-items ticked: #3 → strtod parser path, #4 → no undo block.
+- `docs/design.md`: §6 `select_step` row → `zoom_cursor`; §7 jog item rewritten to `(delta/360)*(k_px/pxPerSec)` screen-space-constant scale (Scrl same scale); §9 "TIMELINE tap / double / turn" → tap/double (turn is zoom).
+- `docs/bindings.md`: no mentions — untouched (already regenerated in task 5).
+- `plugin/test/zoom_cursor_test.cpp`: header comment "replacing select_step" → dropped (comment-only edit, code untouched; required because Verify greps `plugin/`).
+- Verify passes: `! rg -q 'select_step|kSecondsPerRev' plugin src docs/design.md docs/bindings.md` → exit 0. Line 122 ticked.

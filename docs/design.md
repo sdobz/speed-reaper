@@ -164,7 +164,7 @@ verbs). Registered verbs:
 | `take` | 1–9 | set active take on the target items |
 | `ripple_delete` | — | remove time-selection contents, else the target items, closing the gap |
 | `select_cursor_item` | — | TIMELINE tap: exclusively select the item under the cursor (tap again: deselect) |
-| `select_step` | — | TIMELINE turn: step the selection one item per 20 wheel ticks |
+| `zoom_cursor` | — | TIMELINE turn: zoom the arrange view in (CW) / out (CCW) around the edit cursor (view change — no undo block) |
 | `select_track` | 1–9 | toggle selection of the item under the cursor on track N (rest of the selection untouched; no item under the cursor → no-op) |
 | `volume_readout` | — | message box: the first target's volume in dB |
 | `smooth_cut` | — | crossfade within the time selection (40916); none → no-op |
@@ -179,11 +179,12 @@ wheel input goes. Priority order:
 1. **Active hold** — a held key beats every mode: the delta becomes the
    held key's `HoldRotate`; jog/scroll/shuttle see nothing.
 2. **Jog** — delta passes through to `JogEngine`: the playhead scrubs
-   1:1, `delta × kSecondsPerWheelUnit` per tick (the same scale the
-   cursor's on-screen motion implies at any zoom; SCRL shares this
-   constant for its view scroll).
+   screen-space-constant — `dt = (delta / 360) * (k_px / pxPerSec)` per
+   tick (`k_px` = `wheel.pixels_per_detent`, `pxPerSec` = live
+   `GetHZoomLevel`), so one detent always moves `k_px` screen pixels at any
+   zoom. SCRL shares the same scale for its view scroll.
 3. **Scrl** — `Router::OnWheel`: the arrange view scrolls by the same
-   per-unit seconds (read–shift–set of `GetSet_ArrangeView2`); the engine
+   per-detent pixels (read–shift–set of `GetSet_ArrangeView2`); the engine
    sees 0, so scrolling never moves the playhead.
 4. **Shtl** — the absolute protocol position drives
    `Router::OnShuttleOffset`; re-applied every tick (absolute input: no
@@ -221,7 +222,8 @@ order:
 `WithTargetSelected` snapshots the selection, selects the targets *only*
 in case 2, runs the verb, and restores — net selection change is zero, so
 the device never silently changes the user's selection. Explicit selection
-is still on the device: TIMELINE tap / double / turn (§6).
+is still on the device: TIMELINE tap / double (§6); TIMELINE turn is the
+`zoom_cursor` view zoom.
 
 ## 10. LED status bar
 

@@ -1,16 +1,15 @@
 # Jog / timeline-navigation feel — discovery
 
-Status: **discovery / spec, not yet implemented.** This is a read-back of a
-requested change to the feel of timeline navigation, anchored in the current
-implementation. Every file:line is from the code as it is today; confirm the
-open decision points (§8) before building.
+Status: **implemented** (milestone 46). This doc started as a read-back of a
+requested change to the feel of timeline navigation, anchored in the
+pre-change implementation (§3 is that pre-46 state); the spec in §4–§6 is
+what was built, and every decision point in §8 is resolved.
 
 Terminology revision: the vague term "window width" is **removed**. The wheel
-model is now expressed in screen space (§2): jog and scroll move a fixed
+model is expressed in screen space (§2): jog and scroll move a fixed
 *pixel* amount per detent; the TIMELINE-hold (CW = in) zooms the view span
 around the edit cursor, at a step derived from the same
-`wheel.pixels_per_detent` config. Decisions are resolved except two sub-items
-(§8: float parser, no-undo confirmation).
+`wheel.pixels_per_detent` config.
 
 ## 1. The request (as understood)
 
@@ -186,9 +185,11 @@ Each gesture touches exactly **one** state variable:
   (4096 detents) moves `k_px · 4096` pixels ≈ 1024 px ≈ half a 1920-px screen.
 - Per tick (jog):
   ```
-  dt = (delta / kUnitsPerRev) * (k_px / pxPerSec)
+  dt = (delta / 360) * (k_px / pxPerSec)
   ```
-  replacing `kSecondsPerWheelUnit`. `kUnitsPerRev` (1474560, hardware) stays.
+  replacing `kSecondsPerWheelUnit`. One detent = 360 units
+  (`JogEngine::kUnitsPerDetent`, measured); a full revolution is 4096
+  detents = 1,474,560 units (`kUnitsPerRev`, kept as the hardware constant).
 - **Screen-space-constant** falls out directly: pixels per detent =
   `dt · pxPerSec = k_px`, independent of zoom. It also survives window
   resizes: REAPER keeps `pxPerSec` across resizes while `W` scales with the
@@ -280,29 +281,31 @@ scaled-integer storage. ← *decision (§8, #3).*
   one-call "zoom around a point", but the centermode value for "center on
   edit cursor" is unconfirmed.
 
-## 7. Tests / oracle that must be re-baselined
+## 7. Tests / oracle — re-baselined (done in milestone 46)
 
-- `plugin/test/jog_engine_test.cpp:18-25` — asserts one revolution =
-  `JogEngine::kSecondsPerRev` (20 s, fixed). Becomes
-  `k_px · 4096 / pxPerSec` (trivial with a fake seam value).
-- `plugin/test/wheel_dispatcher_test.cpp:84-103` — asserts Scrl scrolls
-  `45.0 * kSecondsPerWheelUnit` (fixed). Becomes the same
-  `k_px / pxPerSec` scale.
-- `oracle/scenarios/hid_wheel.lua` — asserts "cursor rose > 0.2 s during the
-  first turn" and "max step < 0.05 s", tuned to 20 s/rev. Under the new
-  formula the absolute seconds depend on the headless **pxPerSec** (and the
-  new default); re-baseline (or set the fake zoom scale explicitly in the
-  scenario).
-- **Removed with `select_step`:** `plugin/test/verb_registry_test.cpp`
-  (lines 69, 123, 164, 397-407: build/gesture/arg-rejection + the hold-step
-  case), `plugin/test/verbs_test.cpp:327` (HoldRotate select-step case),
-  `plugin/test/bindings_test.cpp:203` and
-  `plugin/test/default_bindings_test.cpp:79` (the `TIMELINE.turn =
-  select_step` row — repointed at `zoom_cursor`).
-- **New coverage:** unit test for the zoom math — `f` derivation, per-turn
-  factor `(1∓f)^4096`, pivot preservation (`q` unchanged), CW-in/CCW-out;
-  oracle scenario for `TIMELINE`-hold zoom (assert span shrinks around the
-  cursor).
+- `plugin/test/jog_engine_test.cpp` — one revolution =
+  `k_px · 4096 / pxPerSec` with a fake `IZoomSource`; the old
+  `kSecondsPerRev` (20 s/rev) assertion and the constant itself are gone.
+- `plugin/test/wheel_dispatcher_test.cpp` — Scrl scrolls the same
+  `k_px / pxPerSec` scale (the old fixed `45.0 * kSecondsPerWheelUnit`
+  assertion is gone).
+- `oracle/scenarios/hid_wheel.lua` — re-baselined off the measured headless
+  `GetHZoomLevel()`: the rise/stall thresholds derive from
+  `(units / 360) * (0.25 / pxPerSec)` at the scenario's `pxPerSec` instead
+  of the old 20 s/rev constants.
+- **Removed with `select_step` (done):** `plugin/test/verb_registry_test.cpp`
+  (build/gesture/arg-rejection + the hold-step case),
+  `plugin/test/verbs_test.cpp` (HoldRotate select-step case),
+  `plugin/test/bindings_test.cpp` and
+  `plugin/test/default_bindings_test.cpp` (the `TIMELINE.turn` row —
+  repointed at `zoom_cursor`).
+- **New coverage (added):** `plugin/test/zoom_test.cpp` — the zoom math: `f`
+  derivation, per-turn factor `(1∓f)^4096`, pivot preservation (`q`
+  unchanged), CW-in/CCW-out, pivot clamp; `plugin/test/zoom_cursor_test.cpp`
+  — the verb (CW narrows, CCW widens, no undo, no args); and the
+  `oracle/scenarios/hid_zoom.lua` oracle scenario — `TIMELINE`-hold zoom
+  shrinks the span CW around the cursor (`q` stable within ~2 px of the
+  pixel snap), widens CCW.
 
 ## 8. Decision points (confirm before implementing)
 
@@ -313,11 +316,15 @@ scaled-integer storage. ← *decision (§8, #3).*
    selection method replaces the feature) — code + tests deleted.
 3. ~~**Config names + defaults**~~ **Resolved:** a single
    `wheel.pixels_per_detent` = **0.25** (bigger = faster); the zoom
-   granularity is derived from it (§4.2) — no second key. Open sub-item:
-   extend the `[tuning]` parser for floats (vs scaled integers)?
+   granularity is derived from it (§4.2) — no second key.
+   ~~Open sub-item: extend the `[tuning]` parser for floats (vs scaled
+   integers)?~~ **Resolved:** the `[tuning]` parser gained a `strtod` path
+   for the float key; the other `[tuning]` keys stay integer-only.
 4. **Zoom direction + granularity** — **Resolved:** CW (positive delta) =
-   zoom in; span fraction per detent `f = k_px / (pxPerSec · W)`. Open
-   sub-item: confirm **no** undo block for view changes (proposed: yes).
+   zoom in; span fraction per detent `f = k_px / (pxPerSec · W)`.
+   ~~Open sub-item: confirm **no** undo block for view changes (proposed:
+   yes).~~ **Resolved:** no `Undo_Begin/End` — the arrange view is not an
+   undoable edit.
 5. ~~**Zoom pivot**~~ **Resolved:** the **edit cursor**
    (`GetCursorPosition`), confirmed.
 

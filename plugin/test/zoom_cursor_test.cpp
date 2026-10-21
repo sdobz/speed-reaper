@@ -1,5 +1,5 @@
-// zoom_cursor_test.cpp — the zoom_cursor turn verb (46 §4.2, replacing
-// select_step): each Step converts the raw wheel delta to signed detents
+// zoom_cursor_test.cpp — the zoom_cursor turn verb (46 §4.2): each Step
+// converts the raw wheel delta to signed detents
 // (delta / 360), runs ZoomAround around the edit cursor, and writes the
 // result via SetViewSpan. The arrange view is not an undoable edit: the
 // hold never touches the undo block. No args are allowed.

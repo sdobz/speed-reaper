@@ -119,4 +119,4 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
 ! rg -q 'select_step|kSecondsPerRev' plugin src docs/design.md docs/bindings.md
 ```
 
-- [ ] Done
+- [x] Done
