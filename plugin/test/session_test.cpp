@@ -9,11 +9,13 @@
 #include <deque>
 #include <vector>
 
+#include "bindings.h"  // ParseBindings (expected masks)
 #include "check.h"
 #include "fake_project.h"
-#include "led_state.h"    // MainLedMask (expected masks)
-#include "project_ops.h"  // ReadLedState (pure op, 40-cleanup §8)
+#include "led_state.h"  // BindingLedMask (expected masks)
 #include "speed_editor/key_map.h"  // KEY_SNAP
+#include "verb_registry.h"  // MakeDefaultRegistry, LedReadContext
+#include "verbs.h"  // DefaultBindingsText
 #include "wheel_mode.h"  // ProtocolMode
 
 namespace {
@@ -95,8 +97,12 @@ int main() {
     CHECK(dev.jog_leds_.size() == 1);
     CHECK(dev.jog_leds_[0] == (std::array<bool, 3>{true, false, false}));
     CHECK(dev.leds_.size() == 1);
+    // Mirror the session: embedded default bindings against the empty
+    // project (no view toggles).
+    const VerbRegistry reg = MakeDefaultRegistry();
+    const Bindings def = ParseBindings(DefaultBindingsText(), reg);
     CHECK(dev.leds_[0] ==
-          MainLedMask(ReadLedState(proj, false, false)));  // no view toggles
+          BindingLedMask(def, reg, LedReadContext{proj, false, false}));
 
     dev.connected_ = false;
     s.Tick(16);
@@ -129,11 +135,14 @@ int main() {
     s.Tick(256);  // poll fires, mask unchanged: no push
     CHECK(dev.leds_.size() == 1);
 
-    LedState on = ReadLedState(proj, false, false);  // mirror the session
-    on.snap = true;
-    const std::uint32_t snap_mask = MainLedMask(on);
-    CHECK(snap_mask != off);
+    // Mirror the session: the default bindings' snap read (action 1157)
+    // sees proj.snap.
+    const VerbRegistry reg = MakeDefaultRegistry();
+    const Bindings def = ParseBindings(DefaultBindingsText(), reg);
     proj.snap = true;
+    const std::uint32_t snap_mask =
+        BindingLedMask(def, reg, LedReadContext{proj, false, false});
+    CHECK(snap_mask != off);
     s.Tick(512);  // poll fires, mask changed: pushed exactly once
     CHECK(dev.leds_.size() == 2);
     CHECK(dev.leds_[1] == snap_mask);

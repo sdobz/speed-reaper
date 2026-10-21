@@ -390,7 +390,7 @@ void test_cam_takes() {
     project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, true});  // A, selected, 3 takes
     project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, true});  // B, selected, 1 take
     project.take_counts = {3, 1};
-    project.active_takes = {0, 0};
+    project.take_indices = {0, 0};
     project.last_touched = 0;
     VerbRouter r(sink, project);
 
@@ -399,8 +399,8 @@ void test_cam_takes() {
     CHECK(project.set_take_calls.size() == 1);
     CHECK(project.set_take_calls[0].first == 0);  // item A
     CHECK(project.set_take_calls[0].second == 1);  // take 2 → index 1
-    CHECK(project.active_takes[0] == 1);
-    CHECK(project.active_takes[1] == 0);  // fewer than 2 takes: untouched
+    CHECK(project.take_indices[0] == 1);
+    CHECK(project.take_indices[1] == 0);  // fewer than 2 takes: untouched
     CHECK(project.undo_begins == 1);
     CHECK(project.undo_ends == 1);
     CHECK(project.last_undo_label == "Speed Reaper: take 2");

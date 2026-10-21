@@ -780,11 +780,11 @@ void test_default_state_reads() {
 
   // take 4 reads SharedActiveTake (1-based): true iff it is 4.
   project.items = {ItemInfo{0, 0, 0.0, 1.0, true}};
-  project.active_takes = {3};  // 0-based 3 = take number 4
+  project.take_indices = {3};  // 0-based 3 = take number 4
   std::optional<StateRead> take4 = reg.StateReadFor("take", {"4"});
   CHECK(take4.has_value());
   CHECK((*take4)(ctx) == true);
-  project.active_takes = {2};  // take number 3
+  project.take_indices = {2};  // take number 3
   CHECK((*take4)(ctx) == false);
   std::optional<StateRead> take3 = reg.StateReadFor("take", {"3"});
   CHECK(take3.has_value() && (*take3)(ctx) == true);

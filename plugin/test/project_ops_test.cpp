@@ -159,7 +159,7 @@ int main() {
   {
     FakeProject p;
     p.items = {Item(0, 0, true), Item(1, 1, true)};
-    p.active_takes = {1, 1};  // both on take index 1 -> take number 2
+    p.take_indices = {1, 1};  // both on take index 1 -> take number 2
     CHECK(SharedActiveTake(p) == 2);
     // A plain 1-take item has active take index 0 -> take number 1.
     FakeProject one;
@@ -172,7 +172,7 @@ int main() {
   {
     FakeProject p;
     p.items = {Item(0, 0, false), Item(1, 1, false)};
-    p.active_takes = {1, 1};
+    p.take_indices = {1, 1};
     CHECK(SharedActiveTake(p) == 0);
     FakeProject none;
     CHECK(SharedActiveTake(none) == 0);
@@ -183,9 +183,9 @@ int main() {
   {
     FakeProject p;
     p.items = {Item(0, 0, true), Item(1, 1, true)};
-    p.active_takes = {1, 2};  // mixed -> 0
+    p.take_indices = {1, 2};  // mixed -> 0
     CHECK(SharedActiveTake(p) == 0);
-    p.active_takes = {1, -1};  // item 1 has no active take -> 0
+    p.take_indices = {1, -1};  // item 1 has no active take -> 0
     CHECK(SharedActiveTake(p) == 0);
   }
 
@@ -194,11 +194,11 @@ int main() {
   {
     FakeProject p;
     p.items = {Item(0, 0, true), Item(1, 1, true)};
-    p.active_takes = {8, 8};  // take number 9 -> 9
+    p.take_indices = {8, 8};  // take number 9 -> 9
     CHECK(SharedActiveTake(p) == 9);
-    p.active_takes = {9, 9};  // take number 10 -> 0
+    p.take_indices = {9, 9};  // take number 10 -> 0
     CHECK(SharedActiveTake(p) == 0);
-    p.active_takes = {8, 9};  // mixed, one beyond 9 -> 0
+    p.take_indices = {8, 9};  // mixed, one beyond 9 -> 0
     CHECK(SharedActiveTake(p) == 0);
   }
 

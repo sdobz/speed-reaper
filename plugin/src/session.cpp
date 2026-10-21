@@ -5,7 +5,6 @@
 
 #include "bindings.h"  // KeyName
 #include "led_state.h"
-#include "project_ops.h"  // ReadLedState (pure op on IProject)
 #include "speed_editor/key_map.h"  // KEY_ESC
 #include "trace.h"
 #include "wheel_mode.h"

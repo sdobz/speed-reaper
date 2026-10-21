@@ -23,10 +23,9 @@ class FakeProject final : public IProject {
   bool time_sel = false;
   int ripple = 0;
 
-  // LED bar (M8): snap / trim-behind mirror the REAPER toggles the
-  // ReadLedState op queries (ToggleState 1157 / 41117); ripple comes from
-  // the `ripple` member above; active_take from the selection +
-  // active_takes.
+  // LED bar (M8): snap / trim-behind mirror the REAPER toggles the LED
+  // state reads query (ToggleState 1157 / 41117); ripple comes from the
+  // `ripple` member above.
   bool snap = false;
   bool trim_behind = false;
 
@@ -41,7 +40,7 @@ class FakeProject final : public IProject {
   // reports 0 takes / no active take (-1); SetItemActiveTake records the
   // call but applies only to valid ids.
   std::vector<int> take_counts;
-  std::vector<int> active_takes;
+  std::vector<int> take_indices;  // 0-based active-take index per item
   // SetItemActiveTake calls in order (id, take).
   std::vector<std::pair<int, int>> set_take_calls;
 
@@ -104,14 +103,14 @@ class FakeProject final : public IProject {
   }
   int ItemActiveTake(int id) override {
     if (id < 0 || id >= static_cast<int>(items.size())) return -1;
-    return id < static_cast<int>(active_takes.size()) ? active_takes[id] : 0;
+    return id < static_cast<int>(take_indices.size()) ? take_indices[id] : 0;
   }
   void SetItemActiveTake(int id, int take) override {
     set_take_calls.emplace_back(id, take);
     if (id < 0 || id >= static_cast<int>(items.size())) return;
-    if (id >= static_cast<int>(active_takes.size()))
-      active_takes.resize(id + 1, 0);
-    active_takes[id] = take;
+    if (id >= static_cast<int>(take_indices.size()))
+      take_indices.resize(id + 1, 0);
+    take_indices[id] = take;
   }
   double ItemVolume(int id) override {
     if (id < 0 || id >= static_cast<int>(items.size())) return 0.0;

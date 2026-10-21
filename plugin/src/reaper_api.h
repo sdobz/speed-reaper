@@ -37,7 +37,7 @@
 #define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
 #define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
 #define REAPERAPI_WANT_UpdateArrange // ReaperActionSink::ScrollBySeconds (redraw)
-#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ToggleState/RippleMode (ops:ReadLedState 1157/41117, ripple 40310/40311)
+#define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ToggleState/RippleMode (LED state reads: snap 1157 / trim-behind 41117, ripple 40310/40311)
 #define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop
 #define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace
 #define REAPERAPI_WANT_OnStopButton // shuttle HardStop (40045 blocks headless)

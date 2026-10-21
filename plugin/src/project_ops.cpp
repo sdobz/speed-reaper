@@ -3,7 +3,6 @@
 // primitives; this file owns the sequencing and the saved view state, so
 // it runs unchanged against the test fake.
 #include "project_ops.h"
-#include "reaper_commands.h"
 
 #include <algorithm>  // std::find
 
@@ -107,15 +106,4 @@ int SharedActiveTake(IProject &p) {
     else if (shared != t) return 0;
   }
   return shared;
-}
-
-LedState ReadLedState(IProject &p, bool isolate, bool solo) {
-  LedState s;
-  s.snap = p.ToggleState(reaper_cmd::Snap);
-  s.ripple = p.RippleMode();
-  s.trim_behind = p.ToggleState(reaper_cmd::TrimBehind);
-  s.active_take = SharedActiveTake(p);
-  s.isolate = isolate;
-  s.solo = solo;
-  return s;
 }

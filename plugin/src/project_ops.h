@@ -13,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "led_state.h"  // LedState (ReadLedState)
 #include "project.h"    // IProject, TrackFlag
 
 // PLACE ON TOP: duplicate the given ids onto one new track
@@ -57,11 +56,5 @@ class SoloView {
 // selected items disagree, or the shared take is > 9 (the main panel has
 // only the CAM 1..9 bits).
 int SharedActiveTake(IProject &p);
-
-// LED bar (docs/notes/m8-state-reads.md): pure aggregate of the
-// primitives — snap / trim-behind toggles (1157 / 41117), ripple mode,
-// SharedActiveTake — plus the isolate / solo view state (IsActive() of
-// the views above).
-LedState ReadLedState(IProject &p, bool isolate, bool solo);
 
 #endif  // SPEED_REAPER_PROJECT_OPS_H
