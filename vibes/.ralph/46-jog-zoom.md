@@ -96,3 +96,11 @@ M vibes/.ralph/46-jog-zoom.md
   - Then `tools/check zoom` rc=1 after all tests passed: the `windows-oracle` static layer failed because the flake packages only git-**tracked** files — `zoom.cpp/h` were untracked, so the Windows CMake configure couldn't find them. `git add` the new files and re-run; rc=0.
 - Next:
   - DONE: `tools/check zoom` exited 0 (Windows static + host oracle green); line 64 ticked.
+
+Result: exit 0; done; log: logs/46-jog-zoom-L64-a4-1792565053600.log
+
+### Done — 2026-10-21 — 4 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
