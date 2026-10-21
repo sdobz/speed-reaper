@@ -61,7 +61,7 @@ tools/check wheel_dispatcher
 tools/check zoom
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Verb `zoom_cursor`, replacing `select_step`
 - `IProject`: add `PixelsPerSecond()` and `ViewRange GetView()`; `IActionSink`: add `SetViewSpan(double L, double R)` (`GetSet_ArrangeView2` write + `UpdateArrange`). Implement in `reaper_project.cpp` / `reaper_sinks.cpp`; update test fakes.

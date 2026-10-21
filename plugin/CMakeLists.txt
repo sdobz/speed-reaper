@@ -65,6 +65,7 @@ set(PLUGIN_PURE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/trace.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/verb_registry.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/verbs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/zoom.cpp
 )
 
 # Default bindings (41-action-registry §3): embedded at build time —

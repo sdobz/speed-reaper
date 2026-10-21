@@ -81,3 +81,18 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: 4. Zoom math as a pure function
+
+### Attempt 4 — 2026-10-21T06:44:13Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Tree was clean (task 3 committed); no partial zoom code existed.
+  - `plugin/src/zoom.h/.cpp` new: `ViewRange{L,R}` + `ZoomAround(view, pivot, detents, k_px, px_per_sec)` exactly per docs §4.2: `f = k_px/(px_per_sec*W)` clamped to `kMaxF=0.99` (f<1 guard); CW `W*(1-f)^d`, CCW `W*(1+f)^(-d)`; `q = clamp((pivot-L)/W, 0, 1)`; `L' = pivot - q*W'`. Degenerate guards (W<=0, px_per_sec<=0, k_px<=0, detents==0, f NaN) return the span unchanged.
+  - `zoom.cpp` added to `PLUGIN_PURE_SOURCES` in plugin/CMakeLists.txt (test glob `*_test.cpp` in test/CMakeLists.txt picks up `zoom_test.cpp` automatically — it also links PLUGIN_PURE_SOURCES, so the src entry covers both).
+  - Test: 1920-px setup = 10 s span @ 192 px/s, k_px 0.25 → f≈1.302e-4; per-turn (4096 detents) in ≈ 0.5866 / out ≈ 1.7046, asserted ±0.02/±0.05 around 0.59/1.7 plus exact `(1∓f)^4096` cross-check; q=0.32 preserved; pivot clamps (left→L'=pivot, right→R'=pivot); doubling k_px ⇒ log-step exactly 2× (both directions); f-clamp sanity with k_px = 1920.
+- Dead ends:
+  - First `tools/check zoom`: 3 test failures, all test-side: (a) log-linearity asserted at 1e-12 — `log(W′/W)=d·log(1∓f)`, so doubling k_px doubles the log-step only up to an O(d·f²)≈1.7e-5 remainder; relaxed to 1e-4. (b) the f-clamp check (k_px = 1920 = full window, f clamped to 0.99) used 10 detents → span 1e-19 s, which vanishes in the L′+W′ rounding at pivot 5 s (R′−L′ = 0); used 2 detents instead.
+  - Then `tools/check zoom` rc=1 after all tests passed: the `windows-oracle` static layer failed because the flake packages only git-**tracked** files — `zoom.cpp/h` were untracked, so the Windows CMake configure couldn't find them. `git add` the new files and re-run; rc=0.
+- Next:
+  - DONE: `tools/check zoom` exited 0 (Windows static + host oracle green); line 64 ticked.
