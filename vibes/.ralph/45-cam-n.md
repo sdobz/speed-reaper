@@ -135,3 +135,11 @@ Dead ends:
 
 Next:
 - Task done: line 81 ticked, committed.
+
+Result: exit 0; done; log: logs/45-cam-n-L81-a5-1792547229451.log
+
+### Done — 2026-10-21 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/45-cam-n.md
+```
