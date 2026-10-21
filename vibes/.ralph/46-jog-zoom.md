@@ -155,3 +155,4 @@ Facts:
 - Fix in scenario only: exclude + record the first-motion interval (first sample where pos > start pos) as the startup backlog flush; all later intervals still checked < 6x per-event. rise1/rise2/thresholds all per task spec.
 
 Next: re-run tools/reaper-oracle --layer reaper --scenario hid_wheel; if green, tick line 92.
+- Done: ORACLE PASS reaper/hid_wheel twice in a row (flush 0.0583 s and 0.0542 s, both excluded+recorded; maxstep 0.0167 < 0.025; rise1 0.6071 > 0.1010; rise2 0.5708 > 0.1427; trace connected/disconnected/connected in order).

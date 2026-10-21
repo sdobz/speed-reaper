@@ -89,7 +89,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
 
 - [ ] Done
   <!-- ralph: replanned=1 op=AND -->
-  - [ ] Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale
+  - [x] Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale
     - Touch ONLY oracle/scenarios/hid_wheel.lua (no plugin/env/other-scenario changes; no rebuild — build/plugin .so is current). Read docs/notes/oracle-scenario-rules.md first (do not loosen checks; two-attempt limit, then mark [!]).
     - New scale: seconds = (units/360) * (0.25 / pxPerSec). Read `local pxs = reaper.GetHZoomLevel()` at scenario start (failing check if pxs <= 0) and derive both thresholds from it — do not assume a window size.
     - Turn 1 = 87240 units (137 x 600 + 5040 decay tail; see oracle/fake/wheel_unplug.txt): check rise1 > (87240/360)*(0.25/pxs)/6 (old 0.2 s was ~1/6 of the old 1.18 s expected). Max step: old 0.05 s was ~6x old per-event motion; per-event is now (600/360)*(0.25/pxs) s, so maxstep < 6x that; keep the existing dt>100 ms stall-interval exclusion.
