@@ -165,3 +165,11 @@ Facts:
 - session.cpp's only use of project_ops.h was ReadLedState → include dropped. IsolateActive/SoloActive live on VerbRouter (verbs_.).
 - Dead ends: none.
 - Next: done. tools/check (job check43-8) rc=0: 20/20 unit tests, windows-oracle static, oracle host. Verify grep clean. Committed as ce5344c.
+
+Result: exit 0; done; log: logs/43-led-refactor-L111-a8-1792544975505.log
+
+### Done — 2026-10-21 — 8 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+```
