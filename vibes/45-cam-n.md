@@ -51,7 +51,7 @@ tools/check target
 tools/check select_track
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Default bindings: CAM1..9 → `select_track N`
 - `plugin/src/default_bindings.ini`: replace the nine `take N` lines with `CAM1.tap = select_track 1` … `CAM9.tap = select_track 9`; comment that any LED-bearing key may be bound this way. Run `tools/gen_bindings_doc docs/bindings.md`.

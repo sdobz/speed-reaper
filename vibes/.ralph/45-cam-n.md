@@ -10,6 +10,8 @@ Durable facts every task should know (keep short).
 - REAPER Lua export quirks: no `AddEmptyItem`/`SetEditCursor`/`GetEditCursor`; use `AddMediaItemToTrack`+`AddTakeToMediaItem`, `SetEditCurPos(pos,false,false)`, `GetCursorPosition()`.
 - Native REAPER has NO per-track "select item at edit cursor" action; mouse-cursor variants (40528/40529/40530) are no-ops headless.
 - `B_UISEL` set/clear per item is isolated (no cross-track effect) and does not move the edit cursor (cam_probe, REAPER 7.81).
+- FakeProject (plugin/test/fake_project.h) only *records* `SetSelectedItems`, never applies it — selection-toggling tests must re-apply the last recorded call to `items[].selected` between calls.
+- Adding a verb to the registry requires three follow-ups or `tools/check` fails: regenerate `docs/bindings.md` (gen_bindings_doc needs a built `build/plugin/verb_list`) and update `plugin/test/verb_registry_test.cpp`'s `kAllNames` count/list.
 
 
 ## Task: 1. Research: native candidates → `docs/notes/cam-n-select.md`
@@ -60,3 +62,24 @@ Files:
 ```
 M vibes/.ralph/45-cam-n.md
 ```
+
+## Task: 3. Verb `select_track` + its LED provider
+
+### Attempt 3 — 2026-10-21T01:34:52Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- `SelectTrackTap(project, n)` + `SelectTrackVerb` added to `plugin/src/verb_registry.cpp`; registered `select_track` {Tap}, `ParseIntArg` name `select_track`, range error `select_track: N must be 1..9`; `state_read` = CursorItemOnTrack(n-1) exists and selected, nullopt on parse/range error.
+- `plugin/test/select_track_test.cpp` added (CMake GLOBs `*_test.cpp` — no CMakeLists edit needed; ctest name `select_track`).
+- `tools/check` forces `docs/bindings.md` in sync via `tools/gen_bindings_doc` — regenerate after building (`build/plugin/verb_list`), else check fails before ctest.
+- `plugin/test/verb_registry_test.cpp` asserts the full verb list: updated to 15 names incl. `select_track` (args `{"1"}` in resolve loop); tap-only gesture loop covers it as-is.
+- No cmake on PATH — build via `nix develop -c bash -c ...`.
+
+Dead ends:
+- First build failed: `res.verb->Run({sink, p})` — cannot bind rvalue brace-init to `VerbContext&`; use a named `VerbContext ctx{sink, p}`. (Also: piping the build through `tail` masked the error — check exit codes.)
+
+Facts (cont.):
+- `select_track_test` and `verb_registry_test` both pass; `docs/bindings.md` regenerated (+1 row: `select_track | tap | <N>`).
+
+Next:
+- DONE: job `check1` (`tools/check select_track`) rc=0 — ctest select_track pass, docs/bindings.md in sync, Windows static cross-build pass, oracle host pass. Line 54 ticked.

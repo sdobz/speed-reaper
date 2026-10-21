@@ -115,6 +115,7 @@ Generated from `MakeDefaultRegistry()` (plugin/src/verb_registry.cpp).
 | ripple_delete | tap, double | `—` | Remove the targets (or time selection) and close the gap |
 | select_cursor_item | tap | `—` | Select the item under the cursor exclusively (tap again to deselect) |
 | select_step | turn | `—` | Step the selection to the next/previous item on the target track (20 ticks per step) |
+| select_track | tap | `<N>` | Toggle selection of the item under the cursor on track <N> (1..9) |
 | smooth_cut | tap | `—` | Smooth-cut at the time selection |
 | solo_tracks | tap | `—` | Solo the targets' tracks (tap again to restore) |
 | take | tap, double | `<N>` | Set the active take <N> on the targets |

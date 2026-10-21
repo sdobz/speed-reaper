@@ -57,6 +57,26 @@ void TimelineTap(IProject &project) {
     project.SetSelectedItems(target);  // select the target exclusively
 }
 
+// CAM N (docs/notes/cam-n-select.md): flip the selection bit of the item
+// under the cursor on track N (1-based, index N-1); the rest of the
+// selection is untouched; no item → no-op; no undo block (selection is not
+// an undoable edit here).
+void SelectTrackTap(IProject &project, int n) {
+  const std::vector<ItemInfo> items = project.Items();
+  const int id = CursorItemOnTrack(items, n - 1, project.CursorPos());
+  if (id < 0) {
+    Trace("target none");  // implicit-target rule 3: the verb does nothing
+    return;
+  }
+  std::vector<int> selected;
+  for (const ItemInfo &item : items) {
+    bool sel = item.selected;
+    if (item.id == id) sel = !sel;
+    if (sel) selected.push_back(item.id);
+  }
+  project.SetSelectedItems(selected);
+}
+
 void CamSetTake(IProject &project, int n) {
   const std::vector<int> targets = TargetItems(project);
   if (targets.empty()) {
@@ -152,6 +172,15 @@ class RippleDeleteVerb : public Verb {
 class SelectCursorItemVerb : public Verb {
  public:
   void Run(VerbContext &ctx) override { TimelineTap(ctx.project); }
+};
+
+class SelectTrackVerb : public Verb {
+ public:
+  explicit SelectTrackVerb(int n) : n_(n) {}
+  void Run(VerbContext &ctx) override { SelectTrackTap(ctx.project, n_); }
+
+ private:
+  int n_;
 };
 
 class TakeVerb : public Verb {
@@ -679,6 +708,33 @@ VerbRegistry MakeDefaultRegistry() {
                  if (!ParseIntArg("take", args, &n, &error)) return std::nullopt;
                  return StateRead{[n](const LedReadContext &ctx) {
                                     return SharedActiveTake(ctx.project) == n;
+                                  }};
+               }});
+
+  reg.Register({"select_track", {BindingGesture::Tap},
+               "Toggle selection of the item under the cursor on track <N> (1..9)",
+               [](std::vector<std::string> args) -> VerbBuildResult {
+                 int n = 0;
+                 std::string error;
+                 if (!ParseIntArg("select_track", args, &n, &error))
+                   return {nullptr, error};
+                 if (n < 1 || n > 9) return {nullptr, "select_track: N must be 1..9"};
+                 return {std::make_unique<SelectTrackVerb>(n), ""};
+               },
+               [](const std::vector<std::string> &args) -> std::optional<StateRead> {
+                 int n = 0;
+                 std::string error;
+                 if (!ParseIntArg("select_track", args, &n, &error))
+                   return std::nullopt;
+                 if (n < 1 || n > 9) return std::nullopt;
+                 return StateRead{[n](const LedReadContext &ctx) {
+                                    const int id = CursorItemOnTrack(
+                                        ctx.project.Items(), n - 1,
+                                        ctx.project.CursorPos());
+                                    if (id < 0) return false;
+                                    for (const ItemInfo &item : ctx.project.Items())
+                                      if (item.id == id) return item.selected;
+                                    return false;
                                   }};
                }});
 

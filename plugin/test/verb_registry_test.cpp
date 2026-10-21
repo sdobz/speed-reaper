@@ -30,8 +30,9 @@ class FakeSink : public IActionSink {
 
 const char *kAllNames[] = {
     "action",         "targeted",    "ripple_delete",   "select_cursor_item",
-    "take",           "volume_readout", "smooth_cut",   "place_on_top",
-    "isolate_tracks", "solo_tracks", "wheel",           "transport",
+    "take",           "select_track", "volume_readout", "smooth_cut",
+    "place_on_top",   "isolate_tracks", "solo_tracks",  "wheel",
+    "transport",
 };
 
 const char *kNudgeModes[] = {"move", "trim_in", "trim_out",
@@ -40,12 +41,13 @@ const char *kNudgeModes[] = {"move", "trim_in", "trim_out",
 // Every name resolves and Builds under a gesture it accepts.
 void test_all_names_resolve() {
   VerbRegistry reg = MakeDefaultRegistry();
-  CHECK(reg.Names().size() == 14);
+  CHECK(reg.Names().size() == 15);
   for (const char *name : kAllNames) {
     std::vector<std::string> args;
     if (std::string(name) == "action" || std::string(name) == "targeted")
       args = {"40012"};
     if (std::string(name) == "take") args = {"2"};
+    if (std::string(name) == "select_track") args = {"1"};
     if (std::string(name) == "wheel") args = {"jog"};
     if (std::string(name) == "transport") args = {"play_stop"};
     const bool press_only =
@@ -74,7 +76,7 @@ void test_all_names_resolve() {
     }
   }
   // The gesture sets: action/targeted take press+tap+double;
-  // ripple_delete/take take tap+double; the other six are tap only.
+  // ripple_delete/take take tap+double; the rest are tap only.
   for (const char *name : kAllNames) {
     const VerbSpec *spec = reg.Find(name);
     CHECK(spec != nullptr);
