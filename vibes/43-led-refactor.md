@@ -61,7 +61,7 @@ tools/check verb_registry
 tools/check verb_registry
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. `BindingLedMask`
 - In `plugin/src/led_state.{h,cpp}` add `BindingLedMask` and the key→bit table per the design doc § Mask. Leave `LedState`/`MainLedMask` in place.
