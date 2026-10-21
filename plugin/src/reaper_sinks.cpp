@@ -49,6 +49,14 @@ void ReaperActionSink::ScrollBySeconds(double dt) {
   Trace("scroll dt=%.4f", dt); // oracle greps
 }
 
+void ReaperActionSink::SetViewSpan(double L, double R) {
+  ReaProject *proj = nullptr;
+  proj = EnumProjects(-1, nullptr, 0); // idx −1 = current project
+  GetSet_ArrangeView2(proj, true, 0, 0, &L, &R);
+  UpdateArrange();
+  Trace("zoom span=%.4f..%.4f", L, R); // oracle greps
+}
+
 void ReaperActionSink::ApplyShuttleRate(double rate) {
   const int playing = GetPlayState() & 1;
   if (rate > 0.0) {

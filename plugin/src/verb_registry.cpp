@@ -4,8 +4,7 @@
 // gestures, and args — it does not dispatch anything yet.
 #include "verb_registry.h"
 
-#include <algorithm> // std::clamp (TIMELINE select stepping)
-#include <cmath>     // std::log10 (AUDIO LEVEL read-out)
+#include <cmath>  // std::log10 (AUDIO LEVEL read-out)
 #include <cstdio>    // std::snprintf (AUDIO LEVEL message)
 #include <cstdlib>   // std::strtol (int args)
 #include <climits>   // INT_MIN / INT_MAX (int-arg range)
@@ -17,6 +16,7 @@
 #include "target.h"       // TargetItems, TargetTrack, WithTargetSelected
 #include "trace.h"        // Trace (no-target diagnostics)
 #include "wheel_mode.h"   // WheelMode
+#include "zoom.h"         // ViewRange, ZoomAround (TIMELINE zoom)
 
 // REAPER command 40044: toggle play/stop (transport).
 constexpr int kStopPlayCommand = 40044;
@@ -326,48 +326,22 @@ const std::map<int, StateRead> &ActionStateReads() {
 
 // --- turn verbs (moved verbatim from verbs.cpp) -----------------------
 
-constexpr int kSelectStepTicks = 20;  // wheel ticks per TIMELINE select step
+// One detent = 360 raw wheel units (docs/notes/m1-wheel-scale.md).
+constexpr int kUnitsPerDetent = 360;
 
-// One hold+rotate step: move the selection to the next (dir>0) / previous
-// (dir<0) item on the target track, clamped at the ends; the cursor does
-// not move. No selection on the track: + selects the first item, - the
-// last. Exclusive selection of the single stepped-to item.
-void StepSelection(IProject &project, int dir) {
-  const int track = TargetTrack(project);
-  if (track < 0) return;
-  std::vector<int> ids;  // target-track item ids in pos order
-  int sel_idx = -1;      // first (leftmost) selected item on the track, or -1
-  for (const ItemInfo &item : project.Items()) {  // ordered by track then pos
-    if (item.track != track) continue;
-    if (item.selected && sel_idx < 0) sel_idx = static_cast<int>(ids.size());
-    ids.push_back(item.id);
-  }
-  if (ids.empty()) return;
-  const int last = static_cast<int>(ids.size()) - 1;
-  if (sel_idx < 0) {  // nothing selected on the track: step from an end
-    project.SetSelectedItems({ids[dir > 0 ? 0 : last]});
-    return;
-  }
-  const int idx = std::clamp(sel_idx + dir, 0, last);
-  project.SetSelectedItems({ids[idx]});
-}
-
-// TIMELINE select: the accumulator keeps the remainder between steps, so
-// 10 + 10 ticks steps exactly once (the old VerbRouter::select_delta_).
-class SelectStepVerb : public Verb {
+// TIMELINE hold+rotate (46 §4.2): each Step converts the raw wheel delta
+// to signed detents (delta / 360) and re-anchors the arrange view around
+// the edit cursor (ZoomAround), written back via SetViewSpan. The view is
+// not an undoable edit: no undo block.
+class ZoomCursorVerb : public Verb {
  public:
   void Step(VerbContext &ctx, int delta) override {
-    select_delta_ += delta;
-    while (select_delta_ >= kSelectStepTicks ||
-           select_delta_ <= -kSelectStepTicks) {
-      const int dir = select_delta_ > 0 ? 1 : -1;
-      select_delta_ -= dir * kSelectStepTicks;  // keep the remainder
-      StepSelection(ctx.project, dir);
-    }
+    const double detents = static_cast<double>(delta) / kUnitsPerDetent;
+    const ViewRange v =
+        ZoomAround(ctx.project.GetView(), ctx.project.CursorPos(), detents,
+                   ctx.px_per_detent, ctx.project.PixelsPerSecond());
+    ctx.sink.SetViewSpan(v.L, v.R);
   }
-
- private:
-  int select_delta_ = 0;
 };
 
 // NUDGE modes. `apply` drives the per-item modes; the others are
@@ -788,12 +762,12 @@ VerbRegistry MakeDefaultRegistry() {
                                   }};
                }});
 
-  reg.Register({"select_step", {BindingGesture::Turn},
-               "Step the selection to the next/previous item on the target track (20 ticks per step)",
+  reg.Register({"zoom_cursor", {BindingGesture::Turn},
+               "Zoom the arrange view in (CW) / out (CCW) around the edit cursor",
                [](std::vector<std::string> args) -> VerbBuildResult {
                  std::string error;
-                 if (!CheckNoArgs("select_step", args, &error)) return {nullptr, error};
-                 return {std::make_unique<SelectStepVerb>(), ""};
+                 if (!CheckNoArgs("zoom_cursor", args, &error)) return {nullptr, error};
+                 return {std::make_unique<ZoomCursorVerb>(), ""};
                }, nullptr});
 
   reg.Register({"nudge", {BindingGesture::Turn},

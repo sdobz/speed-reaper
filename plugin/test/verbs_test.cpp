@@ -1,8 +1,7 @@
 // verbs_test.cpp — VerbRouter tables (design §7; M5 design §2 composites).
 // Time is not involved: gestures come in pre-recognized, via a fake
 // IActionSink and a FakeProject.
-#include <algorithm>  // std::find (ApplyLastSelection)
-#include <string>     // std::string (FakeSink::Message recording)
+#include <string>  // std::string (FakeSink::Message recording)
 
 #include "verbs.h"
 
@@ -27,17 +26,6 @@ class FakeSink : public IActionSink {
 
 Gesture G(std::uint16_t key, GestureKind kind, std::int32_t delta = 0) {
   return Gesture{key, kind, delta};
-}
-
-// The FakeProject records SetSelectedItems but does not apply them; in REAPER
-// the selection IS applied, so between gestures the test pushes the last
-// recorded selection into items[].selected.
-void ApplyLastSelection(FakeProject &project) {
-  if (project.selected_calls.empty()) return;
-  const auto &sel = project.selected_calls.back();
-  for (auto &item : project.items)
-    item.selected =
-        std::find(sel.begin(), sel.end(), item.id) != sel.end();
 }
 
 void test_mapped_gestures() {
@@ -322,59 +310,6 @@ void test_timeline_gestures() {
     CHECK(sink.commands.size() == 1);
     CHECK(sink.commands[0] == 40289);
     CHECK(project.selected_calls.empty());
-  }
-
-  // 6) HoldRotate: one step per kSelectStepTicks (=20) accumulated ticks,
-  // clamped at the ends, cursor untouched. 19+1 ticks = one step. Each
-  // step's selection is applied before the next gesture (REAPER applies
-  // SetSelectedItems; the fake only records it).
-  {
-    FakeSink sink;
-    FakeProject project = make_project();
-    VerbRouter r(sink, project);
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 19));
-    CHECK(project.selected_calls.empty());  // below the step threshold
-
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 1));  // total 20
-    CHECK(project.selected_calls.size() == 1);
-    CHECK(project.selected_calls[0].size() == 1);
-    CHECK(project.selected_calls[0][0] == 0);  // from nothing: first item
-    ApplyLastSelection(project);
-
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 20));
-    CHECK(project.selected_calls.size() == 2);
-    CHECK(project.selected_calls[1][0] == 1);  // next: B
-    ApplyLastSelection(project);
-
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, 20));
-    CHECK(project.selected_calls.size() == 3);
-    CHECK(project.selected_calls[2][0] == 1);  // clamped at the end
-    ApplyLastSelection(project);
-
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -20));
-    CHECK(project.selected_calls.size() == 4);
-    CHECK(project.selected_calls[3][0] == 0);  // previous: A
-    ApplyLastSelection(project);
-
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -40));  // two steps
-    CHECK(project.selected_calls.size() == 6);
-    CHECK(project.selected_calls[4][0] == 0);  // clamped at the start
-    CHECK(project.selected_calls[5][0] == 0);
-    ApplyLastSelection(project);
-
-    CHECK(sink.commands.empty());               // pure selection, no commands
-    CHECK(project.cursor == 2.5);               // cursor untouched
-  }
-
-  // 7) HoldRotate from nothing selected, negative first step: last item.
-  {
-    FakeSink sink;
-    FakeProject project = make_project();
-    VerbRouter r(sink, project);
-    r.OnGesture(G(KEY_TIMELINE, GestureKind::HoldRotate, -20));
-    CHECK(project.selected_calls.size() == 1);
-    CHECK(project.selected_calls[0].size() == 1);
-    CHECK(project.selected_calls[0][0] == 1);
   }
 }
 

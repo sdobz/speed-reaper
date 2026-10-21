@@ -44,6 +44,9 @@ class ReaperActionSink : public IActionSink {
   // distance per wheel unit as the cursor, at any zoom level (seconds,
   // not screen lines — CSurf_OnScroll's line steps do not track zoom).
   void ScrollBySeconds(double dt) override;
+  // Set the arrange view span (zoom_cursor, 46 §4.2): GetSet_ArrangeView2
+  // write of L/R + UpdateArrange.
+  void SetViewSpan(double L, double R) override;
   // Shuttle rate (the ShuttleRate law, shuttle.h).
   // Forward: CSurf_OnPlayRateChange, clamped to REAPER's 4.0x read-back cap
   // (the 4…8x outer half of the ShuttleRate law is flat at 4.0x in transport

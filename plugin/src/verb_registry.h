@@ -35,6 +35,7 @@ struct VerbContext {
   IActionSink &sink;
   IProject &project;
   int ticks_per_step = 4;  // [tuning] hold_ticks_per_step (turn verbs)
+  double px_per_detent = 0.0;  // [tuning] wheel.pixels_per_detent (zoom_cursor)
 };
 
 // The wheel mode routing state (the old Router mode_ / shuttle_prev_ /

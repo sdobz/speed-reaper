@@ -24,6 +24,10 @@ class IActionSink {
   // Seconds, not lines: the same timeline distance the jog cursor travels,
   // so the on-screen speed matches the cursor at any zoom level.
   virtual void ScrollBySeconds(double dt) = 0;
+  // Set the arrange view span (zoom_cursor: GetSet_ArrangeView2 write of
+  // L/R + UpdateArrange). Non-pure (no-op) so the headless fakes need not
+  // implement it; the zoom tests record it instead.
+  virtual void SetViewSpan(double L, double R) { (void)L; (void)R; }
   // Apply the signed shuttle rate. rate > 0: forward playback at that rate (the REAPER sink clamps
   // to its 4.0x cap). rate < 0: reverse, synthesized by seeking the playhead
   // back |rate|·dt per call. rate == 1.0: normal rate (JOG/SCRL tap hand-off

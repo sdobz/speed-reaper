@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include "zoom.h"  // ViewRange (GetView)
+
 struct ItemInfo {
   int id;       // index in Items() order
   int track;    // track index
@@ -47,6 +49,11 @@ class IProject {
   virtual std::vector<int> SelectedTracks() = 0;  // track indices
   virtual int LastTouchedTrack() = 0;  // -1 if none
   virtual double CursorPos() = 0;
+  // Arrange view (46: zoom_cursor). PixelsPerSecond: the live timeline
+  // scale (GetHZoomLevel); GetView: the current view span
+  // (GetSet_ArrangeView2 read).
+  virtual double PixelsPerSecond() = 0;
+  virtual ViewRange GetView() = 0;
   virtual bool HasTimeSelection() = 0;
   virtual void SetSelectedItems(const std::vector<int> &ids) = 0;
   virtual int RippleMode() = 0;  // 0 off, 1 per-track, 2 all

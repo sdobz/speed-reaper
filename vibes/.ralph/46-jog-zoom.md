@@ -104,3 +104,19 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: 5. Verb `zoom_cursor`, replacing `select_step`
+
+### Attempt 5 — 2026-10-21T06:49:41Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts:
+  - Tree was clean (task 4 committed); all edits done in one pass: project.h (pure `PixelsPerSecond()`/`ViewRange GetView()`, includes zoom.h), action_sink.h (non-pure no-op `SetViewSpan(L,R)` in the RunCommandByName style), reaper_project.{h,cpp} (GetHZoomLevel / GetSet_ArrangeView2 read via EnumProjects(-1)), reaper_sinks.{h,cpp} (SetViewSpan = GetSet_ArrangeView2 write + UpdateArrange + Trace), verb_registry.h (VerbContext += `double px_per_detent = 0.0`), verbs.cpp OnGesture (4th aggregate init from `bindings_.tuning.wheel_pixels_per_detent`), verb_registry.cpp (ZoomCursorVerb: `detents = delta/360`, `ZoomAround(project.GetView(), project.CursorPos(), detents, ctx.px_per_detent, project.PixelsPerSecond())` → `sink.SetViewSpan`; no undo; kSelectStepTicks/StepSelection/SelectStepVerb + registration deleted; `<algorithm>` include dropped).
+  - WANT lines for GetHZoomLevel/GetSet_ArrangeView2/EnumProjects/UpdateArrange all pre-existing; only comments updated in reaper_api.h.
+  - fake_project.h: new members `pixels_per_second = 100.0`, `ViewRange view{0,10}` + overrides. Other test FakeSinks untouched (SetViewSpan defaults to no-op); new plugin/test/zoom_cursor_test.cpp (auto-globbed by test/CMakeLists.txt) has a recording FakeSink; asserts CW narrows / CCW widens vs ZoomAround cross-check, q=0.32 preserved, no undo calls, args/gesture rejection.
+  - default_bindings.ini: TIMELINE.turn = zoom_cursor. verb_registry_test: select_step→zoom_cursor at the two-turn-verbs resolve, Tap-rejection, and bad-args sites; the select_step behavior block + `apply_selection` lambda deleted (sed 390,449d — accidentally ate the first line of the nudge comment, re-added). verbs_test.cpp test_timeline_gestures: cases 6+7 (HoldRotate select steps) deleted (sed 326,378d); cases 1-5 kept. kAllNames deliberately NOT given zoom_cursor (it is turn-only, like select_step was absent).
+  - `tools/gen_bindings_doc` uses the PREBUILT build/plugin/verb_list binary — must `cmake --build build/plugin` before regenerating, or the verb table stays stale.
+  - Build running as bg job `build46`; then regen docs/bindings.md, git add, run `tools/check && tools/check_api_want`.
+- Dead ends:
+  - (none yet)
+- Next:
+  - bgwait build46 → tools/gen_bindings_doc docs/bindings.md → git add -A → tools/check (full) && tools/check_api_want → tick line 78.

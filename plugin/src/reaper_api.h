@@ -34,9 +34,9 @@
 #define REAPERAPI_WANT_GetPlayPosition // ReaperPlayheadSink::PlayPosition
 #define REAPERAPI_WANT_ShowConsoleMsg // onTimer: HID worker log lines
 #define REAPERAPI_WANT_Main_OnCommand // ReaperActionSink::RunCommand (Router STOP/PLAY)
-#define REAPERAPI_WANT_EnumProjects // ReaperActionSink::ScrollBySeconds (current project)
-#define REAPERAPI_WANT_GetSet_ArrangeView2 // ReaperActionSink::ScrollBySeconds (read/shift view)
-#define REAPERAPI_WANT_UpdateArrange // ScrollBySeconds + SetSelectedItems (redraw)
+#define REAPERAPI_WANT_EnumProjects // ScrollBySeconds/SetViewSpan/ReaperProject::GetView (current project)
+#define REAPERAPI_WANT_GetSet_ArrangeView2 // ScrollBySeconds/SetViewSpan/ReaperProject::GetView (read/shift/set view)
+#define REAPERAPI_WANT_UpdateArrange // ScrollBySeconds/SetViewSpan + SetSelectedItems (redraw)
 #define REAPERAPI_WANT_GetToggleCommandState // ReaperProject::ToggleState/RippleMode (LED state reads: snap 1157 / trim-behind 41117, ripple 40310/40311)
 #define REAPERAPI_WANT_CSurf_OnPlayRateChange // shuttle forward rate + HardStop
 #define REAPERAPI_WANT_Master_GetPlayRate // shuttle read-back trace
@@ -67,6 +67,6 @@
 #define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
 #define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
 #define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
-#define REAPERAPI_WANT_GetHZoomLevel // ReaperZoomSource::PixelsPerSecond (46: zoom-scale seam)
+#define REAPERAPI_WANT_GetHZoomLevel // ReaperZoomSource/ReaperProject::PixelsPerSecond (46: zoom-scale seam)
 
 #include "reaper_plugin_functions.h"

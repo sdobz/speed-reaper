@@ -225,7 +225,7 @@ void test_double_tap_set() {
       "IN.double = action 40029\n"
       "OUT.double = ripple_delete\n"
       "TIMELINE.tap = select_cursor_item\n"
-      "TIMELINE.turn = select_step\n"
+      "TIMELINE.turn = zoom_cursor\n"
       "ESC.press = wheel jog\n",
       MakeDefaultRegistry());
   CHECK(b.errors.empty());

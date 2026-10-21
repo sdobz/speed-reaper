@@ -114,7 +114,6 @@ Generated from `MakeDefaultRegistry()` (plugin/src/verb_registry.cpp).
 | place_on_top | tap | `—` | Duplicate the targets onto a new track above each source track |
 | ripple_delete | tap, double | `—` | Remove the targets (or time selection) and close the gap |
 | select_cursor_item | tap | `—` | Select the item under the cursor exclusively (tap again to deselect) |
-| select_step | turn | `—` | Step the selection to the next/previous item on the target track (20 ticks per step) |
 | select_track | tap | `<N>` | Toggle selection of the item under the cursor on track <N> (1..9) |
 | smooth_cut | tap | `—` | Smooth-cut at the time selection |
 | solo_tracks | tap | `—` | Solo the targets' tracks (tap again to restore) |
@@ -123,6 +122,7 @@ Generated from `MakeDefaultRegistry()` (plugin/src/verb_registry.cpp).
 | transport | press | `<play_stop>` | Transport <play_stop> (a SHTL play_stop is a hard stop back to the prior mode) |
 | volume_readout | tap | `—` | Read out the first target item's volume in dB |
 | wheel | press | `<jog\|scrl\|shtl>` | Switch the wheel mode: <jog\|scrl\|shtl> |
+| zoom_cursor | turn | `—` | Zoom the arrange view in (CW) / out (CCW) around the edit cursor |
 
 ## Default bindings file
 
@@ -199,7 +199,7 @@ SLIP_DEST.turn    = nudge slip_dest    ; slip the target's destination edge, one
 AUDIO_LEVEL.turn  = nudge volume       ; change the target's volume, one frame step per 4 ticks
 
 ; --- the last CompositeRow: TIMELINE hold+rotate ------------------------
-TIMELINE.turn     = select_step        ; step the selection to the next/previous item (20 ticks per step)
+TIMELINE.turn     = zoom_cursor        ; zoom the arrange view in (CW) / out (CCW) around the cursor
 
 ; --- more turn handles (hold the key + turn the wheel) -------------------
 IN.turn           = nudge sel_in       ; move the time selection start, one frame per 4 ticks

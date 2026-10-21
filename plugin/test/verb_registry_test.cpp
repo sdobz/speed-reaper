@@ -66,7 +66,7 @@ void test_all_names_resolve() {
   }
   // The two turn verbs: both resolve under Turn (nudge under all 6 modes).
   {
-    VerbBuildResult r = reg.Build("select_step", BindingGesture::Turn, {});
+    VerbBuildResult r = reg.Build("zoom_cursor", BindingGesture::Turn, {});
     CHECK(r.error.empty());
     CHECK(r.verb != nullptr);
     for (const char *mode : kNudgeModes) {
@@ -120,7 +120,7 @@ void test_wrong_gesture_rejected() {
   VerbBuildResult r3 = reg.Build("isolate_tracks", BindingGesture::Double, {});
   CHECK(r3.error == "verb 'isolate_tracks' does not accept gesture 'double'");
   // the turn verbs reject the one-shot gestures
-  CHECK(!reg.Build("select_step", BindingGesture::Tap, {}).error.empty());
+  CHECK(!reg.Build("zoom_cursor", BindingGesture::Tap, {}).error.empty());
   CHECK(!reg.Build("nudge", BindingGesture::Press, {"move"}).error.empty());
   // the tap verbs reject turn
   CHECK(!reg.Build("ripple_delete", BindingGesture::Turn, {}).error.empty());
@@ -161,7 +161,7 @@ void test_bad_args_rejected() {
       {"nudge", {"foo"}},         // unknown mode
       {"nudge", {}},              // missing arg
       {"nudge", {"move", "x"}},   // too many
-      {"select_step", {"1"}},     // no args allowed
+      {"zoom_cursor", {"1"}},     // no args allowed
   };
   for (const Case &c : turn_cases) {
     VerbBuildResult r = reg.Build(c.name, BindingGesture::Turn, c.args);
@@ -386,65 +386,6 @@ void test_verb_behaviors() {
 // items[].selected).
 void test_turn_verb_behaviors() {
   VerbRegistry reg = MakeDefaultRegistry();
-
-  auto apply_selection = [](FakeProject &p) {
-    for (ItemInfo &it : p.items) it.selected = false;
-    if (p.selected_calls.empty()) return;
-    for (const int id : p.selected_calls.back())
-      if (id >= 0 && id < static_cast<int>(p.items.size())) p.items[id].selected = true;
-  };
-
-  // select_step: one step per ±20 accumulated ticks, exclusive selection,
-  // clamped at the ends; the remainder is kept across Step calls.
-  {
-    FakeProject project;
-    project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});   // A
-    project.items.push_back(ItemInfo{1, 0, 5.0, 5.0, false});   // B
-    project.items.push_back(ItemInfo{2, 0, 10.0, 5.0, false});  // C
-    project.last_touched = 0;
-    FakeSink s;
-    VerbContext c{s, project};
-    auto v = reg.Build("select_step", BindingGesture::Turn, {}).verb;
-    CHECK(v != nullptr);
-
-    // 20 ticks: nothing selected on the track → the first item.
-    v->Step(c, 20);
-    CHECK(project.selected_calls.size() == 1);
-    CHECK((project.selected_calls[0] == std::vector<int>{0}));
-    apply_selection(project);
-    // the next 20 ticks: the next item.
-    v->Step(c, 20);
-    CHECK(project.selected_calls.size() == 2);
-    CHECK((project.selected_calls[1] == std::vector<int>{1}));
-    apply_selection(project);
-    // 10 + 10 ticks: the remainder is kept, so one step exactly once.
-    v->Step(c, 10);
-    CHECK(project.selected_calls.size() == 2);  // 10 < 20: no step yet
-    v->Step(c, 10);
-    CHECK(project.selected_calls.size() == 3);
-    CHECK((project.selected_calls[2] == std::vector<int>{2}));
-    apply_selection(project);
-    // clamped at the end: another +20 stays on the last item.
-    v->Step(c, 20);
-    CHECK(project.selected_calls.size() == 4);
-    CHECK((project.selected_calls[3] == std::vector<int>{2}));
-    apply_selection(project);
-    // negative: −20 → the previous item; −40 → two steps, clamped at 0.
-    v->Step(c, -20);
-    CHECK(project.selected_calls.size() == 5);
-    CHECK((project.selected_calls[4] == std::vector<int>{1}));
-    apply_selection(project);
-    v->Step(c, -40);
-    CHECK(project.selected_calls.size() == 7);
-    CHECK((project.selected_calls[5] == std::vector<int>{0}));
-    CHECK((project.selected_calls[6] == std::vector<int>{0}));
-    // no target track (nothing touched/selected): a no-op.
-    FakeProject p2;
-    FakeSink s2;
-    VerbContext c2{s2, p2};
-    v->Step(c2, 40);
-    CHECK(p2.selected_calls.empty());
-  }
 
   // nudge move: one undo block per hold; one 1/Fps() step per 4 ticks
   // (3-tick remainders accumulate); the selection snapshot is restored

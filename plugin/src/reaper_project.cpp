@@ -100,6 +100,15 @@ int ReaperProject::LastTouchedTrack() {
 
 double ReaperProject::CursorPos() { return GetCursorPosition(); }
 
+double ReaperProject::PixelsPerSecond() { return GetHZoomLevel(); }
+
+ViewRange ReaperProject::GetView() {
+  ReaProject *proj = EnumProjects(-1, nullptr, 0);  // idx −1 = current project
+  double L = 0.0, R = 0.0;
+  GetSet_ArrangeView2(proj, false, 0, 0, &L, &R);
+  return {L, R};
+}
+
 bool ReaperProject::HasTimeSelection() {
   // GetSet_LoopTimeRange2 isSet=false reads the current time selection into
   // *start/*end (docs/notes/m5-observations.md: the "GetSet_Loc" name does

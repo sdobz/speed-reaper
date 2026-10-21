@@ -25,6 +25,8 @@ class ReaperProject final : public IProject {
   std::vector<int> SelectedTracks() override;
   int LastTouchedTrack() override;
   double CursorPos() override;
+  double PixelsPerSecond() override;  // GetHZoomLevel
+  ViewRange GetView() override;       // GetSet_ArrangeView2 read
   bool HasTimeSelection() override;
   void SetSelectedItems(const std::vector<int> &ids) override;
   int RippleMode() override;

@@ -20,6 +20,8 @@ class FakeProject final : public IProject {
   std::vector<int> tracks;      // selected tracks
   int last_touched = -1;
   double cursor = 0.0;
+  double pixels_per_second = 100.0;  // PixelsPerSecond() (zoom_cursor)
+  ViewRange view{0.0, 10.0};         // GetView() (zoom_cursor)
   bool time_sel = false;
   int ripple = 0;
 
@@ -77,6 +79,8 @@ class FakeProject final : public IProject {
   std::vector<int> SelectedTracks() override { return tracks; }
   int LastTouchedTrack() override { return last_touched; }
   double CursorPos() override { return cursor; }
+  double PixelsPerSecond() override { return pixels_per_second; }
+  ViewRange GetView() override { return view; }
   bool HasTimeSelection() override { return time_sel; }
   void SetSelectedItems(const std::vector<int> &ids) override {
     selected_calls.push_back(ids);
