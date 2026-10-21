@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - New source/header files must be `git commit`-ed before `tools/check` can pass: the Windows nix build (`nix build .#reaper-plugin-windows`) reads flake source, which excludes untracked files (symptom: `fatal error: <newfile>.h: No such file or directory` in the mingw build only).
+- Oracle device scenarios: a REAPER startup stall (late modal-dialog dismiss; first plugin tick can land at 200–600 ms) shifts script time vs fake-device time. Clock-based selection arming in the script is racy; arm on events instead (poll the flushed trace for the previous press's `cmd <id>` line) and keep the first fake press ≥ ~800 ms (see xfade_keys, 43 task 6).
 
 
 ## Task: 1. Named action ids
@@ -113,5 +114,12 @@ Facts:
 - xfade_keys.lua: writes scenario-local bindings.ini (DIS=40916, TRANS=41059, CUT=41193, TRANS_DUR=43776) + reload via _SPEED_REAPER_RELOAD_BINDINGS at setup (before the 400 ms press); new trace check "bindings loaded n=4"; os.remove(ini) at end. oracle/fake/xfade_keys.txt unchanged (keys unchanged).
 - docs/bindings.md regenerated via tools/gen_bindings_doc (diff matches the .ini changes only).
 - No new files created → no untracked-file hazard for the Windows nix build, but committing before verify anyway.
+
+Dead ends:
+- First verify run: xfade_keys item-effect checks failed while the trace showed all four cmds firing. Root cause: a REAPER startup stall (~590 ms, late dialog dismiss — first plugin tick at 617 ms) shifted SCRIPT time vs DEVICE time; the clock-based arming windows (100–380 ms etc. after the script's t0) then landed AFTER each press was dispatched, so the crossfade actions ran on stale selection. Baseline (HEAD~1, worktree /tmp/sr-baseline) passed — the stall is a run-to-run race, not caused by the bindings change.
+
+Facts (cont.):
+- Fix: re-arming is now EVENT-DRIVEN — each step's selection/fade setup runs as soon as the previous press's `cmd <id>` line appears in the plugin trace (trace file is flushed per line, device time; local `trace_has` avoids read_trace's per-call check spam). DIS prep (time sel + c/d) runs at setup. Fake presses moved 400/800/1200/1600 → 800/1200/1600/2000 so the first press outlives body setup even under a ~600 ms stall. wait_ms 2400→3000.
+- Two consecutive oracle reaper/xfade_keys PASS after the fix (one run had a 180 ms stall; arming was unaffected).
 Next:
-- Run verify: `tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xfade_keys` (job: ralph43-verify)
+- Run full verify: `tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xfade_keys` (job: ralph43-verify2); tick line 88.

@@ -5,14 +5,19 @@
 -- scenario-local bindings.ini binding the crossfade ids (40916, 41193) —
 -- and TRANS/TRANS_DUR, unchanged — to the same keys (model: bindings.lua).
 -- Uses the scenario-local bindings file.
--- Four independent item pairs (one track each), selection re-armed before
--- each press (script time = device time - ~40 ms):
---   400  DIS       (40916)  C [0,5] + D [5,10] abut, time sel [4.5,5.5]:
+-- Four independent item pairs (one track each). Selection is re-armed
+-- EVENT-DRIVEN, not on script clock: a REAPER startup stall (late-dialog
+-- dismiss) shifts script time vs device time, and clock-based arming can
+-- then land after a press. Each step's setup runs as soon as the previous
+-- press's `cmd <id>` line appears in the plugin trace (flushed per line,
+-- device time), long before the next press. Presses at 800/1200/1600/
+-- 2000 ms (fake/xfade_keys.txt):
+--   800  DIS       (40916)  C [0,5] + D [5,10] abut, time sel [4.5,5.5]:
 --                           C and D overlap afterwards (C.len 5.5, D.pos 4.5)
---   800  TRANS     (41059)  A [0,5] + B [4,9] overlap: crossfade flagged
+--   1200 TRANS     (41059)  A [0,5] + B [4,9] overlap: crossfade flagged
 --                           (A fade-out auto / B fade-in auto = 1.0)
---   1200 CUT       (41193)  G/H with manual fades 0.4: fades removed
---   1600 TRANS_DUR (43776)  I [0,5] + J [4,9] with auto crossfade: overlap
+--   1600 CUT       (41193)  G/H with manual fades 0.4: fades removed
+--   2000 TRANS_DUR (43776)  I [0,5] + J [4,9] with auto crossfade: overlap
 --                           shrinks to the default length (~0.02 s)
 dofile(os.getenv("ORACLE_LIB"))
 
@@ -85,32 +90,37 @@ start("device", function()
   end
   reaper.SetEditCurPos(6.0, false, false)
 
-  local armed = {}
-  local function arm(name, lo, hi, fn)
-    -- run fn once when the script clock is in (lo, hi)
-    return function(st)
-      if not armed[name] and st > lo and st < hi then armed[name] = true; fn() end
+  local trace_path = os.getenv("SPEED_REAPER_TRACE")
+  local function trace_has(needle)
+    local f = trace_path and io.open(trace_path, "r")
+    if not f then return false end
+    for line in f:lines() do
+      if line:find(needle, 1, true) then f:close(); return true end
     end
+    f:close()
+    return false
   end
-  local a1 = arm("dis", 100, 380, function()
-    reaper.GetSet_LoopTimeRange2(nil, true, false, 4.5, 5.5, false)
-    select(c, d)
-  end)
-  local a2 = arm("trans", 500, 780, function() select(a, b) end)
-  local a3 = arm("cut", 900, 1180, function()
-    set(g, "D_FADEOUTLEN", 0.4); set(h, "D_FADEINLEN", 0.4)
-    select(g, h)
-  end)
-  local a4 = arm("dur", 1300, 1580, function()
-    set(i, "D_FADEOUTLEN", 0.0); set(i, "D_FADEOUTLEN_AUTO", 1)
-    set(j, "D_FADEINLEN", 0.0); set(j, "D_FADEINLEN_AUTO", 1)
-    select(i, j)
-  end)
 
-  local t0 = reaper.time_precise()
-  wait_ms(2400, function()
-    local st = (reaper.time_precise() - t0) * 1000
-    a1(st); a2(st); a3(st); a4(st)
+  -- DIS prep (time selection + c/d) can be set immediately: nothing
+  -- disturbs it before the DIS press.
+  reaper.GetSet_LoopTimeRange2(nil, true, false, 4.5, 5.5, false)
+  select(c, d)
+
+  local armed = {}
+  wait_ms(3000, function()
+    if not armed.trans and trace_has("cmd 40916") then
+      armed.trans = true
+      select(a, b)
+    elseif not armed.cut and trace_has("cmd 41059") then
+      armed.cut = true
+      set(g, "D_FADEOUTLEN", 0.4); set(h, "D_FADEINLEN", 0.4)
+      select(g, h)
+    elseif not armed.dur and trace_has("cmd 41193") then
+      armed.dur = true
+      set(i, "D_FADEOUTLEN", 0.0); set(i, "D_FADEOUTLEN_AUTO", 1)
+      set(j, "D_FADEINLEN", 0.0); set(j, "D_FADEINLEN_AUTO", 1)
+      select(i, j)
+    end
   end, function()
     local function near(x, y, tol) return math.abs(x - y) < (tol or 0.01) end
     check("DIS: C extended to 5.5 and D starts at 4.5 (overlap = time selection)",
