@@ -198,3 +198,17 @@ Files:
 ```
 M vibes/.ralph/43-led-refactor.md
 ```
+
+## Task: 10. Docs
+
+### Attempt 10 — 2026-10-21T01:24:53Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- "four seeded reads" = the four `ActionStateReads()` entries (verb_registry.cpp:284): Snap 1157 ToggleState, TrimBehind 41117 ToggleState, RipplePerTrack 40310 RippleMode()==1, RippleAll 40311 RippleMode()==2.
+- Other seeded providers: `take <N>` (SharedActiveTake), `isolate_tracks` (ctx.isolate_active), `solo_tracks` (ctx.solo_active).
+- Default bindings (plugin/src/default_bindings.ini): SNAP.tap=action 1157, DIS.tap=action 40311, CUT.tap=action 40310, LIVE_OWR.tap=action 41117, CAM<n>.tap=take <n>, VIDEO_ONLY.tap=isolate_tracks, AUDIO_ONLY.tap=solo_tracks.
+- Rewrote docs/design.md §10 (binding-driven rule + priority Tap→Double→Turn→Press, four seeded reads table with default bindings, link to notes/led-binding.md) and README "LED meanings" (same, per-LED default bindings, LEDs follow the *binding*). Next: run tools/check (full build, may take minutes).
+- tools/check (job check10) passed rc=0 (build cached, ~16s; ORACLE PASS host).
+- Dead ends: none.
+- Result: done. Ticked line 131 of vibes/43-led-refactor.md.

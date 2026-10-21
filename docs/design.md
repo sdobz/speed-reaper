@@ -224,22 +224,40 @@ is still on the device: TIMELINE tap / double / turn (§6).
 
 ## 10. LED status bar
 
-The main-panel LED bits mirror live REAPER state (`led_state.h`, polled
-≤250 ms, pushed only on change; the device never writes them except its
-own mode LEDs):
+Each main-panel key's LED bit reflects the **state read** of the verb
+bound to that key: for every LED-bearing key, take the first bound
+gesture in the priority **Tap → Double → Turn → Press** and light the
+bit iff that verb's state read exists and returns true against live
+state. Unbound keys, or bindings to verbs without a read (one-shot
+actions, named `action <name>`), stay dark. There is no key-identity
+table and no hardcoded action list in the mask — the normative design,
+types, and the key→bit table are in
+[`docs/notes/led-binding.md`](notes/led-binding.md) (`BindingLedMask` in
+`led_state.{h,cpp}`, polled ≤250 ms, pushed only on change; the device
+never writes these bits except its own mode LEDs).
 
-| LED | lit when |
-|---|---|
-| SNAP | snapping on (command 1157) |
-| CUT | per-track ripple on (40310) |
-| DIS | ripple all tracks on (40311) |
-| LIVE_OWR | trim-below on (41117) |
-| CAM 1–9 | the take number shared by **all** selected items (mixed or none selected → dark) |
-| VIDEO_ONLY | isolate view active (`isolate_tracks` verb) |
-| AUDIO_ONLY | solo active (`solo_tracks` verb) |
+**Seeded action reads** (`ActionStateReads()`, `verb_registry.cpp`):
+`action <id>` has a state read only for the four ids below; with the
+default `bindings.ini` each lights its own key's LED:
+
+| read | command | lit when | default binding |
+|---|---|---|---|
+| SNAP | 1157 | snap on (`ToggleState(1157)`) | `SNAP.tap = action 1157` |
+| CUT | 40310 | per-track ripple on (`RippleMode() == 1`) | `CUT.tap = action 40310` |
+| DIS | 40311 | ripple all tracks on (`RippleMode() == 2`) | `DIS.tap = action 40311` |
+| LIVE_OWR | 41117 | trim-below on (`ToggleState(41117)`) | `LIVE_OWR.tap = action 41117` |
+
+Other seeded reads: `take <N>` — the CAM keys, true iff
+`SharedActiveTake(project) == N` (default `CAM<n>.tap = take <n>`, so a
+CAM LED shows the take shared by **all** selected items; mixed or none
+selected → dark); `isolate_tracks` — `ctx.isolate_active`
+(`VIDEO_ONLY.tap`); `solo_tracks` — `ctx.solo_active`
+(`AUDIO_ONLY.tap`). Every other verb has no read → its key's LED stays
+dark.
 
 Plus the three jog-mode LEDs (report 0x04: JOG / SHTL / SCRL), set when
-the wheel mode changes or the device (re)connects.
+the wheel mode changes or the device (re)connects — a separate path,
+untouched.
 
 ## 11. REAPER actions (action list: "Speed Reaper")
 

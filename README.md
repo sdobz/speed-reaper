@@ -70,17 +70,22 @@ Tuning defaults (300 ms double-tap window, 350 ms hold) live in the
 
 ## LED meanings
 
-The main-panel LED bar mirrors REAPER state:
+Each main-panel key's LED follows the *binding*: it lights when the
+**state read** of the verb bound to that key (highest-priority bound
+gesture, Tap → Double → Turn → Press) is true. Unbound keys, or
+bindings to one-shot actions, stay dark — so rebinding a key to a
+different verb changes (or removes) its LED. With the default
+`bindings.ini`, that means:
 
-| LED | Lit when |
+| LED | Lit when (default binding) |
 |---|---|
-| SNAP | snap is on |
-| CUT | ripple editing = per-track |
-| DIS | ripple editing = all tracks |
-| LIVE_OWR | trim-behind is on |
-| CAM1…CAM9 | active take number (1–9) shared by all selected items |
-| VIDEO_ONLY | tracks are isolated |
-| AUDIO_ONLY | solo is on |
+| SNAP | snap is on (`SNAP.tap = action 1157`) |
+| CUT | ripple editing = per-track (`CUT.tap = action 40310`) |
+| DIS | ripple editing = all tracks (`DIS.tap = action 40311`) |
+| LIVE_OWR | trim-behind is on (`LIVE_OWR.tap = action 41117`) |
+| CAM1…CAM9 | active take number (1–9) shared by all selected items (`CAM<n>.tap = take <n>`) |
+| VIDEO_ONLY | tracks are isolated (`VIDEO_ONLY.tap = isolate_tracks`) |
+| AUDIO_ONLY | solo is on (`AUDIO_ONLY.tap = solo_tracks`) |
 
 ## Troubleshooting
 
