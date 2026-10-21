@@ -267,3 +267,11 @@ Done (attempt 1):
 - `docs/bindings.md`: no mentions — untouched (already regenerated in task 5).
 - `plugin/test/zoom_cursor_test.cpp`: header comment "replacing select_step" → dropped (comment-only edit, code untouched; required because Verify greps `plugin/`).
 - Verify passes: `! rg -q 'select_step|kSecondsPerRev' plugin src docs/design.md docs/bindings.md` → exit 0. Line 122 ticked.
+
+Result: exit 0; done; log: logs/46-jog-zoom-L122-a1-1792594216154.log
+
+### Done — 2026-10-21 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
