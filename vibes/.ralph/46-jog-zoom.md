@@ -63,3 +63,13 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: 3. Scrl uses the same scale
+
+### Attempt 3 — 2026-10-21T06:37:19Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: task 2 is merged; JogEngine uses `(delta / kUnitsPerDetent=360) * (k_px / pxPerSec)` (one detent = 360 units per docs/notes/m1-wheel-scale.md; one rev = 4096 detents = k_px·4096 px). The task text's `kUnitsPerRev` denominator is §4.1's typo carried over (task 2's own bullet said the same but the accepted implementation + its acceptance test `rev = k_px·4096/pxPerSec` use kUnitsPerDetent). "Same scale" ⇒ Router uses the identical formula, so the view travels the same on-screen distance per wheel unit as the jog cursor (router.h header promise + §8.1 resolved decision).
+- Facts: changed `Router` ctor to `(IActionSink&, WheelState&, IZoomSource&, double k_px=0.0)` + `SetPixelsPerDetent`; `session.cpp` threads `zoom` + `verbs_.tuning().wheel_pixels_per_detent` and re-threads in `ConfigureGestures` (bindings reload). Removed now-unused `JogEngine::kSecondsPerWheelUnit`; updated stale comments in wheel_dispatcher.h / reaper_sinks.h. Tests: wheel_dispatcher_test.cpp + router_test.cpp get a FakeZoom (100 px/s, k_px 0.25) and assert `(45/kUnitsPerDetent)*(kPx/pps)`; added pxPerSec<=0 guard checks in both.
+- Next: build (`cmake --build build/plugin`), then `tools/check wheel_dispatcher` via bgrun.
+- Done: `tools/check wheel_dispatcher` rc=0 (bgwait `check_wd_full`; job `check_wd` was the SKIP_WINDOWS=1 dry run). wheel_dispatcher_test passed; Windows DLL cross-build + static oracle + host oracle pass. Box ticked, committed.
+- Facts for later tasks: `kSecondsPerWheelUnit` is fully gone from plugin/ (only docs/ mentions remain — design.md:182 and jog-discovery.md §7:288-290 still describe the old scale; a docs task may want to refresh those). Oracle scenario `oracle/scenarios/hid_wheel.lua` (§7:291) is NOT yet re-baselined to the px/s-based scale — host oracle passed anyway; watch if a later task touches it.

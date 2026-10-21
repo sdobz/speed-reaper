@@ -39,8 +39,8 @@ class ReaperActionSink : public IActionSink {
   // `_Named` command (action verb): NamedCommandLookup; unresolved → trace.
   void RunCommandByName(const std::string &name) override;
   // Scroll the arrange view by dt seconds of timeline (+ = right/later).
-  // Same scale as the jog cursor (Router passes delta ×
-  // JogEngine::kSecondsPerWheelUnit): the view travels the same on-screen
+  // Same scale as the jog cursor (Router passes (delta / kUnitsPerDetent)
+  // × k_px / pxPerSec, 46 §3): the view travels the same on-screen
   // distance per wheel unit as the cursor, at any zoom level (seconds,
   // not screen lines — CSurf_OnScroll's line steps do not track zoom).
   void ScrollBySeconds(double dt) override;

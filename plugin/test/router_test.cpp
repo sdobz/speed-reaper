@@ -6,11 +6,22 @@
 #include "router.h"
 
 #include "check.h"
-#include "jog_engine.h"  // JogEngine::kSecondsPerWheelUnit: Scrl scroll scale
+#include "jog_engine.h"  // IZoomSource, kUnitsPerDetent: Scrl scroll scale
 #include "shuttle.h"  // ShuttleRate: the law the Router must forward
 #include "speed_editor/key_map.h"  // KEY_JOG, KEY_SCRL, KEY_SHTL, KEY_STOP_PLAY
 
 namespace {
+
+// Shared Scrl scroll scale for the fakes (46 §3): k_px pixels per detent
+// at pxPerSec — the same seam + k_px the JogEngine uses.
+const double kPx = 0.25;
+const double kPps = 100.0;  // timeline px/s at the fake zoom
+
+class FakeZoom final : public IZoomSource {
+ public:
+  double px_per_sec = kPps;
+  double PixelsPerSecond() const override { return px_per_sec; }
+};
 
 class FakeSink : public IActionSink {
  public:
@@ -46,7 +57,8 @@ int main() {
   {
     FakeSink sink;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     CHECK(r.Mode() == WheelMode::Jog);
     CHECK(!r.TakeModeChange(nullptr));
     CHECK(sink.command_count == 0 && sink.scroll_calls == 0);
@@ -61,7 +73,8 @@ int main() {
   {
     FakeSink sink;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     ws.Set(WheelMode::Shtl);
     r.TakeModeChange(nullptr);
 
@@ -85,13 +98,15 @@ int main() {
     CHECK(sink.rate_calls == 2);
   }
 
-  // Scrl OnWheel: the view scrolls by delta × JogEngine::kSecondsPerWheelUnit
-  // seconds — the same timeline scale as the jog cursor (same on-screen
-  // speed at any zoom). Zero delta does nothing; Jog ignores the delta.
+  // Scrl OnWheel: the view scrolls on the shared screen-space scale —
+  // (delta / kUnitsPerDetent) × (k_px / pxPerSec) seconds — the same as the
+  // jog cursor (46 §3). Zero delta does nothing; Jog ignores the delta;
+  // a degenerate zoom (pxPerSec <= 0) scrolls nothing.
   {
     FakeSink sink;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
 
     r.OnWheel(45);  // Jog: ignored
     CHECK(sink.scroll_calls == 0);
@@ -101,7 +116,9 @@ int main() {
 
     r.OnWheel(45);
     CHECK(sink.scroll_calls == 1);
-    CHECK(sink.scroll_dt_sum == 45.0 * JogEngine::kSecondsPerWheelUnit);
+    CHECK_NEAR(sink.scroll_dt_sum,
+               (45.0 / JogEngine::kUnitsPerDetent) * (kPx / zoom.px_per_sec),
+               1e-9);
 
     r.OnWheel(-45);
     CHECK(sink.scroll_calls == 2);  // same magnitude, opposite direction
@@ -109,6 +126,11 @@ int main() {
 
     r.OnWheel(0);
     CHECK(sink.scroll_calls == 2);  // no motion → no call
+
+    zoom.px_per_sec = 0.0;  // degenerate scale: the guard blocks the scroll
+    r.OnWheel(1000);
+    CHECK(sink.scroll_calls == 2);
+    zoom.px_per_sec = kPps;
 
     // Back to Jog: the view is not touched again.
     ws.Set(WheelMode::Jog);

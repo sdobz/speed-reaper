@@ -7,10 +7,23 @@
 #include "wheel_dispatcher.h"
 
 #include "check.h"
+#include "jog_engine.h"  // IZoomSource, kUnitsPerDetent: Scrl scroll scale
 #include "shuttle.h"  // ShuttleRate: the law the Shtl branch must forward
 #include "speed_editor/key_map.h"  // KEY_JOG, KEY_SCRL, KEY_SHTL, KEY_SNAP
 
 namespace {
+
+// Shared Scrl scroll scale for the fakes (46 §3): k_px pixels per detent
+// at pxPerSec — the same seam + k_px the JogEngine uses.
+const double kPx = 0.25;
+const double kPps = 100.0;  // timeline px/s at the fake zoom
+
+// Deterministic IZoomSource: fixed px/s, mutable for the degenerate case.
+class FakeZoom final : public IZoomSource {
+ public:
+  double px_per_sec = kPps;
+  double PixelsPerSecond() const override { return px_per_sec; }
+};
 
 // Deterministic IWheelDevice: configured sample on every Tick.
 class FakeDevice final : public IWheelDevice {
@@ -63,7 +76,8 @@ int main() {
     FakeSink sink;
     GestureEngine gestures;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;  // parked off-center: must not trigger a rate call
@@ -81,15 +95,17 @@ int main() {
     CHECK(out.delta == 0);  // no motion → no motion
   }
 
-  // Scrl branch: the view scrolls by delta × kSecondsPerWheelUnit seconds
-  // (same scale as the jog cursor); the engine sees 0. Back in Jog the
-  // delta passes through and the view is not touched again.
+  // Scrl branch: the view scrolls on the shared screen-space scale —
+  // (delta / kUnitsPerDetent) × (k_px / pxPerSec) seconds, the same as the
+  // jog cursor (46 §3); the engine sees 0. Back in Jog the delta passes
+  // through and the view is not touched again.
   {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     WheelDispatcher d(dev, gestures, r);
 
     ws.Set(WheelMode::Scrl);
@@ -100,7 +116,9 @@ int main() {
     d.Tick(&out);
     CHECK(out.delta == 0);  // Scrl: engine sees nothing
     CHECK(sink.scroll_calls == 1);  // 45 units → one scroll right
-    CHECK(sink.scroll_dt_sum == 45.0 * JogEngine::kSecondsPerWheelUnit);
+    CHECK_NEAR(sink.scroll_dt_sum,
+               (45.0 / JogEngine::kUnitsPerDetent) * (kPx / zoom.px_per_sec),
+               1e-9);
 
     dev.sample_ = WheelSample{-45};
     out = {};
@@ -108,6 +126,14 @@ int main() {
     CHECK(out.delta == 0);
     CHECK(sink.scroll_calls == 2);  // same magnitude, opposite direction
     CHECK(sink.scroll_dt_sum == 0.0);  // exact round trip
+
+    // Degenerate zoom (pxPerSec <= 0): no scroll (46 §3 guard).
+    zoom.px_per_sec = 0.0;
+    dev.sample_ = WheelSample{45};
+    out = {};
+    d.Tick(&out);
+    CHECK(out.delta == 0);
+    CHECK(sink.scroll_calls == 2);  // degenerate scale: nothing moved
 
     ws.Set(WheelMode::Jog);
     r.TakeModeChange(nullptr);
@@ -126,7 +152,8 @@ int main() {
     FakeSink sink;
     GestureEngine gestures;
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     WheelDispatcher d(dev, gestures, r);
 
     ws.Set(WheelMode::Shtl);
@@ -161,7 +188,8 @@ int main() {
     GestureEngine gestures;
     gestures.SetTurnKeys({KEY_TIMELINE});
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;  // off-center from the start
@@ -219,7 +247,8 @@ int main() {
     GestureEngine gestures;
     gestures.SetTurnKeys({KEY_TIMELINE});  // only TIMELINE is a turn key
     WheelState ws;
-    Router r(sink, ws);
+    FakeZoom zoom;
+    Router r(sink, ws, zoom, kPx);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;

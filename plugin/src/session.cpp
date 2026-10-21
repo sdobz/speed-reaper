@@ -58,7 +58,8 @@ Session::Session(IDevice &device, IActionSink &actions, IProject &project,
       verbs_(actions, project, bindings_text),
       gestures_(GestureConfig{verbs_.tuning().double_tap_ms,
                               verbs_.tuning().hold_ms}),
-      router_(actions, verbs_.wheel_state()),
+      router_(actions, verbs_.wheel_state(), zoom,
+              verbs_.tuning().wheel_pixels_per_detent),
       dispatcher_(device, gestures_, router_),
       // k_px comes from [tuning] (46 §4.1); verbs_ initializes before
       // engine_ here and again on every ReloadBindings (ConfigureGestures).
@@ -75,6 +76,7 @@ void Session::ConfigureGestures() {
   gestures_.SetPressKeys(verbs_.PressKeys());
   gestures_.SetTurnKeys(verbs_.TurnKeys());
   engine_.SetPixelsPerDetent(verbs_.tuning().wheel_pixels_per_detent);
+  router_.SetPixelsPerDetent(verbs_.tuning().wheel_pixels_per_detent);
 }
 
 void Session::ReportErrors() {

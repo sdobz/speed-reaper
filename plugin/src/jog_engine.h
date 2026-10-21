@@ -88,9 +88,6 @@ class JogEngine {
 
   static constexpr double kUnitsPerDetent = 360.0;      // measured
   static constexpr double kUnitsPerRev = 1474560.0;     // 4096 * 360, measured
-  // Interim until 46 §3 re-points the Router: Scrl still scrolls at a
-  // fixed seconds-per-wheel-unit rate (the old seconds-per-rev = 20 s feel).
-  static constexpr double kSecondsPerWheelUnit = 20.0 / kUnitsPerRev;
 
  private:
   IWheelSource &source_;

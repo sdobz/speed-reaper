@@ -49,7 +49,7 @@ tools/check jog_engine
 tools/check wheel_dispatcher
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Zoom math as a pure function
 - Add `plugin/src/zoom.{h,cpp}` (register in CMake): `struct ViewRange { double L, R; }` and `ViewRange ZoomAround(ViewRange view, double pivot, double detents, double k_px, double px_per_sec)` per `docs/jog-discovery.md` §4.2: `f = k_px / (px_per_sec * W)` clamped `< 1`; CW (detents > 0): `W' = W (1-f)^d`; CCW: `W' = W (1+f)^(-d)`; keep `q = clamp((P-L)/(R-L), 0, 1)`.

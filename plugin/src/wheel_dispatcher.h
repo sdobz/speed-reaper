@@ -50,8 +50,9 @@ class WheelDispatcher final : public IWheelSource {
     } else if (router_.Mode() == WheelMode::Jog) {
       // Jog: the delta passes through to the JogEngine (playhead motion).
     } else if (router_.Mode() == WheelMode::Scrl) {
-      // Scrl: the view scrolls by delta × kSecondsPerWheelUnit; the
-      // engine sees 0, so SCRL never moves the playhead.
+      // Scrl: the view scrolls on the shared k_px / pxPerSec scale (the
+      // jog cursor's screen-space scale, 46 §3); the engine sees 0, so
+      // SCRL never moves the playhead.
       router_.OnWheel(s.delta);
       s.delta = 0;
     } else {  // WheelMode::Shtl
