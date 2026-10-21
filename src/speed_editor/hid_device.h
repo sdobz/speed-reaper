@@ -34,8 +34,14 @@ public:
     void close();
 
     // Run the challenge-response authentication handshake (report 0x06).
-    // The device sends no input reports until this succeeds.
-    bool authenticate();
+    // The device sends no input reports until this succeeds, and it
+    // re-locks (silently) `timeout` seconds after the last handshake —
+    // callers must re-run it before the deadline. May be re-run on the
+    // same open handle (the 0x00 challenge request re-arms the device's
+    // state machine).
+    // Returns the device-reported re-auth timeout in seconds (> 0), or
+    // 0 on failure.
+    int authenticate();
 
     // Set the wheel protocol mode (output report 0x03). mode is 0-3.
     bool setWheelMode(uint8_t mode);

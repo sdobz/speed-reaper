@@ -19,6 +19,22 @@
 #include "transport_factory.h"
 #include "trace.h"
 
+namespace {
+// The device re-locks (silently: no input reports, no read error) about
+// `timeout` seconds after the last (re-)authentication — the u16 in the
+// auth status report, observed 600 s on real hardware. Nothing in the
+// read loop can detect the re-lock, so the only remedy is to re-run the
+// handshake before the deadline, as the reference driver does (bmd.py:
+// re-authenticates 10 s before the reported expiry).
+constexpr int kReauthMarginSec = 10;
+
+std::chrono::steady_clock::time_point ReauthDeadline(int timeout_s) {
+  const int wait_s =
+      (timeout_s - kReauthMarginSec) > 1 ? timeout_s - kReauthMarginSec : 1;
+  return std::chrono::steady_clock::now() + std::chrono::seconds(wait_s);
+}
+}  // namespace
+
 HidWheelSource::HidWheelSource() = default;
 
 HidWheelSource::~HidWheelSource() { Stop(); }
@@ -51,11 +67,14 @@ void HidWheelSource::WorkerLoop() {
     not_found_logged = false;
 
     // Step 2: authenticate; on failure back to 1.
-    if (!dev_->authenticate()) {
+    const int auth_timeout_s = dev_->authenticate();
+    if (auth_timeout_s <= 0) {
       PushLog("auth failed");
       dev_->close();
       continue;
     }
+    std::chrono::steady_clock::time_point reauth_at =
+        ReauthDeadline(auth_timeout_s);
 
     // Step 3: init and announce.
     dev_->setWheelMode(0);
@@ -66,6 +85,23 @@ void HidWheelSource::WorkerLoop() {
     // Step 4: event loop.
     std::vector<std::uint16_t> held;  // previously held key set
     while (running_.load()) {
+      if (std::chrono::steady_clock::now() >= reauth_at) {
+        // Heartbeat: re-auth before the device re-locks. The handshake
+        // is SET/GET_FEATURE, so it runs on the already-open handle.
+        // Flip connected_ so the Session sees a (re)connect edge and
+        // re-pushes the current mode + LEDs (the device drops output
+        // reports while locked). Failure → close in step 5, back to 1.
+        connected_.store(false);
+        const int t = dev_->authenticate();
+        if (t <= 0) {
+          PushLog("reauth failed");
+          held.clear();
+          break;
+        }
+        reauth_at = ReauthDeadline(t);
+        connected_.store(true);
+        PushLog("reauth ok");
+      }
       ApplyPending();
       SpeedEditorEvent ev;
       if (!dev_->readEvent(ev, 20)) {

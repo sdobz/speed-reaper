@@ -128,12 +128,13 @@ int connectEditor(SpeedEditorHID& ed, const char* purpose) {
     }
     std::printf("device : Speed Editor (serial %s)\n",
                 ed.getSerial().empty() ? "none" : ed.getSerial().c_str());
-    if (!ed.authenticate()) {
+    const int reauth_sec = ed.authenticate();
+    if (reauth_sec <= 0) {
         std::fprintf(stderr, "error: authentication failed (challenge/response on report 0x06)\n");
         ed.close();
         return 2;
     }
-    std::printf("auth   : OK (%s)\n", purpose);
+    std::printf("auth   : OK (%s, device re-locks in ~%ds)\n", purpose, reauth_sec);
     return 0;
 }
 

@@ -14,6 +14,12 @@
 #include <cstdio>
 #include <cstring>
 
+namespace {
+// Re-auth timeout (s) used when the device's status report carries no
+// usable value (fake device reports 0). Observed on real hardware: 600.
+constexpr int kDefaultReauthTimeoutSec = 600;
+}  // namespace
+
 // ── Constructor / Destructor ───────────────────────────────────────
 
 SpeedEditorHID::SpeedEditorHID(std::unique_ptr<IHidTransport> transportIn)
@@ -80,8 +86,8 @@ void SpeedEditorHID::close() {
 
 // ── Authentication ─────────────────────────────────────────────────
 
-bool SpeedEditorHID::authenticate() {
-    if (!opened) { return false; }
+int SpeedEditorHID::authenticate() {
+    if (!opened) { return 0; }
 
     state = State::Authenticating;
 
@@ -92,7 +98,7 @@ bool SpeedEditorHID::authenticate() {
     uint8_t challengeBuf[10] = {};
     if (recvFeatureReport(0x06, challengeBuf, sizeof(challengeBuf)) < 0) {
         state = State::Disconnected;
-        return false;
+        return 0;
     }
 
     // Step 2 — acknowledge
@@ -115,17 +121,22 @@ bool SpeedEditorHID::authenticate() {
     uint8_t result[10] = {};
     if (recvFeatureReport(0x06, result, sizeof(result)) < 0) {
         state = State::Disconnected;
-        return false;
+        return 0;
     }
 
     if (result[0] != 0x06 || result[1] != 0x04) {
         std::fprintf(stderr, "speed_editor: authentication FAILED\n");
         state = State::Disconnected;
-        return false;
+        return 0;
     }
 
     state = State::Connected;
-    return true;
+    // Status payload: u16 LE re-auth timeout (seconds; observed 600).
+    uint16_t timeout_sec = 0;
+    std::memcpy(&timeout_sec, &result[2], sizeof(timeout_sec));
+    return timeout_sec > 0
+        ? static_cast<int>(timeout_sec)
+        : kDefaultReauthTimeoutSec;
 }
 
 // ── Wheel mode ─────────────────────────────────────────────────────

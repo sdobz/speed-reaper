@@ -85,7 +85,7 @@ void fullSession() {
   SpeedEditorHID dev(std::make_unique<FakeTransport>(evs));
   CHECK(dev.open(""));
   CHECK(dev.getSerial() == "FAKE0001");
-  CHECK(dev.authenticate());
+  CHECK(dev.authenticate() > 0);
   CHECK(dev.getState() == SpeedEditorHID::State::Connected);
   CHECK(dev.setWheelMode(2));  // wheel reports must echo mode 2
 
@@ -130,11 +130,34 @@ void fullSession() {
     sleepMs(20);  // wait out the 400ms plug time, poll-friendly
   }
   CHECK(tries < 100);
-  CHECK(dev.authenticate());
+  CHECK(dev.authenticate() > 0);
   CHECK(dev.getState() == SpeedEditorHID::State::Connected);
   // Script exhausted — readEvent times out (no events left).
   CHECK(!dev.readEvent(e, 100));
   CHECK(dev.getState() == SpeedEditorHID::State::Connected);
+  dev.close();
+}
+
+// The device reports the re-auth timeout in the auth status u16; the fake
+// reports 0, so authenticate() falls back to the 600 s default. The
+// handshake re-arms on the 0x00 challenge request, so it can be re-run
+// repeatedly on the same open handle — that is exactly what the worker's
+// re-auth heartbeat does before the device re-locks.
+void reauthOnOpenHandle() {
+  std::string err;
+  auto evs = ParseFakeScript("at 10 wheel 5\n", &err);
+  CHECK(evs.size() == 1 && err.empty());
+  SpeedEditorHID dev(std::make_unique<FakeTransport>(evs));
+  CHECK(dev.open(""));
+  CHECK(dev.authenticate() == 600);  // fake reports 0 → default applies
+  for (int i = 0; i < 3; i++) {
+    CHECK(dev.authenticate() == 600);
+    CHECK(dev.getState() == SpeedEditorHID::State::Connected);
+  }
+  // Input reports still flow after in-place re-auth.
+  SpeedEditorEvent e{};
+  CHECK(dev.readEvent(e, 500));
+  CHECK(e.type == EventType::Wheel && e.wheel.delta == 5);
   dev.close();
 }
 
@@ -144,7 +167,7 @@ void defaultWheelMode() {
   CHECK(evs.size() == 1 && err.empty());
   SpeedEditorHID dev(std::make_unique<FakeTransport>(evs));
   CHECK(dev.open(""));
-  CHECK(dev.authenticate());
+  CHECK(dev.authenticate() > 0);
   // No setWheelMode() call → input reports carry mode 0.
   SpeedEditorEvent e{};
   CHECK(dev.readEvent(e, 300));
@@ -159,6 +182,7 @@ void defaultWheelMode() {
 int main() {
   badScripts();
   fullSession();
+  reauthOnOpenHandle();
   defaultWheelMode();
   return check_failures();
 }

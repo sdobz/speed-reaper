@@ -25,7 +25,7 @@ void fakeViaEnv() {
   setenv("SPEED_REAPER_FAKE_DEVICE", kScriptPath, 1);
   SpeedEditorHID dev(MakeTransport());
   CHECK(dev.open(""));
-  CHECK(dev.authenticate());
+  CHECK(dev.authenticate() > 0);
   CHECK(dev.getState() == SpeedEditorHID::State::Connected);
   SpeedEditorEvent e{};
   CHECK(dev.readEvent(e, 500));
