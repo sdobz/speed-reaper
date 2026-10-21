@@ -333,15 +333,52 @@ constexpr int kUnitsPerDetent = 360;
 // to signed detents (delta / 360) and re-anchors the arrange view around
 // the edit cursor (ZoomAround), written back via SetViewSpan. The view is
 // not an undoable edit: no undo block.
+//
+// The host quantises each written edge to the pixel grid, and one step
+// moves the span by far less than a pixel: re-reading the view inside a
+// Step would pin L (sub-pixel motion never crosses a grid line) and drift
+// the cursor's screen fraction. So Begin captures the span W and q once
+// and every Step chains ZoomAround off the kept ideal view; the read-back
+// is never consulted. End releases the hold (a later Step without a fresh
+// Begin re-reads the live view, as before).
 class ZoomCursorVerb : public Verb {
  public:
+  void Begin(VerbContext &ctx) override {
+    const ViewRange v = ctx.project.GetView();
+    const double w = v.R - v.L;
+    if (w <= 0.0) return;  // degenerate: Step falls back to the live view
+    double q = (ctx.project.CursorPos() - v.L) / w;
+    if (q < 0.0) q = 0.0;
+    if (q > 1.0) q = 1.0;
+    W_ = w;
+    q_ = q;
+    active_ = true;
+  }
+
   void Step(VerbContext &ctx, int delta) override {
     const double detents = static_cast<double>(delta) / kUnitsPerDetent;
+    const double p = ctx.project.CursorPos();
+    ViewRange view;
+    if (active_) {
+      // The kept ideal view: span W_ re-anchored so q_ sits at p.
+      view.L = p - q_ * W_;
+      view.R = view.L + W_;
+    } else {
+      view = ctx.project.GetView();
+    }
     const ViewRange v =
-        ZoomAround(ctx.project.GetView(), ctx.project.CursorPos(), detents,
-                   ctx.px_per_detent, ctx.project.PixelsPerSecond());
+        ZoomAround(view, p, detents, ctx.px_per_detent,
+                   ctx.project.PixelsPerSecond());
+    if (active_) W_ = v.R - v.L;  // ZoomAround keeps q_ (pivot p)
     ctx.sink.SetViewSpan(v.L, v.R);
   }
+
+  void End(VerbContext &) override { active_ = false; }
+
+ private:
+  bool active_ = false;
+  double W_ = 0.0;  // kept span, seconds (ideal, unquantised)
+  double q_ = 0.0;  // kept cursor fraction of the span
 };
 
 // NUDGE modes. `apply` drives the per-item modes; the others are

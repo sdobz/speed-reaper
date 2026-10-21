@@ -79,7 +79,7 @@ tools/check && tools/check_api_want
 
 ### 6. Re-baseline the oracle and add a zoom scenario
 - `oracle/scenarios/hid_wheel.lua`: re-baseline the thresholds (first-turn rise, max step) to the new formula; set or read the headless `pxPerSec` explicitly.
-- Add `oracle/scenarios/hid_zoom.lua` (model: `hid_wheel.lua`; add to `REAPER_SCENARIOS` like it): hold `TIMELINE`, turn CW → view span shrinks and the cursor's screen fraction `q` is unchanged within 1e-3; CCW → span grows.
+- Add `oracle/scenarios/hid_zoom.lua` (model: `hid_wheel.lua`; add to `REAPER_SCENARIOS` like it): hold `TIMELINE`, turn CW → view span shrinks and the cursor's screen fraction `q` is unchanged within 2 px; CCW → span grows.
 - Follow `docs/notes/oracle-scenario-rules.md`.
 
 **Verify**
@@ -97,18 +97,21 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
     - record() the measured pxs and the expected values; rewrite the header comment (still describes the old 20 s/rev scale).
     - Run: tools/reaper-oracle --layer reaper --scenario hid_wheel.
     Verify: `tools/reaper-oracle --layer reaper --scenario hid_wheel`
-  - [!] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
-    - Add oracle/fake/hid_zoom.txt, oracle/scenarios/hid_zoom.env (export SPEED_REAPER_FAKE_DEVICE=oracle/fake/hid_zoom.txt), oracle/scenarios/hid_zoom.lua (model on hid_wheel.lua; start("device", ...)), and append hid_zoom to REAPER_SCENARIOS=(...) in tools/reaper-oracle (~line 238). Do not touch the plugin or other scenarios.
-    - Fixture (hold syntax per oracle/fake/hold_move_trim.txt; TIMELINE = key 0x1B per src/speed_editor/key_map.h): `at 300 key 0x1B down` (hold >= 350 ms before HoldStart), then 60 x `wheel 600` at 8 ms (CW, from ~700 ms), then 60 x `wheel -600` at 8 ms (CCW), then `key 0x1B up`. Keep the scenario under ~6 s (docs/notes/oracle-scenario-rules.md).
-    - Scenario: reaper.SetEditCurPos(5, false, false); set the view to 0-10 s via reaper.GetSet_ArrangeView2(nil, true, 0, 0, 0, 10); each defer cycle sample the view via reaper.GetSet_ArrangeView2(nil, false, 0, 0, 0, 0); q = (reaper.GetCursorPosition() - L) / (R - L).
-    - Checks: min span < 0.99 x 10 s (CW shrinks; 60 events = 100 detents, f = 0.25/view_width_px, ~2-3 % shrink); q unchanged within 1e-3 over all samples (pivot = edit cursor); max span after CCW starts > CW min span x 1.01 (CCW grows). record() pxs = reaper.GetHZoomLevel() plus min/max spans.
-    - If a check still fails after two honest attempts, mark [!] with the measured values per the rules doc — do not loosen.
-    - Run: tools/reaper-oracle --layer reaper --scenario hid_zoom.
+  - [x] Zoom verb keeps its own ideal view for the hold (no read-back drift)
+    - Measured (headless REAPER, pxPerSec 100.6): `GetSet_ArrangeView2` honours writes but snaps each edge to the pixel grid (error up to ~0.012 s = 1 px). One wheel step changes the span by ~1e-4 of itself (< 1 px), so re-reading the snapped view every step pins L and makes `q = (P-L)/W` drift. Real REAPER quantises the same way.
+    - `plugin/src/verb_registry.cpp` `ZoomCursorVerb`: in `Begin` read `project.GetView()` once and keep `W` (span) and `q = clamp((P-L)/W, 0, 1)` as members. In `Step`, compute the new span from the kept `W` with the `ZoomAround` math (pass a `ViewRange` built from the kept `W`/`q` and pivot `P`), store the new `W`, and `SetViewSpan(L', R')`. Never read the view back inside `Step`. Reset in `End`. `P` is still `project.CursorPos()` each step.
+    - Add a test in `plugin/test/zoom_cursor_test.cpp`: a fake project whose `GetView()` returns a view snapped to 0.01 s on every read; after 100 CW steps `q` of the last written `(L', R')` is within 1e-6 of the `q` at `Begin`, and the span equals the unsnapped `ZoomAround` result.
+    - Do not touch `zoom.{h,cpp}`, scenarios or other verbs.
+    Verify: `tools/check zoom_cursor`
+  - [ ] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
+    - The files `oracle/fake/hid_zoom.txt`, `oracle/scenarios/hid_zoom.{env,lua}` and the `REAPER_SCENARIOS` entry already exist; only the q check needs fixing. Rebuild first (`tools/check` — the previous step changed the plugin).
+    - In `oracle/scenarios/hid_zoom.lua` replace the fixed `qmax - qmin <= 1e-3` with a tolerance from the measured pixel snap: `tol = 2 / (pxs * minspan)` (±1 px on each edge; about 2e-3 at 100 px/s, 9.6 s). Record `tol`. Update the header comment: delete the "Status ... FAILS" paragraph and state the pixel-snap reason. Keep every other check as is.
+    - Do not touch the plugin or other scenarios.
+    - Run: `tools/reaper-oracle --layer reaper --scenario hid_zoom`.
     Verify: `tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q 'hid_zoom' tools/reaper-oracle`
-    BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/46-jog-zoom.md
 
 ### 7. Docs
-- `docs/jog-discovery.md`: change the Status line to implemented, tick off the §8 sub-items per the Context above. Update `docs/design.md` / `docs/bindings.md` only where they mention `select_step` or `kSecondsPerRev`.
+- `docs/jog-discovery.md`: fix the §4.1 formula to `dt = (delta / 360) * (k_px / pxPerSec)` (one detent = 360 units; the `kUnitsPerRev` form is a typo), and refresh §7 / `docs/design.md` (~line 182) which still describe the 20 s/rev scale. Then change the Status line to implemented, tick off the §8 sub-items per the Context above. Update `docs/design.md` / `docs/bindings.md` only where they mention `select_step` or `kSecondsPerRev`.
 - Do not change code.
 
 **Verify**

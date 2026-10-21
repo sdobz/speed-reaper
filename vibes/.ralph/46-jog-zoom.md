@@ -8,7 +8,8 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - Changing `plugin/src/default_bindings.ini` requires re-running `tools/gen_bindings_doc docs/bindings.md`; `tools/check` fails on a stale `docs/bindings.md`.
-- Headless REAPER `GetSet_ArrangeView2(nil,true,...)` does NOT preserve the written left edge: L snaps to a ~0.003-0.012 s grid (at pxPerSec=100; R and exact 0/10 writes are preserved). Anything that re-anchors the view every step must expect the read-back L to deviate (plugin trace: L pinned 0.0031/0.0124/-0.0124 while span shrank 10->9.635 s).
+- `GetSet_ArrangeView2` writes snap BOTH edges to the pixel grid (error up to ~0.012 s = 1 px at ~100 px/s; probed: 40 writes of a 1 %-shrinking span centred on 5 s read back within 0.012 s of the request). A per-step shrink is far below 1 px, so re-reading the view each step pins L and drifts q. Never read the view back inside a zoom step; keep the ideal span/q for the hold. Oracle q checks need a ~2 px tolerance.
+- One detent = 360 wheel units: `dt = (delta/360) * (k_px/pxPerSec)` (the `kUnitsPerRev` form in docs/jog-discovery.md §4.1 is a typo).
 
 
 ## Task: 1. Float `[tuning]` key `wheel.pixels_per_detent`
@@ -185,3 +186,17 @@ Result: exit 0; worker-blocked; 3 files changed, 18 insertions(+), 2 deletions(-
 ### Replan (depth 1) — BLOCK → replan failed (no valid JSON decision block)
 Trigger: worker marked it blocked: fixture/env/lua/registration are all in place and 5 of 6 checks pass, but the spec'd "q unchanged within 1e-3" check fails: measured q range 0.499697..0.518926 (drift 0.0192, ~19x tolerance; pxPerSec=100, min span 9.6353 s, max post-CCW 9.9937 s). Root cause is outside this task's scope ("do not touch the plugin"): zoom.h re-anchors on the cursor exactly, but headless REAPER's GetSet_ArrangeView2 does not preserve the written left edge (L pins to a ~0.003-0.012 s snap grid while R tracks the span), so q drifts with the shrinking span. Two honest attempts used per docs/notes/oracle-scenario-rules.md; needs a decision: glue-side L-snap compensation (e.g. in ReaperActionSink::SetViewSpan) and/or a re-specified q tolerance or setup.
 Log: logs/46-jog-zoom-L100-replan-1792569409645.log
+
+### Replan (human, depth 1) — BLOCK resolved → split into verb fix + scenario tolerance
+Trigger: hid_zoom check "q unchanged within 1e-3" failed (q 0.4997..0.5189).
+Why: a human probe showed the cause is pixel snapping of `GetSet_ArrangeView2` writes plus `ZoomCursorVerb` re-reading the snapped view every step (sub-pixel steps never move L, q drifts). Fix is in the verb (keep span/q for the hold), not the scenario; the scenario tolerance becomes 2 px (`2/(pxs*span)`), derived from the measurement.
+Rejected: compensating L in `SetViewSpan` (fights the quantiser); loosening to an arbitrary number; skipping the check (pivot preservation in the real host is the point of the scenario).
+
+## Task: Zoom verb keeps its own ideal view for the hold (no read-back drift)
+
+### Attempt 1 — 2026-10-21T14:37:56Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: Attempt 1 (2026-10-21T14:37:56Z) stalled with zero tool use — no plugin changes existed; started clean. `tools/check <regex>` auto re-execs via `nix develop` (no cmake on PATH); `SKIP_WINDOWS=1 tools/check zoom_cursor` passed (build + ctest -R zoom_cursor + oracle host). Existing `test_cw_narrows_ccw_widens` calls Step without Begin and was preserved by keeping a live-read fallback in Step when the hold isn't active; production harness (verbs.cpp:85) always calls Begin for Turn gestures.
+- Facts (this attempt): `ZoomCursorVerb` now captures W_ (span) and q_ (clamped cursor fraction) once in `Begin`, builds each Step's input `ViewRange` as `{p - q_*W_, +W_}` from the kept members, chains `ZoomAround`, stores the new W_; never reads `GetView()` in an active Step; `End` resets `active_`. New test `test_hold_ignores_snapped_readback` in zoom_cursor_test.cpp: FakeProject + a test-local `snap()` feeding each GetView() the 0.01 s-snapped last write; after 100 CW steps the last write's q is within 1e-6 of 0.3 and L/R match the unsnapped 100x ZoomAround chain at 1e-9; post-End Step re-reads the live (snapped) view. ctest -R zoom_cursor passed.
+- Dead ends: none yet.
+- Next: confirm full `tools/check zoom_cursor` (incl. windows-oracle static) exits 0 via bg job `check-verify`, then tick line 100.
