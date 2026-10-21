@@ -169,15 +169,18 @@ TRIM_OUT.tap      = targeted 40512 ; trim the target's right edge to the cursor,
 RIPL_DEL.tap      = ripple_delete  ; remove the time-sel contents, or the target items, closing the gap
 TIMELINE.tap      = select_cursor_item ; select the item under the cursor exclusively (tap again: deselect)
 TIMELINE.double   = action 40289   ; deselect all items
-CAM1.tap          = take 1         ; set active take 1 on the target items
-CAM2.tap          = take 2         ; set active take 2 on the target items
-CAM3.tap          = take 3         ; set active take 3 on the target items
-CAM4.tap          = take 4         ; set active take 4 on the target items
-CAM5.tap          = take 5         ; set active take 5 on the target items
-CAM6.tap          = take 6         ; set active take 6 on the target items
-CAM7.tap          = take 7         ; set active take 7 on the target items
-CAM8.tap          = take 8         ; set active take 8 on the target items
-CAM9.tap          = take 9         ; set active take 9 on the target items
+; CAM N: select (toggle) the track-N item under the cursor; its LED lights
+; iff that item is selected — no key press needed. Any LED-bearing key may
+; be bound to select_track N the same way (the LED then follows track N).
+CAM1.tap          = select_track 1 ; select the track-1 item under the cursor (LED: it is selected)
+CAM2.tap          = select_track 2 ; select the track-2 item under the cursor (LED: it is selected)
+CAM3.tap          = select_track 3 ; select the track-3 item under the cursor (LED: it is selected)
+CAM4.tap          = select_track 4 ; select the track-4 item under the cursor (LED: it is selected)
+CAM5.tap          = select_track 5 ; select the track-5 item under the cursor (LED: it is selected)
+CAM6.tap          = select_track 6 ; select the track-6 item under the cursor (LED: it is selected)
+CAM7.tap          = select_track 7 ; select the track-7 item under the cursor (LED: it is selected)
+CAM8.tap          = select_track 8 ; select the track-8 item under the cursor (LED: it is selected)
+CAM9.tap          = select_track 9 ; select the track-9 item under the cursor (LED: it is selected)
 AUDIO_LEVEL.tap   = volume_readout ; read out the first target's volume as "Volume: x.x dB"
 SMTH_CUT.tap      = smooth_cut     ; smooth-cut (40916) — only with a time selection
 PLACE_ON_TOP.tap  = place_on_top   ; duplicate the targets onto one new track above

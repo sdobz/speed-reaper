@@ -91,3 +91,19 @@ Files:
 ```
 M vibes/.ralph/45-cam-n.md
 ```
+
+## Task: 4. Default bindings: CAM1..9 → `select_track N`
+
+### Attempt 4 — 2026-10-21T01:42:23Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- `default_bindings.ini`: nine `take N` lines → `select_track N`, plus a comment that any LED-bearing key may be bound to select_track N (its LED then follows track N).
+- `default_bindings_test.cpp` kExpected: CAM1..9 → `select_track`.
+- `led_state_test.cpp`: new block incl. `default_bindings_generated.h` — real defaults (kDefaultBindingsIni) with track-2 item under cursor selected → only CAM2 bit (snap/ripple/trim/isolate/solo all off in the fake, so no other default binding lights);
+  CAM1 → select_track 3 follows track 3; CLOSE_UP → select_track 2 lights LED_CLOSE_UP.
+- `docs/bindings.md` embeds the default file at the bottom (line ~172) → must regenerate after the build (job `check4` running: `tools/check "default_bindings|led_state"`).
+- `gen_bindings_doc` works directly (no nix wrapper needed) once `build/plugin/verb_list` exists; regenerated docs/bindings.md.
+
+Next:
+- DONE: job `check4b` (`tools/check "default_bindings|led_state"`) rc=0 — default_bindings_test + led_state_test pass, docs in sync, Windows cross-build + oracle host pass. Line 66 ticked.

@@ -63,7 +63,7 @@ tools/check select_track
 tools/check 'default_bindings|led_state'
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 5. Oracle: `cam_select` replaces `leds_cam`
 - Add `oracle/fake/cam_select.txt`, `oracle/scenarios/cam_select.{env,lua}` (default bindings; two tracks, one item each overlapping the cursor). Assert `led main=<hex>` each **within 1.5 s** (model: `leds_cam.lua`):

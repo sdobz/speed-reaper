@@ -4,6 +4,7 @@
 
 #include "bindings.h"
 #include "check.h"
+#include "default_bindings_generated.h"
 #include "fake_project.h"
 #include "speed_editor/key_map.h"
 #include "verb_registry.h"
@@ -141,6 +142,52 @@ int main() {
     proj.tracks.clear();
     proj.take_counts.clear();
     proj.take_indices.clear();
+  }
+
+  // The real defaults (kDefaultBindingsIni): select_track LEDs follow the
+  // selection — no key press. Two tracks, one item each spanning the
+  // cursor; selecting the track-2 item lights only CAM2. A CAM key bound
+  // to another track follows that track; a non-CAM key bound to
+  // select_track lights its own bit.
+  {
+    FakeProject p;
+    p.items.push_back(ItemInfo{0, 0, 0.0, 2.0, false});  // track 1, under cursor
+    p.items.push_back(ItemInfo{1, 1, 0.0, 2.0, true});   // track 2, under cursor
+    p.cursor = 1.0;
+    LedReadContext c{p, false, false};
+    {
+      const Bindings b = ParseBindings(kDefaultBindingsIni, reg);
+      CHECK(b.errors.empty());
+      CHECK(BindingLedMask(b, reg, c) == Bit(LED_CAM2));
+      p.items[1].selected = false;
+      p.items[0].selected = true;  // selection on track 1 → CAM1 follows
+      CHECK(BindingLedMask(b, reg, c) == Bit(LED_CAM1));
+      p.items[0].selected = false;  // nothing selected → no CAM bit
+      CHECK(BindingLedMask(b, reg, c) == 0u);
+      p.items[1].selected = true;
+    }
+    // CAM1 bound to select_track 3 follows track 3 (its own track's item,
+    // though selected under the cursor, is not followed).
+    p.items.push_back(ItemInfo{2, 2, 0.0, 2.0, true});  // track 3, under cursor
+    {
+      const Bindings b = ParseBindings(
+          "[bindings]\nCAM1.tap = select_track 3\n", reg);
+      CHECK(b.errors.empty());
+      CHECK(BindingLedMask(b, reg, c) == Bit(LED_CAM1));
+      p.items[2].selected = false;
+      CHECK(BindingLedMask(b, reg, c) == 0u);
+      p.items[2].selected = true;
+    }
+    // A non-CAM key bound to select_track 2 lights its own bit.
+    {
+      const Bindings b = ParseBindings(
+          "[bindings]\nCLOSE_UP.tap = select_track 2\n", reg);
+      CHECK(b.errors.empty());
+      CHECK(BindingLedMask(b, reg, c) == Bit(LED_CLOSE_UP));
+      p.items[1].selected = false;
+      CHECK(BindingLedMask(b, reg, c) == 0u);
+    }
+    p.items.clear();
   }
 
   // Isolate / solo bits follow the read context.
