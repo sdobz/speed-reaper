@@ -123,3 +123,11 @@ Facts (cont.):
 - Two consecutive oracle reaper/xfade_keys PASS after the fix (one run had a 180 ms stall; arming was unaffected).
 Next:
 - Run full verify: `tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xfade_keys` (job: ralph43-verify2); tick line 88.
+
+Result: exit 0; done; log: logs/43-led-refactor-L88-a6-1792543673451.log
+
+### Done — 2026-10-21 — 6 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+```
