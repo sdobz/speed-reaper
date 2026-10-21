@@ -251,6 +251,42 @@ LEDs, fired every default binding group correctly, and the binding file
 behaved as the single source of truth (edit + reload, learn, restart
 persistence, delete → default).
 
+## M45 — CAM N selection
+
+Setup: a project with **two tracks, one audio item each, side by side**
+(items may share a common start so a single cursor position sits inside
+both). Default bindings: `CAM1.tap = select_track 1`, `CAM2.tap =
+select_track 2`, … (`take N` is no longer the CAM default — its `state_read`
+LED semantics are gone for CAM keys; the key now follows track N only).
+
+**Action**: (a) with nothing selected, park the cursor so it lies inside
+**both** items, tap **CAM 1**; (b) tap **CAM 2** without moving the
+cursor; (c) re-tap **CAM 1**;
+
+**Expected**: (a) the track-1 item becomes selected (blue), the track-2
+item is **untouched**, and the **CAM 1** LED lights — `select_track` toggles
+only the item under the cursor on the named track and leaves the rest of
+the selection alone. (b) **additive across tracks**: the track-2 item is
+selected on top of the existing track-1 selection and **CAM 2** lights
+while **CAM 1** stays lit; (c) the track-1 item deselects and **CAM 1
+go**es out, CAM 2 stays lit — one track's toggle never touches another's
+LED or selection. No undo entries are produced by any of the taps.
+
+**Action (LED tracking)**: without any further key press, (a) **mouse-click
+select** the track-1 item (Shift+click to add), then click empty arrange
+space to deselect everything; (b) jog the wheel (JOG mode) so the cursor
+enters, then leaves, the items.
+
+**Expected**: the CAM N LEDs follow track-N selection **within ~1 s of
+every change, no key press required**: the CAM 1 LED lights on the
+click-select, both go out on the deselect, and in (b) the LEDs of the
+tracks whose item is under the cursor (and selected) light up / go out as
+the cursor crosses the item edges. A key re-bound to another track's verb
+(e.g. `CAM1.tap = select_track 3`) follows **track 3**'s item, not "CAM 1"
+— the LED is bound to the verb's track, not the physical key.
+
+- [ ] pass
+
 ## Troubleshooting
 
 - **No `Speed Reaper: connected`** → device unplugged, permissions

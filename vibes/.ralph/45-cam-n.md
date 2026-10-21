@@ -193,3 +193,18 @@ Files:
 ```
 M vibes/.ralph/45-cam-n.md
 ```
+
+## Task: 8. SMOKE-TEST
+
+### Attempt 8 — 2026-10-21T02:19:40Z — budget 1800s
+- Facts: SMOKE-TEST.md had no prior M4x sections; `## M45 — CAM N selection`
+  inserted between the Release checklist (after step-12 pass bar) and
+  `## Troubleshooting`. Covers: two-track two-item setup; CAM 1/CAM 2 taps
+  toggle the under-cursor item per track, additive across tracks, no undo
+  entries; LED tracking via mouse click-select and wheel jog with no key
+  press, ~1 s update; note that a re-bound CAM key follows the verb's
+  track, not the physical key. Contract details cross-checked against
+  docs/notes/cam-n-select.md, docs/bindings.md, docs/design.md, README.md.
+- Facts: verify passes (`grep -q '^## M45' && grep -q 'select_track\|CAM N'` → OK);
+  checkbox line 112 ticked; no build needed (doc-only task).
+- Next: none — task 8 complete.

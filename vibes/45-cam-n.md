@@ -109,4 +109,4 @@ tools/check && grep -q 'select_track' docs/design.md && grep -q 'select_track' R
 grep -q '^## M45' SMOKE-TEST.md && grep -q 'select_track\|CAM N' SMOKE-TEST.md
 ```
 
-- [ ] Done
+- [x] Done
