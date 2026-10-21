@@ -103,7 +103,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
     - Add a test in `plugin/test/zoom_cursor_test.cpp`: a fake project whose `GetView()` returns a view snapped to 0.01 s on every read; after 100 CW steps `q` of the last written `(L', R')` is within 1e-6 of the `q` at `Begin`, and the span equals the unsnapped `ZoomAround` result.
     - Do not touch `zoom.{h,cpp}`, scenarios or other verbs.
     Verify: `tools/check zoom_cursor`
-  - [ ] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
+  - [x] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
     - The files `oracle/fake/hid_zoom.txt`, `oracle/scenarios/hid_zoom.{env,lua}` and the `REAPER_SCENARIOS` entry already exist; only the q check needs fixing. Rebuild first (`tools/check` — the previous step changed the plugin).
     - In `oracle/scenarios/hid_zoom.lua` replace the fixed `qmax - qmin <= 1e-3` with a tolerance from the measured pixel snap: `tol = 2 / (pxs * minspan)` (±1 px on each edge; about 2e-3 at 100 px/s, 9.6 s). Record `tol`. Update the header comment: delete the "Status ... FAILS" paragraph and state the pixel-snap reason. Keep every other check as is.
     - Do not touch the plugin or other scenarios.

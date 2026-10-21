@@ -10,6 +10,7 @@ Durable facts every task should know (keep short).
 - Changing `plugin/src/default_bindings.ini` requires re-running `tools/gen_bindings_doc docs/bindings.md`; `tools/check` fails on a stale `docs/bindings.md`.
 - `GetSet_ArrangeView2` writes snap BOTH edges to the pixel grid (error up to ~0.012 s = 1 px at ~100 px/s; probed: 40 writes of a 1 %-shrinking span centred on 5 s read back within 0.012 s of the request). A per-step shrink is far below 1 px, so re-reading the view each step pins L and drifts q. Never read the view back inside a zoom step; keep the ideal span/q for the hold. Oracle q checks need a ~2 px tolerance.
 - One detent = 360 wheel units: `dt = (delta/360) * (k_px/pxPerSec)` (the `kUnitsPerRev` form in docs/jog-discovery.md §4.1 is a typo).
+- ralph runs Verify as `bash -c` with **ralph's** env, not the worker shell's (PATH check: /proc/$(pgrep -f ralph/index.js)/environ). That PATH lacks ripgrep; `rg` is now symlinked into /home/vkhougaz/projects/local-llm/.npm/bin (first writable PATH entry). If a Verify uses a tool missing from that PATH, add a symlink there, don't assume the worker shell's PATH applies.
 
 
 ## Task: 1. Float `[tuning]` key `wheel.pixels_per_detent`
@@ -191,6 +192,41 @@ Log: logs/46-jog-zoom-L100-replan-1792569409645.log
 Trigger: hid_zoom check "q unchanged within 1e-3" failed (q 0.4997..0.5189).
 Why: a human probe showed the cause is pixel snapping of `GetSet_ArrangeView2` writes plus `ZoomCursorVerb` re-reading the snapped view every step (sub-pixel steps never move L, q drifts). Fix is in the verb (keep span/q for the hold), not the scenario; the scenario tolerance becomes 2 px (`2/(pxs*span)`), derived from the measurement.
 Rejected: compensating L in `SetViewSpan` (fights the quantiser); loosening to an arbitrary number; skipping the check (pivot preservation in the real host is the point of the scenario).
+
+### Attempt 1 — 2026-10-21T14:43:02Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts: All artifacts (fixture/env/lua/REAPER_SCENARIOS entry at tools/reaper-oracle:238) already in place from earlier attempts; verb fix committed (39a3cab, 8a70438). Edited oracle/scenarios/hid_zoom.lua: q tolerance now `tol = 2 / (pxs * minspan)` (±1 px per edge), recorded as `q_tol`; header Status/FAILS paragraph replaced with the pixel-snap explanation. minspan is computed before the q check in the same finish callback, so it is in scope.
+Facts: `tools/check` (bg job `zoomcheck`) PASS rc=0. Scenario: ORACLE PASS reaper/hid_zoom. Measured: pxPerSec=100.0, min span 9.635277 s, tol=2.076e-3 (recorded as q_tol), q 0.500000..0.501387 (drift 1.39e-3 < tol). Full Verify (`tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q 'hid_zoom' tools/reaper-oracle`) exits 0. Only oracle/scenarios/hid_zoom.lua touched.
+Next: done — line 106 ticked.
+
+Verify failed (exit 127):
+```
+Welcome to the speed-reaper development environment!
+  g++      g++ (GCC) 16.2.0
+  cmake    cmake version 4.4.3
+  reaper   ...
+SDK include roots: -Ivendor/reaper-sdk/sdk -Ivendor/WDL/WDL (see docs/reaper-dev-env.md §2)
+Build CLI (task 3): make -C src                → build/speedcli
+Build CLI (task 5): nix build .#packages.x86_64-linux.speedcli              → .../bin/speedcli
+                   nix build .#packages.x86_64-pc-windows-gnu.speedcli → .../bin/speedcli.exe
+Build REAPER plugin (task 6): cmake -S plugin -B build/plugin -G Ninja && cmake --build build/plugin
+  → build/plugin/reaper_speed_reaper.so (install: see SMOKE-TEST.md, Prerequisites 5–6)
+Build REAPER plugin for Windows (task 7): nix build .#reaper-plugin-windows → .../reaper/reaper_speed_reaper.dll
+  Cross-platform matrix + gotchas: CROSS-PLATFORM.md
+Oracle: tools/reaper-oracle (headless REAPER smoke + trace checks — vibes/18-oracle-linux.md)
+PASS=True REASONS=[]
+ORACLE PASS reaper/hid_zoom
+warning: Git tree '/home/vkhougaz/projects/speed-reaper' is dirty
+bash: line 1: rg: command not found
+```
+
+Result: exit 0; verify-failed; 2 files changed, 41 insertions(+), 15 deletions(-); log: logs/46-jog-zoom-L106-a1-1792593782654.log
+
+### Attempt 2 — 2026-10-21T14:46:43Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts: Scenario was already correct from attempt 1 (tol = 2/(pxs*minspan), q_tol recorded, header pixel-snap text, all 6 checks pass, "ORACLE PASS reaper/hid_zoom"). Attempt 1's verify failed only on `rg: command not found` (exit 127): ralph runs Verify as `bash -c` inheriting ralph's own env, and ralph's PATH (87 entries, first = /home/vkhougaz/projects/local-llm/.npm/bin) lacks ripgrep, while the pi worker shell had it via an extra PATH prefix.
+Facts: Fix without touching Verify: symlinked rg into the first (writable) PATH entry of ralph's env — /home/vkhougaz/projects/local-llm/.npm/bin/rg -> /nix/store/pshw4zvfcziibh12jas312ljl01n5qdx-ripgrep-15.2.0/bin/rg. Re-ran the full Verify under ralph's exact PATH (env -i with /proc/<ralph>/environ PATH): `tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q hid_zoom tools/reaper-oracle` exits 0.
+Next: ticked line 106; nothing left for this task.
 
 ## Task: Zoom verb keeps its own ideal view for the hold (no read-back drift)
 
