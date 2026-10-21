@@ -1,0 +1,14 @@
+# cam_select scenario (vibes/45-cam-n.md task 5).
+#
+# Two CAM2 (0x34) taps — the only key events of the scenario. With the
+# default bindings CAM2.tap = select_track 2, each tap toggles the
+# selection of the track-2 item under the edit cursor; the plugin's
+# ~250 ms LED poll traces `led main=<hex>` on change. Everything else
+# (item creation, B_UISEL, edit cursor, the phase-2 bindings.ini) is
+# driven by Lua, and every state change is >= 1.5 s apart so each
+# `led main=` line is attributable to its step. Device clock ~= script
+# clock (the Lua script syncs on the `log connected` trace line).
+at 2700 key 0x34 down   # CAM2 tap 1 -> select_track 2: item deselects -> CAM2 bit dark
+at 2750 key 0x34 up
+at 4200 key 0x34 down   # CAM2 tap 2 -> select_track 2: item reselects -> CAM2 bit lit
+at 4250 key 0x34 up

@@ -78,7 +78,7 @@ tools/check 'default_bindings|led_state'
 tools/reaper-oracle --layer reaper --scenario cam_select
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Keep `take` e2e coverage in `simple_verbs`
 - `oracle/scenarios/simple_verbs.lua`: before reload, write a `bindings.ini` with `CAM2.tap = take 2` (model: `bindings.lua`) so the take step still runs under the new defaults; update the header comment.

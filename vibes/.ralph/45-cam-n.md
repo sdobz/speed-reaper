@@ -11,6 +11,7 @@ Durable facts every task should know (keep short).
 - Native REAPER has NO per-track "select item at edit cursor" action; mouse-cursor variants (40528/40529/40530) are no-ops headless.
 - `B_UISEL` set/clear per item is isolated (no cross-track effect) and does not move the edit cursor (cam_probe, REAPER 7.81).
 - FakeProject (plugin/test/fake_project.h) only *records* `SetSelectedItems`, never applies it — selection-toggling tests must re-apply the last recorded call to `items[].selected` between calls.
+- Real REAPER 7.81: `B_UISEL=1` alone makes `IsMediaItemSelected` true (B_SELECTED stays 0); `SetMediaItemSelected(false)` clears B_UISEL too. The plugin's `ItemInfo.selected` reads `IsMediaItemSelected`, so Lua B_UISEL toggles drive the CAM/CLOSE_UP select_track LEDs.
 - Adding a verb to the registry requires three follow-ups or `tools/check` fails: regenerate `docs/bindings.md` (gen_bindings_doc needs a built `build/plugin/verb_list`) and update `plugin/test/verb_registry_test.cpp`'s `kAllNames` count/list.
 
 
@@ -115,3 +116,22 @@ Files:
 ```
 M vibes/.ralph/45-cam-n.md
 ```
+
+## Task: 5. Oracle: `cam_select` replaces `leds_cam`
+
+### Attempt 5 — 2026-10-21T01:47:09Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Verified with a throwaway REAPER probe (REAPER 7.81): `SetMediaItemInfo_Value(it,"B_UISEL",1)` alone makes `IsMediaItemSelected(it)` true (B_SELECTED stays 0) — the plugin's `ItemInfo.selected` reads `IsMediaItemSelected`, so B_UISEL drives the CAM LED; `SetMediaItemSelected(false)` clears B_UISEL too (tap-deselect fully darkens the bit); new items from `AddMediaItemToTrack` start unselected.
+- Tap gestures are deferred `double_tap_ms` (300 ms) after key-up, so the verb lands ~300 ms after the tap; a 1.5 s assert window from the device timestamp absorbs it.
+- Device clock ≈ script clock once `start("device")` syncs on `log connected`; offset is calibrated as in leds_cam.lua.
+- Wrote `oracle/fake/cam_select.txt` (two CAM2 0x34 taps at 2700/2750 and 4200/4250), `oracle/scenarios/cam_select.{env,lua}` (phase 1: default bindings, B_UISEL/tap/cursor steps; phase 2: written bindings.ini `CLOSE_UP.tap = select_track 2` + `_SPEED_REAPER_RELOAD_BINDINGS`), deleted `leds_cam.{txt,lua,env}`, swapped `leds_cam` → `cam_select` in tools/reaper-oracle REAPER_SCENARIOS.
+- `tools/reaper-oracle --layer reaper --scenario cam_select`: ORACLE PASS, 20/20 checks, wall ~18.5 s (under the 20 s scenario timeout; final wait trimmed 13500→13200 ms for margin).
+- `docs/notes/led-binding.md:99` still mentions `leds_cam` in a historical sentence (out of task scope; left as-is).
+
+Dead ends:
+- None (one harness flake: a probe scenario run exited early with no probe.json; a plain re-run of `load` and the manual re-run worked — transient, not reproducible).
+
+Next:
+- Task done: line 81 ticked, committed.
