@@ -67,3 +67,11 @@ M plugin/src/verb_registry.cpp
  M vibes/.ralph/43-led-refactor.md
  M vibes/43-led-refactor.md
 ```
+
+## Task: 4. Seed the four providers
+
+### Attempt 4 — 2026-10-21T00:31:12Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: tree clean (task 3 committed as 4bba158); the a4 log file is just this session's own stream — no prior partial work. Design table read from docs/notes/led-binding.md § Initial providers.
+- Facts: implemented in verb_registry.cpp: `ActionStateReads()` (const ref to a static `std::map<int, StateRead>` in the anonymous namespace: Snap/TrimBehind → `ToggleState`, RipplePerTrack/All → `RippleMode()==1/2`); `state_read` set on `action` (ParseCommandArg → named/absent id → nullopt), `take` (ParseIntArg → `SharedActiveTake==n`; parse fail → nullopt), `isolate_tracks`/`solo_tracks` (unconditional reads of `ctx.isolate_active`/`ctx.solo_active`). Test `test_default_state_reads()` added in verb_registry_test.cpp and registered in main. FakeProject: `snap` bool for ToggleState(1157), `ripple` int, `active_takes` 0-based index-aligned; ItemInfo{ id, track, pos, len, selected }.
+- Facts: local build + verb_registry_test exit 0. `tools/check verb_registry` (bgrun job check43e) rc=0 in 27s (ctest all, ORACLE PASS host). Line 64 ticked; leaving commit to ralph (tracked-file edits only).

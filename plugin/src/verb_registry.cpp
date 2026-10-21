@@ -11,8 +11,9 @@
 #include <climits>   // INT_MIN / INT_MAX (int-arg range)
 #include <optional>  // std::optional (StateReadFor)
 
-#include "nudge.h"        // HoldNudge, Nudge* hold+rotate math
-#include "project_ops.h"  // DuplicateItemsAbove, IsolateView, SoloView
+#include "nudge.h"            // HoldNudge, Nudge* hold+rotate math
+#include "project_ops.h"      // DuplicateItemsAbove, IsolateView, SoloView, SharedActiveTake
+#include "reaper_commands.h"  // reaper_cmd::* (LED action-read table)
 #include "target.h"       // TargetItems, TargetTrack, WithTargetSelected
 #include "trace.h"        // Trace (no-target diagnostics)
 #include "wheel_mode.h"   // WheelMode
@@ -276,6 +277,22 @@ bool ParseCommandArg(const char *name, const std::vector<std::string> &args,
   *error = std::string(name) + ": argument '" + a +
            "' is not a command id or _named command";
   return false;
+}
+
+// LED state reads for `action <id>` bindings (design doc § Initial
+// providers; values proven in docs/notes/m8-state-reads.md).
+const std::map<int, StateRead> &ActionStateReads() {
+  static const std::map<int, StateRead> reads = {
+      {reaper_cmd::Snap,
+       [](const LedReadContext &ctx) { return ctx.project.ToggleState(reaper_cmd::Snap); }},
+      {reaper_cmd::TrimBehind,
+       [](const LedReadContext &ctx) { return ctx.project.ToggleState(reaper_cmd::TrimBehind); }},
+      {reaper_cmd::RipplePerTrack,
+       [](const LedReadContext &ctx) { return ctx.project.RippleMode() == 1; }},
+      {reaper_cmd::RippleAll,
+       [](const LedReadContext &ctx) { return ctx.project.RippleMode() == 2; }},
+  };
+  return reads;
 }
 
 // --- turn verbs (moved verbatim from verbs.cpp) -----------------------
@@ -606,7 +623,18 @@ VerbRegistry MakeDefaultRegistry() {
                    return {nullptr, error};
                  if (cmd.named) return {std::make_unique<ActionVerb>(cmd.name), ""};
                  return {std::make_unique<ActionVerb>(cmd.id), ""};
-               }, nullptr});
+               },
+               [](const std::vector<std::string> &args) -> std::optional<StateRead> {
+                 CommandArg cmd;
+                 std::string error;
+                 if (!ParseCommandArg("action", args, &cmd, &error))
+                   return std::nullopt;
+                 if (cmd.named) return std::nullopt;  // _named: no known state
+                 const auto &reads = ActionStateReads();
+                 const auto it = reads.find(cmd.id);
+                 if (it == reads.end()) return std::nullopt;
+                 return it->second;
+               }});
 
   reg.Register({"targeted", {BindingGesture::Press, BindingGesture::Tap,
                              BindingGesture::Double},
@@ -644,7 +672,15 @@ VerbRegistry MakeDefaultRegistry() {
                  if (!ParseIntArg("take", args, &n, &error)) return {nullptr, error};
                  if (n < 1) return {nullptr, "take: N must be >= 1"};
                  return {std::make_unique<TakeVerb>(n), ""};
-               }, nullptr});
+               },
+               [](const std::vector<std::string> &args) -> std::optional<StateRead> {
+                 int n = 0;
+                 std::string error;
+                 if (!ParseIntArg("take", args, &n, &error)) return std::nullopt;
+                 return StateRead{[n](const LedReadContext &ctx) {
+                                    return SharedActiveTake(ctx.project) == n;
+                                  }};
+               }});
 
   reg.Register({"volume_readout", {BindingGesture::Tap},
                "Read out the first target item's volume in dB",
@@ -676,7 +712,12 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("isolate_tracks", args, &error)) return {nullptr, error};
                  return {std::make_unique<IsolateTracksVerb>(), ""};
-               }, nullptr});
+               },
+               [](const std::vector<std::string> &) -> std::optional<StateRead> {
+                 return StateRead{[](const LedReadContext &ctx) {
+                                    return ctx.isolate_active;
+                                  }};
+               }});
 
   reg.Register({"solo_tracks", {BindingGesture::Tap},
                "Solo the targets' tracks (tap again to restore)",
@@ -684,7 +725,12 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("solo_tracks", args, &error)) return {nullptr, error};
                  return {std::make_unique<SoloTracksVerb>(), ""};
-               }, nullptr});
+               },
+               [](const std::vector<std::string> &) -> std::optional<StateRead> {
+                 return StateRead{[](const LedReadContext &ctx) {
+                                    return ctx.solo_active;
+                                  }};
+               }});
 
   reg.Register({"select_step", {BindingGesture::Turn},
                "Step the selection to the next/previous item on the target track (20 ticks per step)",

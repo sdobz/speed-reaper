@@ -746,6 +746,62 @@ void test_state_read_for() {
   CHECK((*read)(ctx) == true);
 }
 
+// The seeded providers (design doc § Initial providers): action ids in
+// ActionStateReads read live project state, take N reads the shared
+// active take, isolate/solo read the context; everything else is dark.
+void test_default_state_reads() {
+  VerbRegistry reg = MakeDefaultRegistry();
+  FakeProject project;
+  LedReadContext ctx{project};
+
+  // action 1157 (snap) follows ToggleState(1157).
+  project.snap = false;
+  std::optional<StateRead> snap = reg.StateReadFor("action", {"1157"});
+  CHECK(snap.has_value());
+  CHECK((*snap)(ctx) == false);
+  project.snap = true;
+  CHECK((*snap)(ctx) == true);
+
+  // action 40310 / 40311 (ripple) follow RippleMode().
+  std::optional<StateRead> per_track = reg.StateReadFor("action", {"40310"});
+  std::optional<StateRead> all = reg.StateReadFor("action", {"40311"});
+  CHECK(per_track.has_value() && all.has_value());
+  project.ripple = 0;
+  CHECK((*per_track)(ctx) == false && (*all)(ctx) == false);
+  project.ripple = 1;
+  CHECK((*per_track)(ctx) == true && (*all)(ctx) == false);
+  project.ripple = 2;
+  CHECK((*per_track)(ctx) == false && (*all)(ctx) == true);
+
+  // An id not in ActionStateReads() has no read; neither does a
+  // _named command.
+  CHECK(reg.StateReadFor("action", {"41193"}).has_value() == false);
+  CHECK(reg.StateReadFor("action", {"_x"}).has_value() == false);
+
+  // take 4 reads SharedActiveTake (1-based): true iff it is 4.
+  project.items = {ItemInfo{0, 0, 0.0, 1.0, true}};
+  project.active_takes = {3};  // 0-based 3 = take number 4
+  std::optional<StateRead> take4 = reg.StateReadFor("take", {"4"});
+  CHECK(take4.has_value());
+  CHECK((*take4)(ctx) == true);
+  project.active_takes = {2};  // take number 3
+  CHECK((*take4)(ctx) == false);
+  std::optional<StateRead> take3 = reg.StateReadFor("take", {"3"});
+  CHECK(take3.has_value() && (*take3)(ctx) == true);
+
+  // isolate_tracks / solo_tracks read the context view toggles.
+  std::optional<StateRead> isolate = reg.StateReadFor("isolate_tracks", {});
+  std::optional<StateRead> solo = reg.StateReadFor("solo_tracks", {});
+  CHECK(isolate.has_value() && solo.has_value());
+  CHECK((*isolate)(ctx) == false && (*solo)(ctx) == false);
+  ctx.isolate_active = true;
+  ctx.solo_active = true;
+  CHECK((*isolate)(ctx) == true && (*solo)(ctx) == true);
+
+  // A verb without a provider stays dark.
+  CHECK(reg.StateReadFor("ripple_delete", {}).has_value() == false);
+}
+
 int main() {
   test_nudge_handles();
   test_all_names_resolve();
@@ -755,5 +811,6 @@ int main() {
   test_turn_verb_behaviors();
   test_wheel_transport_behaviors();
   test_state_read_for();
+  test_default_state_reads();
   return check_failures();
 }
