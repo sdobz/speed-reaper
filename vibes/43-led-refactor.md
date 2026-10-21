@@ -118,7 +118,7 @@ tools/check && ! rg -n 'MainLedMask|ReadLedState|active_take' plugin
 tools/reaper-oracle --layer reaper --scenario leds_binding_driven
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 10. Docs
 - `docs/design.md` §10: say each LED reflects the state read of the key's bound verb (priority Tap→Double→Turn→Press), list the four seeded reads + defaults; link `docs/notes/led-binding.md`. README "LED meanings": same, mention LEDs follow the *binding*.

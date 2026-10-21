@@ -173,3 +173,20 @@ Files:
 ```
 M vibes/.ralph/43-led-refactor.md
 ```
+
+## Task: 9. Oracle proof: LED follows the binding
+
+### Attempt 9 — 2026-10-21T01:18:36Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- LED bits (src/speed_editor/key_map.h): LED_CLOSE_UP=0 (0x01), LED_SNAP=5 (0x20). CLOSE_UP key=0x04, ESC=0x31.
+- CLOSE_UP is UNBOUND in default_bindings.ini (commented) → its bit is dark by default even with ripple-all on: that's the discriminator proving the written file is used. `action 40311` has a StateRead (RippleMode()==2) via ActionStateReads (verb_registry.cpp:284).
+- Scenario design: script writes bindings.ini = SNAP.tap=action 1157, CLOSE_UP.tap=action 40311, ESC.tap=action 40635; reloads via `_SPEED_REAPER_RELOAD_BINDINGS`; Lua steps Main_OnCommand(40311) @1600ms, (40310) @3200ms; fake device only taps ESC at 900ms (≥800ms headroom per learnings). Mask traced only on change: v0=snap bit (0x20 fresh profile) → v1=0x21 → v0 again.
+- LED poll is 250 ms (session.cpp), so the 1.5 s attribution window is safe. Reload traces `bindings loaded n=3` (default file binds ~35 keys, so n=3 proves the written file parsed).
+- Post-reload mask is unchanged (0x20→0x20) so NO new `led main=` line appears at reload — the "CLOSE_UP bit lit only after bindings loaded" ordering check is the real proof; don't assert a post-reload v0 line (it only exists if the device (re)connects after the reload).
+- Files written: oracle/scenarios/leds_binding_driven.{lua,env}, oracle/fake/leds_binding_driven.txt, name added to REAPER_SCENARIOS in tools/reaper-oracle (after leds_cam).
+- First run (job oracle-lbd) failed one check: I compared the filtered `led` list index (i1) against the full-trace line index (i_loaded) — different arrays. Fixed by storing each led line's index into `lines` and comparing those.
+- Second run (job oracle-lbd2): ORACLE PASS reaper/leds_binding_driven, rc=0. Trace: `bindings loaded n=3` @184ms, led main=20 @186, gesture 0031 tap + cmd 40635 @954, led main=21 @1815 (ripple all), led main=20 @3411 (per-track). All 12 checks pass.
+- Dead ends: none.
+- Next: done. Ticked line 121 of vibes/43-led-refactor.md.

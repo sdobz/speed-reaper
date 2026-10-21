@@ -1,0 +1,11 @@
+# leds_binding_driven scenario (vibes/43-led-refactor.md task 9).
+#
+# All LED state changes are Lua-driven (Main_OnCommand 40311/40310,
+# spaced >= 1.5 s apart) so each `led main=` trace line is attributable to
+# its step. The device only taps ESC (0x31) once, ~1 s in: the scenario's
+# written bindings.ini binds ESC.tap = action 40635 (remove time
+# selection — no main-panel LED bit), proving device-path coverage
+# through the written file. First press is >= 800 ms (startup-stall
+# headroom; see vibes/.ralph learnings).
+at 900 key 0x31 down   # ESC tap -> cmd 40635 (no LED effect; no press 2 = no double-tap)
+at 950 key 0x31 up
