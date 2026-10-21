@@ -93,3 +93,12 @@ M vibes/.ralph/43-led-refactor.md
 - Facts: test gotchas — bindings parser enforces press-exclusivity (a key bound to `press` may not have other gestures), so the priority test constructs `Bindings` directly with `BoundVerb` (null verb ok, mask never runs verbs); default registry has no turn verb with a state_read, so priority is tested with a custom registry + constant reads (tap=true, double=false, turn=true, press=false) which makes each winner unambiguous. FakeProject `active_takes` is 0-based take index (shared take = idx+1).
 - Dead ends: mask loop without `break` after the first bound gesture → last bound gesture won (press false read lit nothing); caught by the tap/turn CHECKs, fixed with break.
 - Facts: local `led_state_test` passes after the break fix. Running full verify (job check43f, `tools/check led_state`); tracked-file edits only, no new files, so no flake-source commit needed.
+- Facts: verify rc=0 (job check43f): ctest 100% (led_state_test), WINDOWS ORACLE PASS static, ORACLE PASS host. Line 76 ticked; committed as f0583bf.
+
+Result: exit 0; done; 1 file changed, 1 insertion(+); log: logs/43-led-refactor-L76-a5-1792542932164.log
+
+### Done — 2026-10-21 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+```
