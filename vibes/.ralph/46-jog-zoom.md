@@ -199,4 +199,12 @@ Rejected: compensating L in `SetViewSpan` (fights the quantiser); loosening to a
 - Facts: Attempt 1 (2026-10-21T14:37:56Z) stalled with zero tool use — no plugin changes existed; started clean. `tools/check <regex>` auto re-execs via `nix develop` (no cmake on PATH); `SKIP_WINDOWS=1 tools/check zoom_cursor` passed (build + ctest -R zoom_cursor + oracle host). Existing `test_cw_narrows_ccw_widens` calls Step without Begin and was preserved by keeping a live-read fallback in Step when the hold isn't active; production harness (verbs.cpp:85) always calls Begin for Turn gestures.
 - Facts (this attempt): `ZoomCursorVerb` now captures W_ (span) and q_ (clamped cursor fraction) once in `Begin`, builds each Step's input `ViewRange` as `{p - q_*W_, +W_}` from the kept members, chains `ZoomAround`, stores the new W_; never reads `GetView()` in an active Step; `End` resets `active_`. New test `test_hold_ignores_snapped_readback` in zoom_cursor_test.cpp: FakeProject + a test-local `snap()` feeding each GetView() the 0.01 s-snapped last write; after 100 CW steps the last write's q is within 1e-6 of 0.3 and L/R match the unsnapped 100x ZoomAround chain at 1e-9; post-End Step re-reads the live (snapped) view. ctest -R zoom_cursor passed.
 - Dead ends: none yet.
-- Next: confirm full `tools/check zoom_cursor` (incl. windows-oracle static) exits 0 via bg job `check-verify`, then tick line 100.
+- Next: done — full `tools/check zoom_cursor` (incl. Windows cross-build + oracle host) exited 0 (bg job `check-verify`, rc=0); line 100 ticked; committed 8a70438.
+
+Result: exit 0; done; 1 file changed, 1 insertion(+), 1 deletion(-); log: logs/46-jog-zoom-L100-a1-1792593476110.log
+
+### Done — 2026-10-21 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
