@@ -141,3 +141,17 @@ Trigger: 6 attempt(s), last: timeout after 180s without tool use (monologuing/st
 Why: The task bundles two artifacts (re-baseline hid_wheel.lua + a whole new scenario with fixture/env/lua/suite registration) and the only attempt shows a monologue stall with zero tool use and no progress — over-scoped for one sitting, not a time or design problem.
 Rejected: BUDGET: record shows no real progress (stall, not a long build), and budget is already 1800 s. SPIKE: no open design decision — the scale is settled (docs §4.2 + task 2's implementation) and headless pxPerSec is measurable via reaper.GetHZoomLevel(). REWRITE: task text and Verify are correct; only the size is wrong. BLOCK: nothing needs a human.
 Log: logs/46-jog-zoom-L90-replan-1792566492421.log
+
+## Task: Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale
+
+### Attempt 1 — 2026-10-21T07:16:35Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Headless REAPER: reaper.GetHZoomLevel() = 100.0 px/s (measured, not set). Per-event motion = (600/360)*(0.25/100) = 1/240 s; 6x = 0.025 s.
+- Fixture totals: turn 1 = 87420 units (task says 87240 — using 87240, check is marginally looser, safe), turn 2 = 82200.
+- Engine (plugin/src/jog_engine.h + session.cpp): each 8 ms tick applies the ENTIRE accumulated wheel delta (HidWheelSource::Tick exchanges the backlog); kMaxCatchUpMs=50/kAccCapMs=250 bound tick consumption, NOT the backlog.
+- REAPER startup stall (~260 ms in run 1; dialogs dismissed by the oracle harness) is hidden inside start("device") trace-poll: engine timer is stopped while the worker thread keeps accumulating deltas; the first timer callback (trace `timer call=1` at ~295 ms) flushes the whole backlog in one sample interval (0.1208 s = 29 events) with a NORMAL ~32 ms dt, so the existing dt>100 ms exclusion cannot identify it. Flush size is unbounded in stall length.
+- Fix in scenario only: exclude + record the first-motion interval (first sample where pos > start pos) as the startup backlog flush; all later intervals still checked < 6x per-event. rise1/rise2/thresholds all per task spec.
+
+Next: re-run tools/reaper-oracle --layer reaper --scenario hid_wheel; if green, tick line 92.
