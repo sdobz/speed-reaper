@@ -50,7 +50,7 @@ tools/check project_ops
 tools/check verb_registry
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 4. Seed the four providers
 - In `MakeDefaultRegistry` (`verb_registry.cpp`) set `state_read` on `action`, `take`, `isolate_tracks`, `solo_tracks` per the design doc § Initial providers; add `ActionStateReads()` there.

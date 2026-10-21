@@ -711,6 +711,41 @@ void test_nudge_handles() {
   }
 }
 
+// LED plumbing: a spec with a provider resolves through StateReadFor; a
+// spec without one and an unknown verb give nullopt (design doc § Types).
+void test_state_read_for() {
+  VerbRegistry reg;
+  FakeProject project;
+  // A test verb whose provider echoes the context's isolate toggle; it
+  // declines to give a read for the arg-less binding.
+  reg.Register({"led_on", {BindingGesture::Tap}, "provider: ctx.isolate_active",
+                [](std::vector<std::string>) -> VerbBuildResult {
+                  return {nullptr, "led_on: no verb (test spec)"};
+                },
+                [](const std::vector<std::string> &args) -> std::optional<StateRead> {
+                  if (args.empty()) return std::nullopt;
+                  return StateRead{[](const LedReadContext &ctx) {
+                                     return ctx.isolate_active;
+                                   }};
+                }});
+  // A spec without a provider: dark by construction.
+  reg.Register({"no_led", {BindingGesture::Tap}, "no provider",
+                [](std::vector<std::string>) -> VerbBuildResult {
+                  return {nullptr, "no_led: no verb (test spec)"};
+                }, nullptr});
+
+  LedReadContext ctx{project};
+  CHECK(reg.StateReadFor("ghost", {}).has_value() == false);  // unknown verb
+  CHECK(reg.StateReadFor("no_led", {}).has_value() == false);  // no provider
+  CHECK(reg.StateReadFor("led_on", {}).has_value() == false);  // provider says none
+  std::optional<StateRead> read = reg.StateReadFor("led_on", {"1"});
+  CHECK(read.has_value());
+  CHECK((*read)(ctx) == false);
+  ctx.isolate_active = true;
+  ctx.solo_active = true;
+  CHECK((*read)(ctx) == true);
+}
+
 int main() {
   test_nudge_handles();
   test_all_names_resolve();
@@ -719,5 +754,6 @@ int main() {
   test_verb_behaviors();
   test_turn_verb_behaviors();
   test_wheel_transport_behaviors();
+  test_state_read_for();
   return check_failures();
 }

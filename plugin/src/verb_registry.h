@@ -16,6 +16,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -76,11 +77,27 @@ struct VerbBuildResult {
   std::string error;
 };
 
+// The live state a key's LED reads against: the project plus the plugin's
+// isolate/solo view toggles (carried by the router, not the project).
+struct LedReadContext {
+  IProject &project;
+  bool isolate_active = false;
+  bool solo_active = false;
+};
+
+// A verb's LED state read: true = its key's LED bit is lit.
+using StateRead = std::function<bool(const LedReadContext &)>;
+
 struct VerbSpec {
   std::string name;
   std::vector<BindingGesture> gestures;  // the bindings this verb accepts
   std::string description;
   std::function<VerbBuildResult(std::vector<std::string> args)> factory;
+  // LED read provider (absent by default): given this specific binding's
+  // args, the read for it — or nullopt (one-shot action, named
+  // `action <name>`, …). Giving a verb an LED state = set this on register.
+  std::function<std::optional<StateRead>(const std::vector<std::string> &args)>
+      state_read;
 };
 
 class VerbRegistry {
@@ -105,6 +122,12 @@ class VerbRegistry {
   // the factory runs (its error, if any, starts with the verb name).
   VerbBuildResult Build(const std::string &name, BindingGesture gesture,
                         const std::vector<std::string> &args) const;
+
+  // LED read for this specific binding: looks up the spec and runs its
+  // state_read provider; no spec or no provider → nullopt (the provider
+  // may itself return nullopt for this binding).
+  std::optional<StateRead> StateReadFor(const std::string &verb,
+                                        const std::vector<std::string> &args) const;
 
  private:
   std::map<std::string, VerbSpec> specs_;

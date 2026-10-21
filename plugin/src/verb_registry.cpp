@@ -9,6 +9,7 @@
 #include <cstdio>    // std::snprintf (AUDIO LEVEL message)
 #include <cstdlib>   // std::strtol (int args)
 #include <climits>   // INT_MIN / INT_MAX (int-arg range)
+#include <optional>  // std::optional (StateReadFor)
 
 #include "nudge.h"        // HoldNudge, Nudge* hold+rotate math
 #include "project_ops.h"  // DuplicateItemsAbove, IsolateView, SoloView
@@ -585,6 +586,13 @@ VerbBuildResult VerbRegistry::Build(const std::string &name, BindingGesture gest
   return spec.factory(args);
 }
 
+std::optional<StateRead> VerbRegistry::StateReadFor(const std::string &verb,
+                                                    const std::vector<std::string> &args) const {
+  const VerbSpec *spec = Find(verb);
+  if (spec == nullptr || !spec->state_read) return std::nullopt;
+  return spec->state_read(args);
+}
+
 VerbRegistry MakeDefaultRegistry() {
   VerbRegistry reg;
 
@@ -598,7 +606,7 @@ VerbRegistry MakeDefaultRegistry() {
                    return {nullptr, error};
                  if (cmd.named) return {std::make_unique<ActionVerb>(cmd.name), ""};
                  return {std::make_unique<ActionVerb>(cmd.id), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"targeted", {BindingGesture::Press, BindingGesture::Tap,
                              BindingGesture::Double},
@@ -610,7 +618,7 @@ VerbRegistry MakeDefaultRegistry() {
                    return {nullptr, error};
                  if (cmd.named) return {std::make_unique<TargetedVerb>(cmd.name), ""};
                  return {std::make_unique<TargetedVerb>(cmd.id), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"ripple_delete", {BindingGesture::Tap, BindingGesture::Double},
                "Remove the targets (or time selection) and close the gap",
@@ -618,7 +626,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("ripple_delete", args, &error)) return {nullptr, error};
                  return {std::make_unique<RippleDeleteVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"select_cursor_item", {BindingGesture::Tap},
                "Select the item under the cursor exclusively (tap again to deselect)",
@@ -626,7 +634,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("select_cursor_item", args, &error)) return {nullptr, error};
                  return {std::make_unique<SelectCursorItemVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"take", {BindingGesture::Tap, BindingGesture::Double},
                "Set the active take <N> on the targets",
@@ -636,7 +644,7 @@ VerbRegistry MakeDefaultRegistry() {
                  if (!ParseIntArg("take", args, &n, &error)) return {nullptr, error};
                  if (n < 1) return {nullptr, "take: N must be >= 1"};
                  return {std::make_unique<TakeVerb>(n), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"volume_readout", {BindingGesture::Tap},
                "Read out the first target item's volume in dB",
@@ -644,7 +652,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("volume_readout", args, &error)) return {nullptr, error};
                  return {std::make_unique<VolumeReadoutVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"smooth_cut", {BindingGesture::Tap},
                "Smooth-cut at the time selection",
@@ -652,7 +660,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("smooth_cut", args, &error)) return {nullptr, error};
                  return {std::make_unique<SmoothCutVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"place_on_top", {BindingGesture::Tap},
                "Duplicate the targets onto a new track above each source track",
@@ -660,7 +668,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("place_on_top", args, &error)) return {nullptr, error};
                  return {std::make_unique<PlaceOnTopVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"isolate_tracks", {BindingGesture::Tap},
                "Hide every track except the targets' tracks (tap again to restore)",
@@ -668,7 +676,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("isolate_tracks", args, &error)) return {nullptr, error};
                  return {std::make_unique<IsolateTracksVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"solo_tracks", {BindingGesture::Tap},
                "Solo the targets' tracks (tap again to restore)",
@@ -676,7 +684,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("solo_tracks", args, &error)) return {nullptr, error};
                  return {std::make_unique<SoloTracksVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"select_step", {BindingGesture::Turn},
                "Step the selection to the next/previous item on the target track (20 ticks per step)",
@@ -684,7 +692,7 @@ VerbRegistry MakeDefaultRegistry() {
                  std::string error;
                  if (!CheckNoArgs("select_step", args, &error)) return {nullptr, error};
                  return {std::make_unique<SelectStepVerb>(), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"nudge", {BindingGesture::Turn},
                std::string("Hold+rotate nudge of the targets: <") + kNudgeModeList +
@@ -708,7 +716,7 @@ VerbRegistry MakeDefaultRegistry() {
                                            "' (expected step=frame|grid|sample|<N>ms)"};
                  }
                  return {std::make_unique<NudgeVerb>(mode, step), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"wheel", {BindingGesture::Press},
                "Switch the wheel mode: <jog|scrl|shtl>",
@@ -724,7 +732,7 @@ VerbRegistry MakeDefaultRegistry() {
                    return {nullptr, "wheel: unknown mode '" + args[0] +
                                          "' (expected one of jog|scrl|shtl)"};
                  return {std::make_unique<WheelVerb>(mode, &reg.wheel_state), ""};
-               }});
+               }, nullptr});
 
   reg.Register({"transport", {BindingGesture::Press},
                "Transport <play_stop> (a SHTL play_stop is a hard stop back to the prior mode)",
@@ -735,7 +743,7 @@ VerbRegistry MakeDefaultRegistry() {
                  if (args[0] != "play_stop")
                    return {nullptr, "transport: unknown action '" + args[0] + "' (expected 'play_stop')"};
                  return {std::make_unique<TransportPlayStopVerb>(&reg.wheel_state), ""};
-               }});
+               }, nullptr});
 
   return reg;
 }

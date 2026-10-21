@@ -46,3 +46,24 @@ Files:
 ```
 M vibes/.ralph/43-led-refactor.md
 ```
+
+## Task: 3. Provider plumbing on the registry (no providers yet)
+
+### Attempt 3 — 2026-10-21T00:25:11Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: working tree was clean apart from this record; design doc § Types implemented: `LedReadContext` + `StateRead` in verb_registry.h (defined before `VerbSpec` since the member uses it), `VerbSpec::state_read` member, `VerbRegistry::StateReadFor` (impl in verb_registry.cpp right after `Build`: Find → no spec/no provider → nullopt, else run provider).
+- Dead ends: adding the 5th `VerbSpec` aggregate member trips `-Werror=missing-field-initializers` at every `reg.Register({...})` aggregate-init (14 sites in `MakeDefaultRegistry`, plus any test Register). Fix: append `, nullptr` to each (sed `^               }});$` → `}, nullptr});`). No new files, so no nix-source/untracked issue; nothing committed yet (edits are to tracked files only).
+- Facts: test added: `test_state_read_for()` in plugin/test/verb_registry_test.cpp (registered in main after test_wheel_transport_behaviors): custom empty VerbRegistry, `led_on` spec with provider echoing `ctx.isolate_active` (declines args → nullopt), `no_led` spec without provider; checks unknown verb / no provider / provider-nullopt / resolved read evaluates against LedReadContext.
+- Facts: `nix develop --command cmake --build build/plugin` clean (-Werror), verb_registry_test passes. Full verify (job check43d, `tools/check verb_registry`) rc=0: ctest 1/1 verb_registry_test, WINDOWS ORACLE PASS static, ORACLE PASS host. No untracked files involved (tracked edits only), so no commit needed for the flake source. Line 53 ticked.
+
+Result: exit 0; done; 5 files changed, 91 insertions(+), 15 deletions(-); log: logs/43-led-refactor-L53-a3-1792542311300.log
+
+### Done — 2026-10-21 — 3 attempt(s)
+Files:
+```
+M plugin/src/verb_registry.cpp
+ M plugin/src/verb_registry.h
+ M plugin/test/verb_registry_test.cpp
+ M vibes/.ralph/43-led-refactor.md
+ M vibes/43-led-refactor.md
+```
