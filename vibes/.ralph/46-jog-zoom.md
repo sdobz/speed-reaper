@@ -8,6 +8,7 @@ Workers update their own `## Task:` section; ralph writes results.
 Durable facts every task should know (keep short).
 
 - Changing `plugin/src/default_bindings.ini` requires re-running `tools/gen_bindings_doc docs/bindings.md`; `tools/check` fails on a stale `docs/bindings.md`.
+- Headless REAPER `GetSet_ArrangeView2(nil,true,...)` does NOT preserve the written left edge: L snaps to a ~0.003-0.012 s grid (at pxPerSec=100; R and exact 0/10 writes are preserved). Anything that re-anchors the view every step must expect the read-back L to deviate (plugin trace: L pinned 0.0031/0.0124/-0.0124 while span shrank 10->9.635 s).
 
 
 ## Task: 1. Float `[tuning]` key `wheel.pixels_per_detent`
@@ -164,3 +165,23 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: Add the hid_zoom oracle scenario (fixture + env + lua + registration)
+
+### Attempt 1 — 2026-10-21T07:30:11Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); progress; 2 files changed, 6 insertions(+), 1 deletion(-); log: logs/46-jog-zoom-L100-a1-1792567811776.log
+
+### Attempt 2 — 2026-10-21T07:45:36Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts: (attempt 3) All artifacts already in place (fixture/env/lua/registration from attempts 1-2). Run: 5/6 checks PASS; only "cursor screen fraction q unchanged within 1e-3" FAILS: q_first=0.500000, range 0.499697..0.518926 (drift 0.0192 = 19x tolerance; pxPerSec=100, min span 9.6353 s at CW end, max post-CCW 9.9937 s).
+Facts: Root cause is NOT the scenario and NOT zoom.h (pure math is q-exact by construction: L'=pivot-q*W'). Plugin trace (build/oracle/trace_hid_zoom.txt, "zoom span=" lines) shows REAPER's GetSet_ArrangeView2 write-back does NOT preserve the left edge headlessly: L pins to a ~0.003-0.012 s grid (0.0031 -> 0.0124 held ~14 writes -> -0.0093 -> -0.0124) while R tracks the span; q=(cursor-L)/W then drifts with the shrinking span. Verified independently from the Lua side in attempt 2 (dbg_drift: set(0.3,10.3)->L 0.297177 etc.; set(0,10) stays exact). Span checks unaffected (pass with margin).
+Dead ends: scenario-side tweaks cannot fix it: the task pins cursor=5/view=0-10, L' moves every step (W' changes) so it cannot be pre-aligned to REAPER's snap grid, and the rules forbid loosening the 1e-3 check or touching the plugin. Two honest attempts (this task) are used up per docs/notes/oracle-scenario-rules.md.
+Next: marked line 100 [!] BLOCKED with measured values. Needs a decision: glue-side fix (e.g. ReaperActionSink::SetViewSpan compensate the L snap — read back snapped L after write and re-anchor, or a different view-write mechanism) and/or a re-specified q tolerance/setup. Scenario files left in place and registered; probe code removed from hid_zoom.lua, header now documents the failure.
+
+Result: exit 0; worker-blocked; 3 files changed, 18 insertions(+), 2 deletions(-); log: logs/46-jog-zoom-L100-a2-1792568736588.log
+
+### Replan (depth 1) — BLOCK → replan failed (no valid JSON decision block)
+Trigger: worker marked it blocked: fixture/env/lua/registration are all in place and 5 of 6 checks pass, but the spec'd "q unchanged within 1e-3" check fails: measured q range 0.499697..0.518926 (drift 0.0192, ~19x tolerance; pxPerSec=100, min span 9.6353 s, max post-CCW 9.9937 s). Root cause is outside this task's scope ("do not touch the plugin"): zoom.h re-anchors on the cursor exactly, but headless REAPER's GetSet_ArrangeView2 does not preserve the written left edge (L pins to a ~0.003-0.012 s snap grid while R tracks the span), so q drifts with the shrinking span. Two honest attempts used per docs/notes/oracle-scenario-rules.md; needs a decision: glue-side L-snap compensation (e.g. in ReaperActionSink::SetViewSpan) and/or a re-specified q tolerance or setup.
+Log: logs/46-jog-zoom-L100-replan-1792569409645.log

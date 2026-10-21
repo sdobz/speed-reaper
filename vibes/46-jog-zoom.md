@@ -97,7 +97,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
     - record() the measured pxs and the expected values; rewrite the header comment (still describes the old 20 s/rev scale).
     - Run: tools/reaper-oracle --layer reaper --scenario hid_wheel.
     Verify: `tools/reaper-oracle --layer reaper --scenario hid_wheel`
-  - [ ] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
+  - [!] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
     - Add oracle/fake/hid_zoom.txt, oracle/scenarios/hid_zoom.env (export SPEED_REAPER_FAKE_DEVICE=oracle/fake/hid_zoom.txt), oracle/scenarios/hid_zoom.lua (model on hid_wheel.lua; start("device", ...)), and append hid_zoom to REAPER_SCENARIOS=(...) in tools/reaper-oracle (~line 238). Do not touch the plugin or other scenarios.
     - Fixture (hold syntax per oracle/fake/hold_move_trim.txt; TIMELINE = key 0x1B per src/speed_editor/key_map.h): `at 300 key 0x1B down` (hold >= 350 ms before HoldStart), then 60 x `wheel 600` at 8 ms (CW, from ~700 ms), then 60 x `wheel -600` at 8 ms (CCW), then `key 0x1B up`. Keep the scenario under ~6 s (docs/notes/oracle-scenario-rules.md).
     - Scenario: reaper.SetEditCurPos(5, false, false); set the view to 0-10 s via reaper.GetSet_ArrangeView2(nil, true, 0, 0, 0, 10); each defer cycle sample the view via reaper.GetSet_ArrangeView2(nil, false, 0, 0, 0, 0); q = (reaper.GetCursorPosition() - L) / (R - L).
@@ -105,6 +105,7 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
     - If a check still fails after two honest attempts, mark [!] with the measured values per the rules doc — do not loosen.
     - Run: tools/reaper-oracle --layer reaper --scenario hid_zoom.
     Verify: `tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q 'hid_zoom' tools/reaper-oracle`
+    BLOCKED: ralph could not replan this task (no valid JSON decision block); see vibes/.ralph/46-jog-zoom.md
 
 ### 7. Docs
 - `docs/jog-discovery.md`: change the Status line to implemented, tick off the §8 sub-items per the Context above. Update `docs/design.md` / `docs/bindings.md` only where they mention `select_step` or `kSecondsPerRev`.
