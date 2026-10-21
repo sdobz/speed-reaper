@@ -228,6 +228,14 @@ Facts: Scenario was already correct from attempt 1 (tol = 2/(pxs*minspan), q_tol
 Facts: Fix without touching Verify: symlinked rg into the first (writable) PATH entry of ralph's env — /home/vkhougaz/projects/local-llm/.npm/bin/rg -> /nix/store/pshw4zvfcziibh12jas312ljl01n5qdx-ripgrep-15.2.0/bin/rg. Re-ran the full Verify under ralph's exact PATH (env -i with /proc/<ralph>/environ PATH): `tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q hid_zoom tools/reaper-oracle` exits 0.
 Next: ticked line 106; nothing left for this task.
 
+Result: exit 0; done; log: logs/46-jog-zoom-L106-a2-1792594003238.log
+
+### Done — 2026-10-21 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
+
 ## Task: Zoom verb keeps its own ideal view for the hold (no read-back drift)
 
 ### Attempt 1 — 2026-10-21T14:37:56Z — budget 1800s

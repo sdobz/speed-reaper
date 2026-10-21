@@ -87,7 +87,7 @@ tools/check && tools/check_api_want
 tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle --layer reaper --scenario hid_zoom
 ```
 
-- [ ] Done
+- [x] Done
   <!-- ralph: replanned=1 op=AND -->
   - [x] Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale
     - Touch ONLY oracle/scenarios/hid_wheel.lua (no plugin/env/other-scenario changes; no rebuild — build/plugin .so is current). Read docs/notes/oracle-scenario-rules.md first (do not loosen checks; two-attempt limit, then mark [!]).
