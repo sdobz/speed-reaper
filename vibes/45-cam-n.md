@@ -27,7 +27,7 @@ the CAM defaults; it adds no LED mechanism.
 tools/reaper-oracle --layer reaper --scenario cam_probe && grep -q "^## Holes" docs/notes/cam-n-select.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. `CursorItemOnTrack`
 - `plugin/src/target.{h,cpp}`: `int CursorItemOnTrack(const std::vector<ItemInfo> &items, int track, double cursor)` → item id or -1, applying the containment rule to one track (have `CursorTargetItem` reuse it if the rule overlaps).
