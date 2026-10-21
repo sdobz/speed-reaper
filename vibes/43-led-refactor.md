@@ -85,7 +85,7 @@ tools/check led_state
 tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xfade_keys
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. Wire the poll to `BindingLedMask`
 - `plugin/src/verbs.{h,cpp}`: add `const Bindings &bindings() const` and `const VerbRegistry &registry() const`.
