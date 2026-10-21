@@ -11,6 +11,14 @@
 --   ~910         AUDIO LEVEL 0x2C x2       -> cmd 40157, marker at cursor 1
 --   ~1410        FULL VIEW 0x2D            -> cmd 40346 (toggle fullscreen)
 --
+-- The CAM 2 tap must run the `take 2` verb, but the current defaults bind
+-- CAM1…9 to select_track N. The user bindings file REPLACES the embedded
+-- defaults on reload (no merge), so the script rewrites the file the plugin
+-- seeded at first load (<ResourcePath>/speed-reaper/bindings.ini, model:
+-- scenarios/bindings.lua) with every `CAM2.*` line replaced by
+-- `CAM2.tap = take 2`, runs "Speed Reaper: reload bindings", and restores
+-- the original file afterwards so later scenarios get the defaults again.
+--
 -- Setup: track 1 "A" with item A [0,5] holding TWO takes, track 2 "B" with
 -- item B [0,5] one take, nothing selected, edit cursor at 1 s, last-touched
 -- track = A's track (so the implicit-target rule resolves A with no
@@ -28,6 +36,38 @@ end
 
 start("device", function()
   record("app_version", reaper.GetAppVersion())
+
+  -- Re-bind CAM2 to the `take` verb (the defaults now give CAM2 to
+  -- select_track 2), mirroring scenarios/bindings.lua. Must happen before
+  -- the fake device's first event (~400 ms device time); setup below is
+  -- done in milliseconds, so this is well inside the margin.
+  -- The file the plugin seeded at first load IS the defaults; swap the
+  -- CAM2 line, reload, and restore the original text on finish.
+  local bind_path = reaper.GetResourcePath() .. "/speed-reaper/bindings.ini"
+  local rf = io.open(bind_path, "r")
+  check("setup: seeded bindings.ini readable", rf ~= nil, bind_path)
+  if not rf then return finish() end
+  local original = rf:read("*a")
+  rf:close()
+  local out, n_cam2 = {}, 0
+  for line in (original .. "\n"):gmatch("([^\n]*)\n") do
+    if line:match("^%s*CAM2%.[%w_]+%s*=") then
+      n_cam2 = n_cam2 + 1
+    else
+      table.insert(out, line)
+    end
+  end
+  table.insert(out, "CAM2.tap = take 2")
+  local bf = io.open(bind_path, "w")
+  check("setup: bindings.ini writable", bf ~= nil, bind_path)
+  if not bf then return finish() end
+  bf:write(table.concat(out, "\n") .. "\n")
+  bf:close()
+  check("setup: seeded file bound CAM2 (exactly one line replaced)",
+        n_cam2 == 1, "cam2_lines=" .. n_cam2)
+  local reload = reaper.NamedCommandLookup("_SPEED_REAPER_RELOAD_BINDINGS")
+  check("reload action registered", reload > 0, "id=" .. tostring(reload))
+  reaper.Main_OnCommand(reload, 0)
 
   -- Setup: two tracks with named items, cursor at 1 s, no selection.
   reaper.InsertTrackAtIndex(0, true) -- bool; track is index 0
@@ -104,8 +144,9 @@ start("device", function()
     end
     local function at(i, k) return samples[i] and samples[i][k] or nil end
 
-    -- CAM 2 (~450 ms): I_CURTAKE = 1 on target A (2-take item), B keeps
-    -- take 0. Sampled after the tap, before the double-tap resolves.
+    -- CAM 2 (~450 ms, bound to `take 2` via the bindings.ini written above):
+    -- I_CURTAKE = 1 on target A (2-take item), B keeps take 0. Sampled
+    -- after the tap, before the double-tap resolves.
     local i1 = mid(500, 750)
     check("CAM 2: A's I_CURTAKE == 1 (2-take item)",
           i1 ~= 0 and at(i1, "curta") == 1,
@@ -190,6 +231,9 @@ start("device", function()
             cmd_ok, string.format("n=%d [%s]", #cmds, cmd_dump))
     end
 
+    -- Restore the seeded defaults file so later scenarios get them back.
+    local rf2 = io.open(bind_path, "w")
+    if rf2 then rf2:write(original) rf2:close() end
     finish()
   end)
 end)

@@ -88,7 +88,7 @@ tools/reaper-oracle --layer reaper --scenario cam_select
 tools/reaper-oracle --layer reaper --scenario simple_verbs
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 7. Docs: design + README
 - `docs/design.md` §6: add `select_track | 1–9 | toggle selection of the item under the cursor on track N`; §6 CAM row and §10: CAM1…9 default-bind `select_track N`; any LED-bearing key bound to it lights iff that item is selected (lights without being pressed); `take` → lit only per 43's `take N` read.

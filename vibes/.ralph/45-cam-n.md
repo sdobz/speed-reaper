@@ -12,6 +12,7 @@ Durable facts every task should know (keep short).
 - `B_UISEL` set/clear per item is isolated (no cross-track effect) and does not move the edit cursor (cam_probe, REAPER 7.81).
 - FakeProject (plugin/test/fake_project.h) only *records* `SetSelectedItems`, never applies it — selection-toggling tests must re-apply the last recorded call to `items[].selected` between calls.
 - Real REAPER 7.81: `B_UISEL=1` alone makes `IsMediaItemSelected` true (B_SELECTED stays 0); `SetMediaItemSelected(false)` clears B_UISEL too. The plugin's `ItemInfo.selected` reads `IsMediaItemSelected`, so Lua B_UISEL toggles drive the CAM/CLOSE_UP select_track LEDs.
+- User bindings.ini REPLACES the embedded defaults on load/reload (no merge); the plugin seeds the default file at first load, so a scenario that re-binds one key must rewrite the seeded file (swap the line) and restore it, not write a 1-line file.
 - Adding a verb to the registry requires three follow-ups or `tools/check` fails: regenerate `docs/bindings.md` (gen_bindings_doc needs a built `build/plugin/verb_list`) and update `plugin/test/verb_registry_test.cpp`'s `kAllNames` count/list.
 
 
@@ -142,4 +143,24 @@ Result: exit 0; done; log: logs/45-cam-n-L81-a5-1792547229451.log
 Files:
 ```
 M vibes/.ralph/45-cam-n.md
+```
+
+## Task: 6. Keep `take` e2e coverage in `simple_verbs`
+
+### Attempt 6 — 2026-10-21T02:03:25Z — budget 1800s
+- Facts: default_bindings.ini now has `CAM2.tap = select_track 2` (CAM1–9 → select_track N), so the fake device's CAM 2 tap no longer runs `take 2`. `take` is a registry verb (plugin/src/verb_registry.cpp:696), not a command — emits no `cmd` trace line, so the scenario's cmd/gesture trace checks are unaffected.
+- Facts: mirrored oracle/scenarios/bindings.lua — inside start("device"), before the first device event (fake device first tap ~400 ms device time, well after setup): write `<ResourcePath>/speed-reaper/bindings.ini` with `CAM2.tap = take 2`, run `_SPEED_REAPER_RELOAD_BINDINGS` via NamedCommandLookup+Main_OnCommand, `os.remove` the file on the finish path. Header comment updated to explain the override.
+- Facts: user bindings.ini is merged over the embedded defaults (bindings.lua scenario relies on this: only 3 lines written, other keys still bound).
+- Dead ends: writing a 1-line bindings.ini (`CAM2.tap = take 2` only) + reload — the user file REPLACES the embedded defaults on reload (verbs_.Reload parses the text as the complete set; trace showed `bindings loaded n=1`), which unbound AUDIO_LEVEL.double (degraded to two taps) and FULL_VIEW. Scenario then failed on marker/trace checks.
+- Facts: the plugin seeds `<ResourcePath>/speed-reaper/bindings.ini` with the defaults at first load (trace line 0 `bindings written ...`), and the reload action reads that same path (plugin/src/main.cpp:65 BindingsPath). So the scenario now: reads the seeded file, drops every `CAM2.*` line, appends `CAM2.tap = take 2`, writes back, reloads (trace `bindings loaded n=48`, full default set + the CAM2 override), and restores the original file text on finish.
+- Done: job `sv2` → `ORACLE PASS reaper/simple_verbs` (trace: `echo CAM2.tap → take 2`, markers/40157/40346 all green); seeded bindings.ini verified restored to defaults. Line 91 ticked.
+
+Result: exit 0; done; 3 files changed, 58 insertions(+), 3 deletions(-); log: logs/45-cam-n-L91-a6-1792548205523.log
+
+### Done — 2026-10-21 — 6 attempt(s)
+Files:
+```
+M oracle/scenarios/simple_verbs.lua
+ M vibes/.ralph/45-cam-n.md
+ M vibes/45-cam-n.md
 ```
