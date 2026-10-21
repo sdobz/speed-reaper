@@ -82,8 +82,9 @@ const std::vector<Expected> kExpected = {
     {KEY_ROLL,     BindingGesture::Turn, "nudge", {"roll"}},
     // crossfades (docs/notes/crossfade-actions.md)
     {KEY_TRANS,     BindingGesture::Tap, "action", {"41059"}},
-    {KEY_DIS,       BindingGesture::Tap, "action", {"40916"}},
-    {KEY_CUT,       BindingGesture::Tap, "action", {"41193"}},
+    {KEY_DIS,       BindingGesture::Tap, "action", {"40311"}},
+    {KEY_CUT,       BindingGesture::Tap, "action", {"40310"}},
+    {KEY_LIVE_OWR,  BindingGesture::Tap, "action", {"41117"}},
     {KEY_TRANS_DUR, BindingGesture::Tap, "action", {"43776"}},
 };
 
@@ -123,7 +124,7 @@ int main() {
   // gesture); suggestions live in comments only.
   for (const std::uint16_t key : {KEY_SMART_INSRT, KEY_APPND, KEY_RIPL_OWR,
                                   KEY_SRC_OWR, KEY_CLOSE_UP, KEY_SYNC_BIN,
-                                  KEY_LIVE_OWR, KEY_SOURCE}) {
+                                  KEY_SOURCE}) {
     for (const BindingGesture g : {BindingGesture::Press, BindingGesture::Tap,
                                    BindingGesture::Double, BindingGesture::Turn})
       CHECK(b.bindings.find({key, g}) == b.bindings.end());

@@ -102,3 +102,16 @@ Files:
 ```
 M vibes/.ralph/43-led-refactor.md
 ```
+
+## Task: 6. Realign default bindings
+
+### Attempt 6 — 2026-10-21T00:47:53Z — budget 1800s
+
+Facts:
+- default_bindings.ini: CUT→40310, DIS→40311, new LIVE_OWR.tap=action 41117 (41117 = "Options: Trim content behind media items when editing"); dropped the two commented LIVE_OWR candidates (1013, 1068) from the shipped-UNBOUND block.
+- Test: DIS/CUT expected ids updated, KEY_LIVE_OWR added to kExpected and removed from the unbound-keys list (item 4). Crossfade section now has 5 rows.
+- xfade_keys.lua: writes scenario-local bindings.ini (DIS=40916, TRANS=41059, CUT=41193, TRANS_DUR=43776) + reload via _SPEED_REAPER_RELOAD_BINDINGS at setup (before the 400 ms press); new trace check "bindings loaded n=4"; os.remove(ini) at end. oracle/fake/xfade_keys.txt unchanged (keys unchanged).
+- docs/bindings.md regenerated via tools/gen_bindings_doc (diff matches the .ini changes only).
+- No new files created → no untracked-file hazard for the Windows nix build, but committing before verify anyway.
+Next:
+- Run verify: `tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xfade_keys` (job: ralph43-verify)

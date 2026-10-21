@@ -1,6 +1,10 @@
--- oracle/scenarios/xfade_keys.lua — the default crossfade bindings
+-- oracle/scenarios/xfade_keys.lua — the crossfade actions
 -- (vibes/41-action-registry.md task 8; effects recorded in
--- docs/notes/crossfade-actions.md). Uses the DEFAULT bindings file.
+-- docs/notes/crossfade-actions.md). Milestone 43 moved the default CUT/DIS
+-- bindings to the ripple toggles (40310/40311), so this scenario writes a
+-- scenario-local bindings.ini binding the crossfade ids (40916, 41193) —
+-- and TRANS/TRANS_DUR, unchanged — to the same keys (model: bindings.lua).
+-- Uses the scenario-local bindings file.
 -- Four independent item pairs (one track each), selection re-armed before
 -- each press (script time = device time - ~40 ms):
 --   400  DIS       (40916)  C [0,5] + D [5,10] abut, time sel [4.5,5.5]:
@@ -34,6 +38,24 @@ end
 
 start("device", function()
   record("app_version", reaper.GetAppVersion())
+
+  -- Scenario-local bindings: keep the crossfade actions on their keys even
+  -- though the shipped defaults now bind CUT/DIS to the ripple toggles.
+  local ini = reaper.GetResourcePath() .. "/speed-reaper/bindings.ini"
+  local f = io.open(ini, "w")
+  check("setup: bindings.ini writable", f ~= nil, ini)
+  if f then
+    f:write("[bindings]\n",
+            "DIS.tap = action 40916\n",  -- crossfade within time selection
+            "TRANS.tap = action 41059\n", -- crossfade overlapping items
+            "CUT.tap = action 41193\n",  -- remove fade in / fade out
+            "TRANS_DUR.tap = action 43776\n") -- default crossfade length
+    f:close()
+    local reload = reaper.NamedCommandLookup("_SPEED_REAPER_RELOAD_BINDINGS")
+    check("setup: reload action registered", reload > 0, "id=" .. tostring(reload))
+    reaper.Main_OnCommand(reload, 0)
+  end
+
   check("setup: tone wav written", write_tone(WAV), WAV)
   local src = reaper.PCM_Source_CreateFromFile(WAV)
   for i = 0, 3 do reaper.InsertTrackAtIndex(i, true) end
@@ -119,8 +141,10 @@ start("device", function()
       local ok = #cmds == #want
       for k = 1, #want do if cmds[k] ~= want[k] then ok = false end end
       check("trace: cmds are 40916, 41059, 41193, 43776", ok, "[" .. dump .. "]")
+      check("trace: scenario bindings loaded n=4", find_line(lines, "bindings loaded n=4") > 0)
     end
     os.remove(WAV)
+    os.remove(ini)  -- later scenarios/runs get the default file again
     finish()
   end)
 end)
