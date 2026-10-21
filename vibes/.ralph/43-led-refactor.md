@@ -190,3 +190,11 @@ Facts:
 - Second run (job oracle-lbd2): ORACLE PASS reaper/leds_binding_driven, rc=0. Trace: `bindings loaded n=3` @184ms, led main=20 @186, gesture 0031 tap + cmd 40635 @954, led main=21 @1815 (ripple all), led main=20 @3411 (per-track). All 12 checks pass.
 - Dead ends: none.
 - Next: done. Ticked line 121 of vibes/43-led-refactor.md.
+
+Result: exit 0; done; log: logs/43-led-refactor-L121-a9-1792545516280.log
+
+### Done — 2026-10-21 — 9 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+```
