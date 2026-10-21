@@ -14,6 +14,7 @@ Durable facts every task should know (keep short).
 - Real REAPER 7.81: `B_UISEL=1` alone makes `IsMediaItemSelected` true (B_SELECTED stays 0); `SetMediaItemSelected(false)` clears B_UISEL too. The plugin's `ItemInfo.selected` reads `IsMediaItemSelected`, so Lua B_UISEL toggles drive the CAM/CLOSE_UP select_track LEDs.
 - User bindings.ini REPLACES the embedded defaults on load/reload (no merge); the plugin seeds the default file at first load, so a scenario that re-binds one key must rewrite the seeded file (swap the line) and restore it, not write a 1-line file.
 - Adding a verb to the registry requires three follow-ups or `tools/check` fails: regenerate `docs/bindings.md` (gen_bindings_doc needs a built `build/plugin/verb_list`) and update `plugin/test/verb_registry_test.cpp`'s `kAllNames` count/list.
+- A filtered `tools/check '<regex>'` run can hide regressions elsewhere in the suite (task 4's rebind left `led_read_test`/`verbs_test` red until task 7 ran the full ctest). Change default bindings → run the unfiltered suite.
 
 
 ## Task: 1. Research: native candidates → `docs/notes/cam-n-select.md`
@@ -164,3 +165,23 @@ M oracle/scenarios/simple_verbs.lua
  M vibes/.ralph/45-cam-n.md
  M vibes/45-cam-n.md
 ```
+
+## Task: 7. Docs: design + README
+
+### Attempt 7 — 2026-10-21T02:08:42Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Verb + defaults already in place (tasks 3–4): `select_track` registered with state read (item on track N under cursor is selected), `docs/bindings.md` already regenerated and stale-check passes.
+- Edits made: `docs/design.md` §6 new `select_track` row; §10 "Other seeded reads" rewritten — CAM keys default `select_track <n>`, LED lights while that item is selected (unpressed); `take <N>` described as the read for any key bound to `take N`. `README.md` CAM row → "item under the cursor on track N is selected".
+- `docs/notes/led-binding.md` line 87 still says CAM = `take N` read but is annotated "unchanged here (45 rebinds)" — left as-is (out of this task's scope).
+
+Facts (cont.):
+- HEAD was RED: `led_read_test` and `verbs_test` still asserted the pre-task-4 CAM=`take N` defaults (task 4 only ran a ctest filter, so this slipped through). Fixed: led_read_test's two CAM blocks now expect `select_track` behavior (mask = CAM1|CAM2 for the two under-cursor selected items, 0 once deselected; the `take N` read stays covered in led_state_test); verbs_test `test_cam_takes` now drives the `take` verb via an explicit `CAM1/2.tap = take 1/2` bindings string (mirrors the simple_verbs oracle scenario).
+- In led_read_test both items are under the cursor on separate tracks and selected → mask is `Bit(LED_CAM1)|Bit(LED_CAM2)`, not just CAM1 (first draft was wrong).
+
+Dead ends:
+- Expecting mask == Bit(LED_CAM1) in led_read_test — the track-2 item is also under the cursor and selected, so CAM2 is lit too.
+
+Next:
+- Full `tools/check` bg job `check9` running (incl. windows + oracle host); then the two greps, tick line 102, commit.

@@ -99,7 +99,7 @@ tools/reaper-oracle --layer reaper --scenario simple_verbs
 tools/check && grep -q 'select_track' docs/design.md && grep -q 'select_track' README.md
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. SMOKE-TEST
 - `SMOKE-TEST.md`: add `## M45 — CAM N selection`: two-track setup; CAM N toggles the under-cursor item on track N, additive across tracks; select with the mouse or jog the cursor and the CAM N LED updates within ~1 s with no key press.

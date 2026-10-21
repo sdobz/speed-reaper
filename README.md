@@ -83,7 +83,7 @@ different verb changes (or removes) its LED. With the default
 | CUT | ripple editing = per-track (`CUT.tap = action 40310`) |
 | DIS | ripple editing = all tracks (`DIS.tap = action 40311`) |
 | LIVE_OWR | trim-behind is on (`LIVE_OWR.tap = action 41117`) |
-| CAM1…CAM9 | active take number (1–9) shared by all selected items (`CAM<n>.tap = take <n>`) |
+| CAM1…CAM9 | item under the cursor on track N (1–9) is selected (`CAM<n>.tap = select_track <n>`) |
 | VIDEO_ONLY | tracks are isolated (`VIDEO_ONLY.tap = isolate_tracks`) |
 | AUDIO_ONLY | solo is on (`AUDIO_ONLY.tap = solo_tracks`) |
 

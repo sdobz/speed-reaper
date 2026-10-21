@@ -378,10 +378,17 @@ void test_timeline_gestures() {
   }
 }
 
-// M6 design §3: CAM 1–9 set the active take N (I_CURTAKE = N-1) on each
-// target item; items with fewer than N takes keep theirs. One undo block
-// labelled "Speed Reaper: take N"; the selection is restored (rule 1).
+// M6 design §3: `take N` sets the active take N (I_CURTAKE = N-1) on
+// each target item; items with fewer than N takes keep theirs. One undo
+// block labelled "Speed Reaper: take N"; the selection is restored
+// (rule 1). The defaults bind the CAM keys to `select_track N`, so the
+// `take` verb is exercised with an explicit CAM -> take binding (the
+// oracle simple_verbs scenario does the same on real REAPER).
 void test_cam_takes() {
+  const std::string takes_bindings =
+      "[bindings]\n"
+      "CAM1.tap = take 1\n"
+      "CAM2.tap = take 2\n";
   // 1) CAM2 with two targets (the existing selection, rule 1): the 3-take
   // item is set to index 1; the 1-take item is untouched.
   {
@@ -392,7 +399,7 @@ void test_cam_takes() {
     project.take_counts = {3, 1};
     project.take_indices = {0, 0};
     project.last_touched = 0;
-    VerbRouter r(sink, project);
+    VerbRouter r(sink, project, takes_bindings);
 
     r.OnGesture(G(KEY_CAM2, GestureKind::Tap));
     CHECK(sink.commands.empty());  // pure project API, no REAPER commands
@@ -417,7 +424,7 @@ void test_cam_takes() {
     FakeProject project;
     project.items.push_back(ItemInfo{0, 0, 0.0, 5.0, false});
     project.cursor = 10.0;  // after the item
-    VerbRouter r(sink, project);
+    VerbRouter r(sink, project, takes_bindings);
 
     r.OnGesture(G(KEY_CAM1, GestureKind::Tap));
     CHECK(sink.commands.empty());

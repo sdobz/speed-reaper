@@ -2,7 +2,8 @@
 // FakeProject: the M8 LED snapshot (docs/archive/plugin-design-m5-m9.md
 // §5, docs/notes/m8-state-reads.md), driven through BindingLedMask with
 // the embedded default bindings (reads: action 1157 / 41117 / 40310 /
-// 40311 / take N / isolate / solo) plus SharedActiveTake (project_ops.h).
+// 40311 / select_track N / isolate / solo) plus SharedActiveTake
+// (project_ops.h).
 #include "fake_project.h"
 
 #include "bindings.h"
@@ -86,23 +87,32 @@ int main() {
     CHECK(SharedActiveTake(p) == 1);
   }
 
-  // Take numbers above 9 have no CAM bit -> 0, and nothing lights.
+  // Take numbers above 9 have no `take N` read -> 0; with the defaults
+  // (CAM -> select_track N) the take numbers are irrelevant to the mask:
+  // only the item on track 1 under the cursor (0.0) is selected, so only
+  // CAM1 is lit (the `take N` read is exercised in led_state_test).
   {
     FakeProject p;
     p.items = {Item(0, 0, true), Item(1, 1, true)};
     p.take_indices = {9, 9};  // take number 10 -> out of range
     CHECK(SharedActiveTake(p) == 0);
-    CHECK(BindingLedMask(def, reg, LedReadContext{p, false, false}) == 0u);
+    // Both items are under the cursor (one per track) and selected, so
+    // both CAM bits are lit via the `select_track N` reads.
+    CHECK(BindingLedMask(def, reg, LedReadContext{p, false, false}) ==
+          (Bit(LED_CAM1) | Bit(LED_CAM2)));
   }
 
-  // The shared take drives the CAM bits through the `take N` reads.
+  // The CAM bits follow the `select_track N` reads: lit iff the item on
+  // track N under the edit cursor (0.0 here) is selected — no key press.
   {
     FakeProject p;
     p.items = {Item(0, 0, true), Item(1, 1, true)};
-    p.take_indices = {1, 1};  // shared take number 2
     const std::uint32_t mask =
         BindingLedMask(def, reg, LedReadContext{p, false, false});
-    CHECK(mask == Bit(LED_CAM2));
+    CHECK(mask == (Bit(LED_CAM1) | Bit(LED_CAM2)));
+    p.items[0].selected = false;
+    p.items[1].selected = false;  // nothing selected -> all dark
+    CHECK(BindingLedMask(def, reg, LedReadContext{p, false, false}) == 0u);
   }
 
   // Isolate / solo are the view-op state, carried by the read context.

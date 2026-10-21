@@ -165,6 +165,7 @@ verbs). Registered verbs:
 | `ripple_delete` | — | remove time-selection contents, else the target items, closing the gap |
 | `select_cursor_item` | — | TIMELINE tap: exclusively select the item under the cursor (tap again: deselect) |
 | `select_step` | — | TIMELINE turn: step the selection one item per 20 wheel ticks |
+| `select_track` | 1–9 | toggle selection of the item under the cursor on track N (rest of the selection untouched; no item under the cursor → no-op) |
 | `volume_readout` | — | message box: the first target's volume in dB |
 | `smooth_cut` | — | crossfade within the time selection (40916); none → no-op |
 | `place_on_top` | — | duplicate the targets onto one new track above |
@@ -247,10 +248,14 @@ default `bindings.ini` each lights its own key's LED:
 | DIS | 40311 | ripple all tracks on (`RippleMode() == 2`) | `DIS.tap = action 40311` |
 | LIVE_OWR | 41117 | trim-below on (`ToggleState(41117)`) | `LIVE_OWR.tap = action 41117` |
 
-Other seeded reads: `take <N>` — the CAM keys, true iff
-`SharedActiveTake(project) == N` (default `CAM<n>.tap = take <n>`, so a
-CAM LED shows the take shared by **all** selected items; mixed or none
-selected → dark); `isolate_tracks` — `ctx.isolate_active`
+Other seeded reads: `select_track <N>` — the CAM keys, true iff the
+item on track N under the edit cursor is selected (default
+`CAM<n>.tap = select_track <n>`; the LED lights as long as that item is
+selected — without the key being pressed — and goes dark once it is
+deselected or the cursor leaves it); `take <N>` — true iff
+`SharedActiveTake(project) == N`, so a key bound to `take N` lights
+while the selected items **all** share take N (mixed or none selected →
+dark); `isolate_tracks` — `ctx.isolate_active`
 (`VIDEO_ONLY.tap`); `solo_tracks` — `ctx.solo_active`
 (`AUDIO_ONLY.tap`). Every other verb has no read → its key's LED stays
 dark.
