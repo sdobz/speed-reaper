@@ -185,3 +185,11 @@ Dead ends:
 
 Next:
 - Full `tools/check` bg job `check9` running (incl. windows + oracle host); then the two greps, tick line 102, commit.
+
+Result: exit 0; done; log: logs/45-cam-n-L102-a7-1792548522987.log
+
+### Done — 2026-10-21 — 7 attempt(s)
+Files:
+```
+M vibes/.ralph/45-cam-n.md
+```
