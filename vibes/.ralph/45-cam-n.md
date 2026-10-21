@@ -29,3 +29,11 @@ Dead ends:
 
 Next:
 - Task 2 (`CursorItemOnTrack`) can start; it is the arbiter for H2.
+
+Result: exit 0; done; log: logs/45-cam-n-L30-a1-1792546052389.log
+
+### Done — 2026-10-21 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/45-cam-n.md
+```
