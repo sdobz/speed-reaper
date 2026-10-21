@@ -73,3 +73,11 @@ M vibes/.ralph/46-jog-zoom.md
 - Next: build (`cmake --build build/plugin`), then `tools/check wheel_dispatcher` via bgrun.
 - Done: `tools/check wheel_dispatcher` rc=0 (bgwait `check_wd_full`; job `check_wd` was the SKIP_WINDOWS=1 dry run). wheel_dispatcher_test passed; Windows DLL cross-build + static oracle + host oracle pass. Box ticked, committed.
 - Facts for later tasks: `kSecondsPerWheelUnit` is fully gone from plugin/ (only docs/ mentions remain — design.md:182 and jog-discovery.md §7:288-290 still describe the old scale; a docs task may want to refresh those). Oracle scenario `oracle/scenarios/hid_wheel.lua` (§7:291) is NOT yet re-baselined to the px/s-based scale — host oracle passed anyway; watch if a later task touches it.
+
+Result: exit 0; done; log: logs/46-jog-zoom-L52-a3-1792564639486.log
+
+### Done — 2026-10-21 — 3 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
