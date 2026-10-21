@@ -27,3 +27,11 @@ Durable facts every task should know (keep short).
   - First `tools/check bindings` run failed: docs/bindings.md is regenerated from the default ini's `[tuning]` block — after touching `default_bindings.ini` run `tools/gen_bindings_doc docs/bindings.md` and commit the diff.
 - Next:
   - DONE: `tools/check bindings` exited 0 (job `check-bindings`, second run); line 26 ticked.
+
+Result: exit 0; done; log: logs/46-jog-zoom-L26-a1-1792564019590.log
+
+### Done — 2026-10-21 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
