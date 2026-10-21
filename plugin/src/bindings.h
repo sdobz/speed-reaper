@@ -31,11 +31,13 @@
 #include "verb_registry.h"
 
 // The [tuning] section (defaults match GestureConfig in gesture.h;
-// hold_ticks_per_step is the turn-verb step granularity, 41 design).
+// hold_ticks_per_step is the turn-verb step granularity, 41 design;
+// wheel_pixels_per_detent is the one float key, 46 design).
 struct Tuning {
   int double_tap_ms = 300;
   int hold_ms = 350;
   int hold_ticks_per_step = 4;
+  double wheel_pixels_per_detent = 0.25;
 };
 
 // One binding: the verb name + args exactly as written, plus the verb

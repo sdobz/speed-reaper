@@ -23,7 +23,7 @@ cursor (replacing `select_step`, which is removed).
 tools/check bindings
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 2. Zoom-scale seam + `JogEngine` uses pixels per detent
 - Add `GetHZoomLevel` to `plugin/src/reaper_api.h` (`REAPERAPI_WANT_`).

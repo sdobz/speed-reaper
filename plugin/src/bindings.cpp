@@ -2,8 +2,9 @@
 #include "bindings.h"
 
 #include <cctype>
+#include <cmath>  // std::isfinite
 #include <climits>
-#include <cstdlib>  // std::strtol
+#include <cstdlib>  // std::strtol, std::strtod
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -95,6 +96,18 @@ bool ParseInt(const std::string &s, int *out) {
   if (end == s.c_str() || *end != '\0') return false;
   if (v < INT_MIN || v > INT_MAX) return false;
   *out = static_cast<int>(v);
+  return true;
+}
+
+// A full positive finite float (the wheel.pixels_per_detent key; every
+// other [tuning] value stays integer-only).
+bool ParsePositiveFloat(const std::string &s, double *out) {
+  if (s.empty()) return false;
+  char *end = nullptr;
+  const double v = std::strtod(s.c_str(), &end);
+  if (end == s.c_str() || *end != '\0') return false;  // empty / trailing junk
+  if (!std::isfinite(v) || v <= 0.0) return false;
+  *out = v;
   return true;
 }
 
@@ -242,6 +255,15 @@ Bindings ParseBindings(std::string_view text, const VerbRegistry &registry) {
     }
 
     if (section == Section::Tuning) {
+      if (lhs == "wheel.pixels_per_detent") {
+        double value = 0.0;
+        if (!ParsePositiveFloat(rhs, &value)) {
+          err(line, "tuning value '" + rhs + "' is not a positive number");
+          continue;
+        }
+        out.tuning.wheel_pixels_per_detent = value;
+        continue;
+      }
       int value = 0;
       if (!ParseInt(rhs, &value)) {
         err(line, "tuning value '" + rhs + "' is not an integer");

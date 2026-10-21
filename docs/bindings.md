@@ -143,6 +143,9 @@ Generated from `MakeDefaultRegistry()` (plugin/src/verb_registry.cpp).
 double_tap_ms = 300
 hold_ms = 350
 hold_ticks_per_step = 4
+; wheel.pixels_per_detent is the zoom wheel's rate, pixels per detent (46;
+; the only float key in [tuning]).
+;wheel.pixels_per_detent = 0.25
 
 [bindings]
 ; --- Router press rules (router.cpp OnButton) -------------------------

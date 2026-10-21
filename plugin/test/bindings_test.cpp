@@ -178,6 +178,31 @@ void test_tuning() {
     CHECK(b.tuning.double_tap_ms == 300);
     CHECK(b.tuning.hold_ms == 350);
     CHECK(b.tuning.hold_ticks_per_step == 4);
+    CHECK(b.tuning.wheel_pixels_per_detent == 0.25);  // default
+  }
+  {  // wheel.pixels_per_detent: the one float [tuning] key
+    const Bindings b = ParseBindings(
+        "[tuning]\n"
+        "wheel.pixels_per_detent = 0.5\n",
+        MakeDefaultRegistry());
+    CHECK(b.errors.empty());
+    CHECK_NEAR(b.tuning.wheel_pixels_per_detent, 0.5, 1e-12);
+  }
+  {
+    const Bindings b = ParseBindings(
+        "[tuning]\n"
+        "wheel.pixels_per_detent = 2\n",
+        MakeDefaultRegistry());
+    CHECK(b.errors.empty());
+    CHECK_NEAR(b.tuning.wheel_pixels_per_detent, 2.0, 1e-12);
+  }
+  for (const char *bad : {"abc", "0", "-1", ""}) {
+    const Bindings b = ParseBindings(
+        std::string("[tuning]\nwheel.pixels_per_detent = ") + bad + "\n",
+        MakeDefaultRegistry());
+    CHECK(b.errors.size() == 1);
+    CHECK(b.errors[0].rfind("bindings.ini:", 0) == 0);
+    CHECK(b.tuning.wheel_pixels_per_detent == 0.25);  // rejected, default kept
   }
   {
     const Bindings b = ParseBindings(
