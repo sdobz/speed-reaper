@@ -20,6 +20,13 @@ std::vector<int> TargetItems(IProject &project);
 // Target track = first selected track, else last-touched track; -1 if none.
 int TargetTrack(IProject &project);
 
+// Containment rule for one track only: the item with pos <= cursor <
+// pos+len; a boundary between two items belongs to the one starting there;
+// the cursor exactly at the track's last item end belongs to that item.
+// items must be ordered by track then pos. Item id, or -1 if none match.
+int CursorItemOnTrack(const std::vector<ItemInfo> &items, int track,
+                      double cursor);
+
 // Rule 2 only (for the explicit TIMELINE select verbs):
 // the item on the target track containing the cursor, ignoring any existing
 // selection. 0 or 1 element.

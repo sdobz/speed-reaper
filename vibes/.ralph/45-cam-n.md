@@ -37,3 +37,18 @@ Files:
 ```
 M vibes/.ralph/45-cam-n.md
 ```
+
+## Task: 2. `CursorItemOnTrack`
+
+### Attempt 2 — 2026-10-21T01:32:04Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- `CursorItemOnTrack(items, track, cursor)` added to `plugin/src/target.{h,cpp}`; identical containment rule extracted from `CursorTargetItem`, which now reuses it (`-1` → empty).
+- New `TestCursorItemOnTrack` in `plugin/test/target_test.cpp` covers inside, boundary → starter, last-item end, before/after → -1, other-track item ignored. `tools/check target` exit 0.
+
+Dead ends:
+- First draft of the new test asserted `on(1, 0.75) == -1` although cursor 0.75 is inside track-1 item 7 (0.25–1.25); the check, not the code, was wrong. Fixed the assertion.
+
+Next:
+- Task 3: `select_track` verb + `state_read` provider (use `CursorItemOnTrack`).

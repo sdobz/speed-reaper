@@ -16,25 +16,28 @@ int TargetTrack(IProject &project) {
   return project.LastTouchedTrack();
 }
 
-std::vector<int> CursorTargetItem(IProject &project) {
-  const int track = TargetTrack(project);
-  if (track < 0) return {};
-  const double cursor = project.CursorPos();
-
+int CursorItemOnTrack(const std::vector<ItemInfo> &items, int track,
+                      double cursor) {
   int last_item_id = -1;
   double last_end = 0.0;
-  for (const ItemInfo &item : project.Items()) {  // ordered by track then pos
+  for (const ItemInfo &item : items) {  // ordered by track then pos
     if (item.track != track) continue;
     if (item.pos <= cursor && cursor < item.pos + item.len)
-      return {item.id};  // boundary: only the item starting there contains
-                         // the cursor, since items on a track are in pos order
+      return item.id;  // boundary: only the item starting there contains the
+                       // cursor, since items on a track are in pos order
     last_item_id = item.id;
     last_end = item.pos + item.len;
   }
   // At the very end of the track's last item: that item.
-  if (last_item_id >= 0 && std::fabs(cursor - last_end) < kEps)
-    return {last_item_id};
-  return {};
+  if (last_item_id >= 0 && std::fabs(cursor - last_end) < kEps) return last_item_id;
+  return -1;
+}
+
+std::vector<int> CursorTargetItem(IProject &project) {
+  const int track = TargetTrack(project);
+  if (track < 0) return {};
+  const int id = CursorItemOnTrack(project.Items(), track, project.CursorPos());
+  return id < 0 ? std::vector<int>{} : std::vector<int>{id};
 }
 
 std::vector<int> TargetItems(IProject &project) {

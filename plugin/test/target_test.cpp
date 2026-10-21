@@ -91,6 +91,25 @@ void TestNothingUnderCursor() {
   CHECK(TargetItems(p).empty());
 }
 
+void TestCursorItemOnTrack() {
+  FakeProject p;
+  p.items = {Item(0, 0, 0.0, 1.0), Item(1, 0, 1.0, 1.0),  // track 0
+             Item(7, 1, 0.25, 1.0)};  // other track
+  const auto on = [&](int track, double cursor) {
+    return CursorItemOnTrack(p.items, track, cursor);
+  };
+  CHECK(on(0, 0.5) == 0);   // inside item 0
+  CHECK(on(0, 1.5) == 1);   // inside item 1
+  CHECK(on(0, 1.0) == 1);   // boundary → the item starting there
+  CHECK(on(0, 2.0) == 1);   // exactly at the last item's end → that item
+  CHECK(on(0, -0.1) == -1); // before the first item
+  CHECK(on(0, 2.5) == -1);  // past the last item
+  // Item 7 on track 1 overlaps the cursor at 0.75: it is the answer on its
+  // own track and ignored for track 0 (where item 0 answers instead).
+  CHECK(on(1, 0.75) == 7);
+  CHECK(on(0, 0.75) == 0);
+}
+
 void TestWithTargetSelectedRestores() {
   // No selection + target: select targets for f, then restore "none".
   FakeProject p;
@@ -133,6 +152,7 @@ int main() {
   TestBoundaryBelongsToItemStartingThere();
   TestTargetTrackFallbacks();
   TestNothingUnderCursor();
+  TestCursorItemOnTrack();
   TestWithTargetSelectedRestores();
   return check_failures();
 }

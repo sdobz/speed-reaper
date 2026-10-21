@@ -39,7 +39,7 @@ tools/reaper-oracle --layer reaper --scenario cam_probe && grep -q "^## Holes" d
 tools/check target
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Verb `select_track` + its LED provider
 - `plugin/src/verb_registry.cpp`: free function `void SelectTrackTap(IProject &project, int n)` (next to `TimelineTap`: find the item with `CursorItemOnTrack`, flip its bit in the current selection, `SetSelectedItems`); verb class `SelectTrackVerb`; register `select_track` with gestures `{Tap}`, arg via `ParseIntArg`, range 1..9, and `state_read` per the Decisions in `docs/notes/cam-n-select.md`.
