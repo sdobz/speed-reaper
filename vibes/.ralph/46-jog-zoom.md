@@ -120,3 +120,11 @@ M vibes/.ralph/46-jog-zoom.md
   - (none yet)
 - Next:
   - bgwait build46 → tools/gen_bindings_doc docs/bindings.md → git add -A → DONE: build (bg `build46`, must use `nix develop --command cmake` — plain bash has no cmake) clean with -Werror; `tools/gen_bindings_doc docs/bindings.md` after the rebuild (it uses the prebuilt build/plugin/verb_list binary); `tools/check && tools/check_api_want` rc=0 (bg `verify46`): 24/24 ctest incl. zoom_cursor_test, Windows cross-build, oracle host PASS, 48 REAPERAPI_WANT_ lines OK. Line 78 ticked, committed.
+
+Result: exit 0; done; log: logs/46-jog-zoom-L78-a5-1792565381285.log
+
+### Done — 2026-10-21 — 5 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
