@@ -192,17 +192,20 @@ void test_tuning() {
   }
 }
 
-// The double-tap set is derived from the `.double` bindings alone.
+// The double-tap set is derived from the `.double` bindings alone, and the
+// turn set from the `.turn` bindings alone.
 void test_double_tap_set() {
   const Bindings b = ParseBindings(
       "[bindings]\n"
       "IN.double = action 40029\n"
       "OUT.double = ripple_delete\n"
       "TIMELINE.tap = select_cursor_item\n"
+      "TIMELINE.turn = select_step\n"
       "ESC.press = wheel jog\n",
       MakeDefaultRegistry());
   CHECK(b.errors.empty());
   CHECK((b.double_tap_keys == std::vector<std::uint16_t>{KEY_IN, KEY_OUT}));
+  CHECK((b.turn_keys == std::vector<std::uint16_t>{KEY_TIMELINE}));
 }
 
 // Comments, blanks, and whitespace never count as lines or break parsing.

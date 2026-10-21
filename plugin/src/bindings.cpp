@@ -312,6 +312,8 @@ Bindings ParseBindings(std::string_view text, const VerbRegistry &registry) {
   for (const auto &entry : out.bindings)  // map order: keys already sorted
     if (entry.first.second == BindingGesture::Double)
       out.double_tap_keys.push_back(entry.first.first);
+    else if (entry.first.second == BindingGesture::Turn)
+      out.turn_keys.push_back(entry.first.first);
   return out;
 }
 

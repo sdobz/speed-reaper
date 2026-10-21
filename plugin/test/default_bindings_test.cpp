@@ -102,6 +102,15 @@ int main() {
          std::vector<std::uint16_t>{KEY_IN, KEY_OUT, KEY_TIMELINE,
                                     KEY_AUDIO_LEVEL, KEY_ESC}));
 
+  // 2b) The derived turn set (keys with a `.turn` binding) — only these may
+  // enter the hold+turn path. A key not in this set (e.g. every CAM key) is
+  // a pure tap key whose Tap still fires while the wheel is coasting.
+  CHECK((b.turn_keys ==
+         std::vector<std::uint16_t>{KEY_IN, KEY_OUT, KEY_TRIM_IN,
+                                    KEY_TRIM_OUT, KEY_ROLL, KEY_SLIP_SRC,
+                                    KEY_SLIP_DEST, KEY_TIMELINE,
+                                    KEY_AUDIO_LEVEL, KEY_SPLIT}));
+
   // 3) Every (key, gesture) today's tables map is bound to the matching
   // verb — and the binding set is exactly that set (no extras, no
   // duplicates): one entry per expected row, nothing else.

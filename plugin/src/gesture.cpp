@@ -15,6 +15,33 @@ bool GestureEngine::IsDoubleTapKey(std::uint16_t key) const {
          double_tap_keys_.end();
 }
 
+void GestureEngine::SetTurnKeys(std::vector<std::uint16_t> keys) {
+  turn_keys_ = std::move(keys);
+}
+
+bool GestureEngine::IsTurnKey(std::uint16_t key) const {
+  return std::find(turn_keys_.begin(), turn_keys_.end(), key) !=
+         turn_keys_.end();
+}
+
+std::uint16_t GestureEngine::PrimaryTurnKey() const {
+  std::uint16_t key = 0;
+  std::int64_t down_ms = 0;
+  for (const auto &kv : keys_) {
+    const KeyState &st = kv.second;
+    if (!st.pressed || !IsTurnKey(kv.first)) continue;
+    if (key == 0 || st.down_ms < down_ms) {
+      key = kv.first;
+      down_ms = st.down_ms;
+    }
+  }
+  return key;
+}
+
+bool GestureEngine::TurnHoldActive() const {
+  return PrimaryTurnKey() != 0;
+}
+
 void GestureEngine::OnKey(std::uint16_t key, bool down, std::int64_t now_ms) {
   if (std::find(press_keys_.begin(), press_keys_.end(), key) !=
       press_keys_.end()) {
@@ -57,22 +84,11 @@ void GestureEngine::OnKey(std::uint16_t key, bool down, std::int64_t now_ms) {
 void GestureEngine::OnWheel(std::int32_t delta, std::int64_t now_ms) {
   (void)now_ms;
   if (delta == 0) return;
-  // Wheel motion while held applies to the primary held key (the earliest
-  // press); wheel motion with no key held is a no-op here (the caller keeps
-  // it on the jog path).
-  bool found = false;
-  std::uint16_t key = 0;
-  std::int64_t down_ms = 0;
-  for (const auto &kv : keys_) {
-    const KeyState &st = kv.second;
-    if (!st.pressed) continue;
-    if (!found || st.down_ms < down_ms) {
-      found = true;
-      key = kv.first;
-      down_ms = st.down_ms;
-    }
-  }
-  if (!found) return;
+  // Only a turn-capable held key owns the wheel (hold+turn). A tap-only key
+  // held while the wheel coasts is a no-op here: the dispatcher keeps the
+  // delta on the jog path and the release stays a Tap.
+  const std::uint16_t key = PrimaryTurnKey();
+  if (key == 0) return;
   KeyState &st = keys_[key];
   if (!st.hold_started) {
     st.hold_started = true;
@@ -84,7 +100,9 @@ void GestureEngine::OnWheel(std::int32_t delta, std::int64_t now_ms) {
 void GestureEngine::Poll(std::int64_t now_ms) {
   for (auto &kv : keys_) {
     KeyState &st = kv.second;
-    if (st.pressed && !st.hold_started &&
+    // The hold_ms timer starts a hold only for turn keys; a tap-only key
+    // held past the window is still released as a Tap.
+    if (st.pressed && !st.hold_started && IsTurnKey(kv.first) &&
         now_ms - st.down_ms >= cfg_.hold_ms) {
       st.hold_started = true;
       Emit(Gesture{kv.first, GestureKind::HoldStart, 0});

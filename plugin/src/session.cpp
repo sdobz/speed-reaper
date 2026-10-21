@@ -69,6 +69,7 @@ void Session::ConfigureGestures() {
                                           verbs_.tuning().hold_ms});
   gestures_.SetDoubleTapKeys(verbs_.DoubleTapKeys());
   gestures_.SetPressKeys(verbs_.PressKeys());
+  gestures_.SetTurnKeys(verbs_.TurnKeys());
 }
 
 void Session::ReportErrors() {

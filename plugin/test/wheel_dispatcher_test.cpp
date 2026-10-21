@@ -151,24 +151,26 @@ int main() {
     CHECK(sink.hard_stops == 1);  // parked: no re-issue
   }
 
-  // Hold wins over every mode (design §7): one key press held across
-  // Jog, Scrl and Shtl — the wheel always drives the held key's
-  // HoldRotate; none of the three destinations sees it.
+  // A held turn key wins over every mode (design §7): one key press held
+  // across Jog, Scrl and Shtl — the wheel always drives the held key's
+  // HoldRotate; none of the three destinations sees it. (KEY_TIMELINE is a
+  // tap+turn key in the defaults; it is registered here as the turn set.)
   {
     FakeDevice dev;
     FakeSink sink;
     GestureEngine gestures;
+    gestures.SetTurnKeys({KEY_TIMELINE});
     WheelState ws;
     Router r(sink, ws);
     WheelDispatcher d(dev, gestures, r);
 
     dev.abs_ = 2068;  // off-center from the start
-    gestures.OnKey(KEY_SNAP, true, 0);  // press (Jog mode, initial)
-    gestures.Poll(350);                 // hold fires: HoldStart
+    gestures.OnKey(KEY_TIMELINE, true, 0);  // press (Jog mode, initial)
+    gestures.Poll(350);                     // hold fires: HoldStart
     {
       Gesture gest;
       CHECK(gestures.Pop(&gest) && gest.kind == GestureKind::HoldStart &&
-            gest.key == KEY_SNAP);
+            gest.key == KEY_TIMELINE);
       DrainWheel(gestures);
     }
 
@@ -181,7 +183,7 @@ int main() {
     CHECK(sink.hard_stops == 0);
     Gesture gest;
     CHECK(gestures.Pop(&gest) && gest.kind == GestureKind::HoldRotate &&
-          gest.key == KEY_SNAP && gest.delta == 45);
+          gest.key == KEY_TIMELINE && gest.delta == 45);
 
     // Scrl + hold: the view is not scrolled either.
     ws.Set(WheelMode::Scrl);
@@ -205,6 +207,48 @@ int main() {
     CHECK(gestures.Pop(&gest) && gest.kind == GestureKind::HoldRotate &&
           gest.delta == 5);
     DrainWheel(gestures);
+  }
+
+  // 45-cam-n: a tap-only key held while coasting does NOT own the wheel. In
+  // Jog the delta passes through to the engine (the cursor keeps moving) and
+  // no HoldStart/HoldRotate is emitted for the tap key — so its release stays
+  // a Tap and the selection is not swallowed by a phantom hold.
+  {
+    FakeDevice dev;
+    FakeSink sink;
+    GestureEngine gestures;
+    gestures.SetTurnKeys({KEY_TIMELINE});  // only TIMELINE is a turn key
+    WheelState ws;
+    Router r(sink, ws);
+    WheelDispatcher d(dev, gestures, r);
+
+    dev.abs_ = 2068;
+    gestures.OnKey(KEY_CAM3, true, 0);  // hold a tap-only key (CAM3)
+    dev.sample_ = WheelSample{45};
+    WheelSample out{};
+    d.Tick(&out);
+    CHECK(out.delta == 45);  // Jog: still jogs while CAM3 is held
+    CHECK(sink.scroll_calls == 0 && sink.rate_calls == 0);
+    CHECK(sink.hard_stops == 0);
+    {
+      Gesture gest;
+      CHECK(!gestures.Pop(&gest));  // no HoldStart/HoldRotate for a tap key
+    }
+    // A turn key held instead still captures the wheel (contrast).
+    gestures.OnKey(KEY_TIMELINE, true, 1000);
+    gestures.Poll(1350);  // hold fires: HoldStart
+    {
+      Gesture g0;
+      CHECK(gestures.Pop(&g0) && g0.kind == GestureKind::HoldStart &&
+            g0.key == KEY_TIMELINE);
+      DrainWheel(gestures);
+    }
+    dev.sample_ = WheelSample{45};
+    out = {};
+    d.Tick(&out);
+    CHECK(out.delta == 0);  // turn key owns the wheel
+    Gesture gest;
+    CHECK(gestures.Pop(&gest) && gest.kind == GestureKind::HoldRotate);
   }
 
   return check_failures();

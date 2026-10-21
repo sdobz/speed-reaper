@@ -40,14 +40,25 @@ class GestureEngine {
   // (no tap wait, no hold/double tracking).
   void SetPressKeys(std::vector<std::uint16_t> keys);
 
+  // Keys bound with `turn`: the only ones that can enter the hold (hold+turn)
+  // path. A key not in this set is a pure tap key — wheel motion while it is
+  // held stays on the jog path, and a press never becomes a hold, so a Tap
+  // fires on release even while the wheel is coasting (45-cam-n: tapping a
+  // CAM key mid-scroll). Both hold triggers (wheel-while-held and the
+  // hold_ms timer) are gated on this set.
+  void SetTurnKeys(std::vector<std::uint16_t> keys);
+
   void OnKey(std::uint16_t key, bool down, std::int64_t now_ms);
   void OnWheel(std::int32_t delta, std::int64_t now_ms);
   void Poll(std::int64_t now_ms);  // call every timer tick
   bool Pop(Gesture *out);
 
-  // True while any key is held down. main.cpp routes wheel deltas to
-  // OnWheel (not the jog path) while this is true.
+  // True while any key is held down.
   bool HoldActive() const;
+  // True iff the earliest held key is a turn key. main.cpp routes wheel
+  // deltas to OnWheel (not the jog path) only while this is true, so a
+  // coasting wheel keeps jogging while a tap-only key is held.
+  bool TurnHoldActive() const;
 
  private:
   struct KeyState {
@@ -60,11 +71,15 @@ class GestureEngine {
   };
 
   bool IsDoubleTapKey(std::uint16_t key) const;
+  bool IsTurnKey(std::uint16_t key) const;
+  // Earliest-pressed held key that is a turn key; 0 if none held is turn.
+  std::uint16_t PrimaryTurnKey() const;
   void Emit(Gesture g) { pending_.push_back(g); }
 
   GestureConfig cfg_;
   std::vector<std::uint16_t> double_tap_keys_;
   std::vector<std::uint16_t> press_keys_;
+  std::vector<std::uint16_t> turn_keys_;
   std::map<std::uint16_t, KeyState> keys_;  // sorted: deterministic emit order
   std::vector<Gesture> pending_;
 };

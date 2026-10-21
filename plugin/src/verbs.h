@@ -45,6 +45,11 @@ class VerbRouter {
   const std::vector<std::uint16_t> &DoubleTapKeys() const {
     return bindings_.double_tap_keys;
   }
+  // Keys bound with `.turn` (can enter the hold+turn path); a key not listed
+  // is a pure tap key whose Tap still fires while the wheel is coasting.
+  const std::vector<std::uint16_t> &TurnKeys() const {
+    return bindings_.turn_keys;
+  }
   // Keys bound with `press` (fire on the down edge).
   const std::vector<std::uint16_t> &PressKeys() const { return press_keys_; }
   // "bindings.ini:<n>: <reason>" per skipped line.

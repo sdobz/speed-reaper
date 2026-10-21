@@ -60,6 +60,11 @@ struct Bindings {
   // Keys with a `.double` binding: only those taps wait for a second
   // press (the double-tap set is derived, not listed). Sorted.
   std::vector<std::uint16_t> double_tap_keys;
+  // Keys with a `.turn` binding: only those can enter the hold (hold+turn)
+  // path. A key without a `.turn` binding is a pure tap key — the wheel is
+  // not captured while it is held and a press never becomes a hold, so its
+  // Tap still fires mid-coast. Sorted.
+  std::vector<std::uint16_t> turn_keys;
 };
 
 // Parse the whole file. Verb resolution (unknown name, wrong gesture,

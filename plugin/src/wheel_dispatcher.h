@@ -1,7 +1,9 @@
 // wheel_dispatcher.h — one pure class decides where each tick's wheel input
 // goes. Replaces the old hold/mode decorator chain. Priority order, per
 // engine tick:
-//   active hold → GestureEngine::OnWheel (a held key owns the wheel)
+//   active turn-hold → GestureEngine::OnWheel (a held *turn* key owns the
+//     wheel; a tap-only key held while coasting leaves the delta on the jog
+//     path, so its release stays a Tap)
 //   else by mode:
 //     Jog  → pass the delta through (JogEngine: playhead moves 1:1)
 //     Scrl → Router::OnWheel (view scroll; engine sees 0)
@@ -39,9 +41,10 @@ class WheelDispatcher final : public IWheelSource {
   void Tick(WheelSample *out) override {
     WheelSample s;
     device_.Tick(&s);
-    if (gestures_.HoldActive()) {
-      // A held key beats every mode: the wheel drives the
-      // held key's HoldRotate; the jog/scroll/shuttle paths see nothing.
+    if (gestures_.TurnHoldActive()) {
+      // A held turn key beats every mode: the wheel drives the held key's
+      // HoldRotate; the jog/scroll/shuttle paths see nothing. A tap-only key
+      // is not a turn key, so a coasting wheel still jogs while it is held.
       gestures_.OnWheel(s.delta, 0);  // now_ms is unused by OnWheel
       s.delta = 0;
     } else if (router_.Mode() == WheelMode::Jog) {
