@@ -175,8 +175,9 @@ void Session::Tick(std::int64_t now_ms) {
   // (no point pushing while the device is not connected).
   if (connected && (led_mask_ < 0 || now_ms - last_led_ms_ >= kLedPollMs)) {
     last_led_ms_ = now_ms;
-    const std::uint32_t mask = MainLedMask(ReadLedState(
-        project_, verbs_.IsolateActive(), verbs_.SoloActive()));
+    const std::uint32_t mask = BindingLedMask(verbs_.bindings(),
+        verbs_.registry(), LedReadContext{project_, verbs_.IsolateActive(),
+                                          verbs_.SoloActive()});
     if (static_cast<std::uint32_t>(led_mask_) != mask) {
       led_mask_ = static_cast<int>(mask);
       Trace("led main=%x", mask);  // oracle greps

@@ -37,6 +37,10 @@ class VerbRouter {
   void OnGesture(const Gesture &g);
 
   const Tuning &tuning() const { return bindings_.tuning; }
+  // Live bindings table (LED poll: BindingLedMask, design § Mask).
+  const Bindings &bindings() const { return bindings_; }
+  // The verb registry backing the bindings (verb specs, StateReads).
+  const VerbRegistry &registry() const { return registry_; }
   // Keys whose tap waits for a second press (derived from `.double`).
   const std::vector<std::uint16_t> &DoubleTapKeys() const {
     return bindings_.double_tap_keys;
