@@ -96,24 +96,25 @@ void SoloView::Toggle(IProject &p, const std::vector<int> &item_ids) {
   active_ = true;
 }
 
+int SharedActiveTake(IProject &p) {
+  int shared = 0;
+  for (const ItemInfo &item : p.Items()) {
+    if (!item.selected) continue;
+    const int t = p.ItemActiveTake(item.id) + 1;  // 1-based
+    if (t < 1 || t > 9) return 0;
+    if (shared == 0)
+      shared = t;
+    else if (shared != t) return 0;
+  }
+  return shared;
+}
+
 LedState ReadLedState(IProject &p, bool isolate, bool solo) {
   LedState s;
   s.snap = p.ToggleState(reaper_cmd::Snap);
   s.ripple = p.RippleMode();
   s.trim_behind = p.ToggleState(reaper_cmd::TrimBehind);
-  // active_take: the 1-based active take shared by ALL selected items,
-  // else 0 (nothing selected, mixed, no active take, or take > 9 — the
-  // main panel has only the CAM 1..9 bits).
-  int shared = 0;
-  for (const ItemInfo &item : p.Items()) {
-    if (!item.selected) continue;
-    const int t = p.ItemActiveTake(item.id) + 1;  // 1-based
-    if (t < 1 || t > 9) { s.active_take = 0; return s; }
-    if (shared == 0)
-      shared = t;
-    else if (shared != t) { s.active_take = 0; return s; }
-  }
-  s.active_take = shared;
+  s.active_take = SharedActiveTake(p);
   s.isolate = isolate;
   s.solo = solo;
   return s;

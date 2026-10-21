@@ -52,11 +52,16 @@ class SoloView {
   std::vector<std::pair<int, int>> saved_;  // (track, previous I_SOLO)
 };
 
+// The 1-based active take shared by ALL selected items (I_CURTAKE only).
+// 0 when nothing is selected, a selected item has no active take, the
+// selected items disagree, or the shared take is > 9 (the main panel has
+// only the CAM 1..9 bits).
+int SharedActiveTake(IProject &p);
+
 // LED bar (docs/notes/m8-state-reads.md): pure aggregate of the
 // primitives — snap / trim-behind toggles (1157 / 41117), ripple mode,
-// the 1-based active take shared by ALL selected items (I_CURTAKE only,
-// else 0; also 0 when the shared take is > 9 — no CAM LED for it) — plus
-// the isolate / solo view state (IsActive() of the views above).
+// SharedActiveTake — plus the isolate / solo view state (IsActive() of
+// the views above).
 LedState ReadLedState(IProject &p, bool isolate, bool solo);
 
 #endif  // SPEED_REAPER_PROJECT_OPS_H

@@ -154,5 +154,53 @@ int main() {
     CHECK(p.track_views[0].show_tcp == true);
   }
 
+  // SharedActiveTake: the 1-based active take shared by ALL selected
+  // items (I_CURTAKE only).
+  {
+    FakeProject p;
+    p.items = {Item(0, 0, true), Item(1, 1, true)};
+    p.active_takes = {1, 1};  // both on take index 1 -> take number 2
+    CHECK(SharedActiveTake(p) == 2);
+    // A plain 1-take item has active take index 0 -> take number 1.
+    FakeProject one;
+    one.items = {Item(0, 0, true)};
+    CHECK(SharedActiveTake(one) == 1);
+  }
+
+  // SharedActiveTake: 0 when nothing is selected (items exist but are
+  // unselected, and when there are no items at all).
+  {
+    FakeProject p;
+    p.items = {Item(0, 0, false), Item(1, 1, false)};
+    p.active_takes = {1, 1};
+    CHECK(SharedActiveTake(p) == 0);
+    FakeProject none;
+    CHECK(SharedActiveTake(none) == 0);
+  }
+
+  // SharedActiveTake: 0 when the selected items disagree (mixed takes),
+  // and 0 when a selected item has no active take.
+  {
+    FakeProject p;
+    p.items = {Item(0, 0, true), Item(1, 1, true)};
+    p.active_takes = {1, 2};  // mixed -> 0
+    CHECK(SharedActiveTake(p) == 0);
+    p.active_takes = {1, -1};  // item 1 has no active take -> 0
+    CHECK(SharedActiveTake(p) == 0);
+  }
+
+  // SharedActiveTake: 0 when the shared take is > 9 (no CAM LED for it);
+  // take number 9 (index 8) is the highest one that counts.
+  {
+    FakeProject p;
+    p.items = {Item(0, 0, true), Item(1, 1, true)};
+    p.active_takes = {8, 8};  // take number 9 -> 9
+    CHECK(SharedActiveTake(p) == 9);
+    p.active_takes = {9, 9};  // take number 10 -> 0
+    CHECK(SharedActiveTake(p) == 0);
+    p.active_takes = {8, 9};  // mixed, one beyond 9 -> 0
+    CHECK(SharedActiveTake(p) == 0);
+  }
+
   return check_failures();
 }

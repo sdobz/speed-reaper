@@ -38,7 +38,7 @@ tools/check
 tools/check project_ops
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Provider plumbing on the registry (no providers yet)
 - In `plugin/src/verb_registry.{h,cpp}` add `LedReadContext`, `StateRead`, `VerbSpec::state_read`, `VerbRegistry::StateReadFor` exactly as in the design doc § Types.
