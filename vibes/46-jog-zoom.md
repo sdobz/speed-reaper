@@ -88,6 +88,23 @@ tools/reaper-oracle --layer reaper --scenario hid_wheel && tools/reaper-oracle -
 ```
 
 - [ ] Done
+  <!-- ralph: replanned=1 op=AND -->
+  - [ ] Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale
+    - Touch ONLY oracle/scenarios/hid_wheel.lua (no plugin/env/other-scenario changes; no rebuild — build/plugin .so is current). Read docs/notes/oracle-scenario-rules.md first (do not loosen checks; two-attempt limit, then mark [!]).
+    - New scale: seconds = (units/360) * (0.25 / pxPerSec). Read `local pxs = reaper.GetHZoomLevel()` at scenario start (failing check if pxs <= 0) and derive both thresholds from it — do not assume a window size.
+    - Turn 1 = 87240 units (137 x 600 + 5040 decay tail; see oracle/fake/wheel_unplug.txt): check rise1 > (87240/360)*(0.25/pxs)/6 (old 0.2 s was ~1/6 of the old 1.18 s expected). Max step: old 0.05 s was ~6x old per-event motion; per-event is now (600/360)*(0.25/pxs) s, so maxstep < 6x that; keep the existing dt>100 ms stall-interval exclusion.
+    - Turn 2 (after replug) = 82200 units: check rise2 > (82200/360)*(0.25/pxs)/4.
+    - record() the measured pxs and the expected values; rewrite the header comment (still describes the old 20 s/rev scale).
+    - Run: tools/reaper-oracle --layer reaper --scenario hid_wheel.
+    Verify: `tools/reaper-oracle --layer reaper --scenario hid_wheel`
+  - [ ] Add the hid_zoom oracle scenario (fixture + env + lua + registration)
+    - Add oracle/fake/hid_zoom.txt, oracle/scenarios/hid_zoom.env (export SPEED_REAPER_FAKE_DEVICE=oracle/fake/hid_zoom.txt), oracle/scenarios/hid_zoom.lua (model on hid_wheel.lua; start("device", ...)), and append hid_zoom to REAPER_SCENARIOS=(...) in tools/reaper-oracle (~line 238). Do not touch the plugin or other scenarios.
+    - Fixture (hold syntax per oracle/fake/hold_move_trim.txt; TIMELINE = key 0x1B per src/speed_editor/key_map.h): `at 300 key 0x1B down` (hold >= 350 ms before HoldStart), then 60 x `wheel 600` at 8 ms (CW, from ~700 ms), then 60 x `wheel -600` at 8 ms (CCW), then `key 0x1B up`. Keep the scenario under ~6 s (docs/notes/oracle-scenario-rules.md).
+    - Scenario: reaper.SetEditCurPos(5, false, false); set the view to 0-10 s via reaper.GetSet_ArrangeView2(nil, true, 0, 0, 0, 10); each defer cycle sample the view via reaper.GetSet_ArrangeView2(nil, false, 0, 0, 0, 0); q = (reaper.GetCursorPosition() - L) / (R - L).
+    - Checks: min span < 0.99 x 10 s (CW shrinks; 60 events = 100 detents, f = 0.25/view_width_px, ~2-3 % shrink); q unchanged within 1e-3 over all samples (pivot = edit cursor); max span after CCW starts > CW min span x 1.01 (CCW grows). record() pxs = reaper.GetHZoomLevel() plus min/max spans.
+    - If a check still fails after two honest attempts, mark [!] with the measured values per the rules doc — do not loosen.
+    - Run: tools/reaper-oracle --layer reaper --scenario hid_zoom.
+    Verify: `tools/reaper-oracle --layer reaper --scenario hid_zoom && rg -q 'hid_zoom' tools/reaper-oracle`
 
 ### 7. Docs
 - `docs/jog-discovery.md`: change the Status line to implemented, tick off the §8 sub-items per the Context above. Update `docs/design.md` / `docs/bindings.md` only where they mention `select_step` or `kSecondsPerRev`.

@@ -128,3 +128,16 @@ Files:
 ```
 M vibes/.ralph/46-jog-zoom.md
 ```
+
+## Task: 6. Re-baseline the oracle and add a zoom scenario
+
+### Attempt 6 — 2026-10-21T07:02:39Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Result: timeout after 180s without tool use (monologuing/stalled); no-progress; 1 file changed, 5 insertions(+); log: logs/46-jog-zoom-L90-a6-1792566159365.log
+
+### Replan (depth 0) — SPLIT op=AND → "Re-baseline oracle/scenarios/hid_wheel.lua to the pixel scale", "Add the hid_zoom oracle scenario (fixture + env + lua + registration)"
+Trigger: 6 attempt(s), last: timeout after 180s without tool use (monologuing/stalled), no-progress
+Why: The task bundles two artifacts (re-baseline hid_wheel.lua + a whole new scenario with fixture/env/lua/suite registration) and the only attempt shows a monologue stall with zero tool use and no progress — over-scoped for one sitting, not a time or design problem.
+Rejected: BUDGET: record shows no real progress (stall, not a long build), and budget is already 1800 s. SPIKE: no open design decision — the scale is settled (docs §4.2 + task 2's implementation) and headless pxPerSec is measurable via reaper.GetHZoomLevel(). REWRITE: task text and Verify are correct; only the size is wrong. BLOCK: nothing needs a human.
+Log: logs/46-jog-zoom-L90-replan-1792566492421.log
