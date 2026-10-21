@@ -12,13 +12,9 @@
 // without REAPERAPI_IMPLEMENT (main.cpp owns the globals), so a called
 // function with no WANT line is a link error.
 #include "reaper_api.h"
+#include "reaper_commands.h"
 
 namespace {
-
-// Ripple commands: 40310 = "Set ripple editing per-track",
-// 40311 = "Set ripple editing all tracks".
-constexpr int kRipplePerTrack = 40310;
-constexpr int kRippleAll = 40311;
 
 // Track-list index of a track (master excluded); -1 if null / not found.
 int TrackIndex(MediaTrack *track) {
@@ -151,8 +147,8 @@ void ReaperProject::SetSelectedItems(const std::vector<int> &ids) {
 }
 
 int ReaperProject::RippleMode() {
-  if (GetToggleCommandState(kRipplePerTrack)) return 1;
-  if (GetToggleCommandState(kRippleAll)) return 2;
+  if (GetToggleCommandState(reaper_cmd::RipplePerTrack)) return 1;
+  if (GetToggleCommandState(reaper_cmd::RippleAll)) return 2;
   return 0;
 }
 

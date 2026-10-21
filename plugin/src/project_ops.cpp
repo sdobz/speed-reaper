@@ -3,16 +3,11 @@
 // primitives; this file owns the sequencing and the saved view state, so
 // it runs unchanged against the test fake.
 #include "project_ops.h"
+#include "reaper_commands.h"
 
 #include <algorithm>  // std::find
 
 namespace {
-
-// LED bar toggles (docs/notes/m8-state-reads.md): snap (1157) and
-// trim-behind (41117, "Options: Trim content behind media items when
-// editing"); both are valid GetToggleCommandState queries.
-constexpr int kSnapCmd = 1157;
-constexpr int kTrimBehindCmd = 41117;
 
 // Unique track indices of the valid item ids, in order of first
 // appearance (the view buttons act on the target items' tracks).
@@ -103,9 +98,9 @@ void SoloView::Toggle(IProject &p, const std::vector<int> &item_ids) {
 
 LedState ReadLedState(IProject &p, bool isolate, bool solo) {
   LedState s;
-  s.snap = p.ToggleState(kSnapCmd);
+  s.snap = p.ToggleState(reaper_cmd::Snap);
   s.ripple = p.RippleMode();
-  s.trim_behind = p.ToggleState(kTrimBehindCmd);
+  s.trim_behind = p.ToggleState(reaper_cmd::TrimBehind);
   // active_take: the 1-based active take shared by ALL selected items,
   // else 0 (nothing selected, mixed, no active take, or take > 9 — the
   // main panel has only the CAM 1..9 bits).
