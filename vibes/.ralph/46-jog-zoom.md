@@ -156,3 +156,11 @@ Facts:
 
 Next: re-run tools/reaper-oracle --layer reaper --scenario hid_wheel; if green, tick line 92.
 - Done: ORACLE PASS reaper/hid_wheel twice in a row (flush 0.0583 s and 0.0542 s, both excluded+recorded; maxstep 0.0167 < 0.025; rise1 0.6071 > 0.1010; rise2 0.5708 > 0.1427; trace connected/disconnected/connected in order).
+
+Result: exit 0; done; log: logs/46-jog-zoom-L92-a1-1792566995351.log
+
+### Done — 2026-10-21 — 1 attempt(s)
+Files:
+```
+M vibes/.ralph/46-jog-zoom.md
+```
