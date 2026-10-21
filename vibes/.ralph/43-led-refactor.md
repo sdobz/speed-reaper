@@ -131,3 +131,24 @@ Files:
 ```
 M vibes/.ralph/43-led-refactor.md
 ```
+
+## Task: 7. Wire the poll to `BindingLedMask`
+
+### Attempt 7 — 2026-10-21T01:07:07Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+Facts:
+- Tree clean (task 6 committed as 7c655d8/ee40a9e). `MainLedMask(ReadLedState(...))` was at session.cpp:178; `BindingLedMask`/`LedReadContext` already exist from tasks 5/3; session.cpp already includes led_state.h, and verbs.h includes verb_registry.h (LedReadContext) + bindings.h — no new includes needed.
+- Edits: verbs.h gains `bindings()`/`registry()` const accessors after `tuning()`; session.cpp poll now calls `BindingLedMask(verbs_.bindings(), verbs_.registry(), LedReadContext{project_, verbs_.IsolateActive(), verbs_.SoloActive()})`. `MainLedMask`/`ReadLedState` left in place; jog-mode LED path untouched.
+- Verify running: job `check43t7` (tools/check + oracle leds_ripple + leds_cam). Tracked-file edits only → no untracked-file hazard, but will commit before ralph's re-run.
+Facts (result):
+- Job check43t7 rc=0 in 33s: tools/check clean (-Werror, ctest, windows-oracle static, host), ORACLE PASS reaper/leds_ripple, ORACLE PASS reaper/leds_cam.
+- Committed as e83e209 (verbs.h + session.cpp); line 100 ticked. MainLedMask/ReadLedState still present (task says keep); jog-mode LED path untouched.
+
+Result: exit 0; done; 2 files changed, 13 insertions(+), 1 deletion(-); log: logs/43-led-refactor-L100-a7-1792544827532.log
+
+### Done — 2026-10-21 — 7 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+ M vibes/43-led-refactor.md
+```

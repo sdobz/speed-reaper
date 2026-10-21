@@ -97,7 +97,7 @@ tools/check default_bindings && tools/reaper-oracle --layer reaper --scenario xf
 tools/check && tools/reaper-oracle --layer reaper --scenario leds_ripple && tools/reaper-oracle --layer reaper --scenario leds_cam
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 8. Delete the hardcoded path
 - Delete `LedState` (incl. `active_take`), `ledForCam` use, and `MainLedMask` from `led_state.{h,cpp}`; delete `ReadLedState` from `project_ops.{h,cpp}` (keep `SharedActiveTake`). Fix stale comments mentioning them (`reaper_api.h` line ~40, `led_state.h`).
