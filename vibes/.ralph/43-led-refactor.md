@@ -152,3 +152,16 @@ Files:
 M vibes/.ralph/43-led-refactor.md
  M vibes/43-led-refactor.md
 ```
+
+## Task: 8. Delete the hardcoded path
+
+### Attempt 8 — 2026-10-21T01:09:35Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+
+Facts:
+- Tree clean at start (only record modified); task 7 done (session poll already on BindingLedMask).
+- Verify grep `active_take` also matches the fake's `active_takes` member → renamed it to `take_indices` in fake_project.h + all test users (led_read_test, led_state_test, session_test, project_ops_test, verbs_test, verb_registry_test).
+- `Session`'s embedded-default bindings: SNAP.tap=action 1157, CUT.tap=40310, DIS.tap=40311, LIVE_OWR.tap=41117, CAMn.tap=`take n`, VIDEO_ONLY/AUDIO_ONLY = isolate/solo — so a default empty project ⇒ mask 0; `proj.snap=true` ⇒ SNAP bit. Tests compute expected masks via `BindingLedMask(ParseBindings(DefaultBindingsText(), MakeDefaultRegistry()), ...)` mirroring the session.
+- session.cpp's only use of project_ops.h was ReadLedState → include dropped. IsolateActive/SoloActive live on VerbRouter (verbs_.).
+- Dead ends: none.
+- Next: done. tools/check (job check43-8) rc=0: 20/20 unit tests, windows-oracle static, oracle host. Verify grep clean. Committed as ce5344c.
