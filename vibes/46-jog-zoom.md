@@ -75,7 +75,7 @@ tools/check zoom
 tools/check && tools/check_api_want
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 6. Re-baseline the oracle and add a zoom scenario
 - `oracle/scenarios/hid_wheel.lua`: re-baseline the thresholds (first-turn rise, max step) to the new formula; set or read the headless `pxPerSec` explicitly.
