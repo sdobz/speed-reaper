@@ -208,3 +208,11 @@ M vibes/.ralph/45-cam-n.md
 - Facts: verify passes (`grep -q '^## M45' && grep -q 'select_track\|CAM N'` → OK);
   checkbox line 112 ticked; no build needed (doc-only task).
 - Next: none — task 8 complete.
+
+Result: exit 0; done; log: logs/45-cam-n-L112-a8-1792549180278.log
+
+### Done — 2026-10-21 — 8 attempt(s)
+Files:
+```
+M vibes/.ralph/45-cam-n.md
+```
