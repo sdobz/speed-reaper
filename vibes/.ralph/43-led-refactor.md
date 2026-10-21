@@ -30,3 +30,19 @@ M vibes/45-cam-n.md
 ?? vibes/.ralph/43-led-refactor.md
 ?? vibes/43-led-refactor.md
 ```
+
+## Task: 2. `SharedActiveTake`
+
+### Attempt 2 — 2026-10-21T00:22:25Z — budget 1800s
+<!-- worker: add Facts / Dead ends / Next bullets below while you work -->
+- Facts: working tree clean (attempt 1 left nothing). Added `SharedActiveTake(IProject&)` to plugin/src/project_ops.{h,cpp}, extracted the inline loop from `ReadLedState` verbatim (semantics: 1-based; 0 if nothing selected / no active take / mixed / take > 9, per docs/notes/led-binding.md § Where reads live); `ReadLedState` now calls it; kept `ReadLedState`.
+- Facts: tests added to plugin/test/project_ops_test.cpp: shared take 1-based (also plain 1-take item -> 1), 0 for unselected + empty project, 0 for mixed takes and no active take (-1), take number 9 -> 9, take number 10 and mixed-beyond-9 -> 0. FakeProject: `active_takes` index-aligned with items; missing entry = plain 1-take item (active take 0); -1 = no active take.
+- Facts: tools/check project_ops (job check43c, from dirty tree of tracked-file edits only) rc=0 — build -Werror clean, project_ops_test 1/1 passed (all 4 new SharedActiveTake cases), oracles PASS. Line 41 ticked; leaving commit to ralph (only edits to tracked files, no untracked files, so no nix-source issue).
+
+Result: exit 0; done; 1 file changed, 8 insertions(+); log: logs/43-led-refactor-L41-a2-1792542145900.log
+
+### Done — 2026-10-21 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/43-led-refactor.md
+```
