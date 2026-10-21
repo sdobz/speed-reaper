@@ -52,3 +52,11 @@ Dead ends:
 
 Next:
 - Task 3: `select_track` verb + `state_read` provider (use `CursorItemOnTrack`).
+
+Result: exit 0; done; log: logs/45-cam-n-L42-a2-1792546324393.log
+
+### Done — 2026-10-21 — 2 attempt(s)
+Files:
+```
+M vibes/.ralph/45-cam-n.md
+```
