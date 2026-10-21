@@ -38,7 +38,7 @@ tools/check bindings
 tools/check jog_engine
 ```
 
-- [ ] Done
+- [x] Done
 
 ### 3. Scrl uses the same scale
 - `plugin/src/router.{h,cpp}`: `Router::OnWheel` scrolls by `delta / kUnitsPerRev * k_px / pxPerSec` seconds, sharing `IZoomSource` and `k_px` with `JogEngine` (wire in `session.cpp`). Guard `pxPerSec <= 0`.

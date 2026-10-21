@@ -44,7 +44,8 @@ class Session {
   // `bindings_text` = the bindings.ini contents; empty = the embedded
   // default. Bad lines are skipped and reported via actions.Message.
   Session(IDevice &device, IActionSink &actions, IProject &project,
-          IPlayheadSink &sink, std::string_view bindings_text = {});
+          IPlayheadSink &sink, IZoomSource &zoom,
+          std::string_view bindings_text = {});
 
   // One timer callback's worth of work: button routing
   // (every key → gesture engine), gesture poll → bound verbs, mode change → device, (re)connect re-send of mode +

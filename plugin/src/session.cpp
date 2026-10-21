@@ -49,7 +49,8 @@ const char *WheelModeName(WheelMode m) {
 }  // namespace
 
 Session::Session(IDevice &device, IActionSink &actions, IProject &project,
-                 IPlayheadSink &sink, std::string_view bindings_text)
+                 IPlayheadSink &sink, IZoomSource &zoom,
+                 std::string_view bindings_text)
     : device_(device),
       actions_(actions),
       project_(project),
@@ -59,7 +60,10 @@ Session::Session(IDevice &device, IActionSink &actions, IProject &project,
                               verbs_.tuning().hold_ms}),
       router_(actions, verbs_.wheel_state()),
       dispatcher_(device, gestures_, router_),
-      engine_(dispatcher_, sink) {
+      // k_px comes from [tuning] (46 §4.1); verbs_ initializes before
+      // engine_ here and again on every ReloadBindings (ConfigureGestures).
+      engine_(dispatcher_, sink, zoom,
+              verbs_.tuning().wheel_pixels_per_detent) {
   ConfigureGestures();
   ReportErrors();
 }
@@ -70,6 +74,7 @@ void Session::ConfigureGestures() {
   gestures_.SetDoubleTapKeys(verbs_.DoubleTapKeys());
   gestures_.SetPressKeys(verbs_.PressKeys());
   gestures_.SetTurnKeys(verbs_.TurnKeys());
+  engine_.SetPixelsPerDetent(verbs_.tuning().wheel_pixels_per_detent);
 }
 
 void Session::ReportErrors() {

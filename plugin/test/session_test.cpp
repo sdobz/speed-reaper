@@ -75,6 +75,12 @@ class FakePlayhead final : public IPlayheadSink {
   std::vector<double> scrubs_;
 };
 
+class FakeZoom final : public IZoomSource {
+ public:
+  double px_per_sec = 100.0;
+  double PixelsPerSecond() const override { return px_per_sec; }
+};
+
 }  // namespace
 
 int main() {
@@ -85,7 +91,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     s.Tick(0);  // not connected: nothing sent
     CHECK(dev.mode_requests_ == 0);
     CHECK(dev.leds_.empty());
@@ -125,7 +132,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     dev.connected_ = true;
     s.Tick(0);
     const std::uint32_t off = dev.leds_.back();
@@ -160,7 +168,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     dev.connected_ = true;
     dev.sample_ = WheelSample{1};
     s.Tick(0);  // first tick: no gap, no engine step
@@ -187,7 +196,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     dev.PushButton({KEY_SNAP, true});
     s.Tick(0);
     CHECK(sink.commands_.empty());  // press only: nothing yet
@@ -205,7 +215,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     std::vector<std::string> got;
     s.SetLearnCallback([&got](const std::string &l, const std::string &v) {
       got.push_back(l + " = " + v);
@@ -262,7 +273,8 @@ int main() {
     FakeProject proj;
     FakeSink sink;
     FakePlayhead ph;
-    Session s(dev, sink, proj, ph);
+    FakeZoom zoom;
+    Session s(dev, sink, proj, ph, zoom);
     s.ReloadBindings("[bindings]\nSNAP.tap = action 999\nFOO.tap = action 1\n");
     dev.PushButton({KEY_SNAP, true});
     s.Tick(0);

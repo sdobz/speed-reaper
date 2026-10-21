@@ -23,6 +23,14 @@ class ReaperPlayheadSink : public IPlayheadSink {
   double PlayPosition() const override;
 };
 
+// IZoomSource over the REAPER API: the live arrange zoom, timeline
+// pixels per second (46 §4.1 seam; read every tick, so zoom + window
+// resizes are tracked live).
+class ReaperZoomSource : public IZoomSource {
+ public:
+  double PixelsPerSecond() const override;
+};
+
 // IActionSink over the REAPER API.
 class ReaperActionSink : public IActionSink {
  public:

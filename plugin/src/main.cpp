@@ -41,6 +41,7 @@ IPlayheadSink *g_sink = nullptr;
 Session *g_session = nullptr;
 
 ReaperPlayheadSink g_reaper_sink;
+ReaperZoomSource g_reaper_zoom; // live arrange zoom (GetHZoomLevel; 46 §4.1)
 HidWheelSource g_hid; // Speed Editor HID wheel (worker thread)
 ReaperActionSink g_action_sink;
 ReaperProject g_project; // IProject over the REAPER API
@@ -226,7 +227,7 @@ extern "C" REAPER_PLUGIN_DLL_EXPORT int ReaperPluginEntry(
   Trace("register ext_vendor ok");
 
   g_session = new Session(g_hid, g_action_sink, g_project, g_reaper_sink,
-                          LoadBindingsText());
+                          g_reaper_zoom, LoadBindingsText());
   g_session->SetLearnCallback(OnLearned);
   g_sink = &g_reaper_sink;
 

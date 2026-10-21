@@ -67,5 +67,6 @@
 #define REAPERAPI_WANT_GetActiveTake // ReaperProject::GetGeom/SetGeom
 #define REAPERAPI_WANT_GetMediaItemTakeInfo_Value // ReaperProject::GetGeom
 #define REAPERAPI_WANT_SetMediaItemTakeInfo_Value // ReaperProject::SetGeom
+#define REAPERAPI_WANT_GetHZoomLevel // ReaperZoomSource::PixelsPerSecond (46: zoom-scale seam)
 
 #include "reaper_plugin_functions.h"

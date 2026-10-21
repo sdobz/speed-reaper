@@ -21,6 +21,8 @@ void ReaperPlayheadSink::ScrubBySeconds(double dt) {
 
 double ReaperPlayheadSink::PlayPosition() const { return GetPlayPosition(); }
 
+double ReaperZoomSource::PixelsPerSecond() const { return GetHZoomLevel(); }
+
 void ReaperActionSink::RunCommand(int cmd) {
   Trace("cmd %d", cmd); // oracle greps
   Main_OnCommand(cmd, 0);
